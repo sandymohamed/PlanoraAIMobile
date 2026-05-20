@@ -1,0 +1,24 @@
+/**
+ * DEV ONLY — Gradle SSL workaround for corporate proxies (PKIX errors).
+ * Used via: gradlew.bat -I init-ssl.gradle ...
+ */
+import javax.net.ssl.*
+import java.security.cert.X509Certificate
+
+def trustAllCerts = [
+    new X509TrustManager() {
+        void checkClientTrusted(X509Certificate[] chain, String authType) {}
+        void checkServerTrusted(X509Certificate[] chain, String authType) {}
+        X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0] }
+    }
+] as TrustManager[]
+
+try {
+    def sslContext = SSLContext.getInstance('TLS')
+    sslContext.init(null, trustAllCerts, new java.security.SecureRandom())
+    HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.socketFactory)
+    HttpsURLConnection.setDefaultHostnameVerifier({ hostname, session -> true })
+    logger.lifecycle('[Planora] init-ssl.gradle: relaxed SSL for Maven downloads (dev only)')
+} catch (Exception e) {
+    logger.warn("[Planora] init-ssl.gradle failed: ${e.message}")
+}

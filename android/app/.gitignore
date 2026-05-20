@@ -1,0 +1,8 @@
+# Keystore files (NEVER commit these!)
+*.keystore
+!debug.keystore
+
+# Build outputs
+build/
+*.apk
+*.ap_
