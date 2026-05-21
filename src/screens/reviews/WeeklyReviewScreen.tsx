@@ -12,11 +12,12 @@ export const WeeklyReviewScreen: React.FC = () => {
 
   useEffect(() => {
     apiClient
-      .get<any>('/reviews/current')
+      .get<{ success: boolean; data: any }>('/reviews/current')
       .then((res) => {
-        setReview(res.data);
+        setReview(res.data ?? res);
         track(AnalyticsEvents.WEEKLY_REVIEW_VIEWED);
       })
+      .catch(() => setReview(null))
       .finally(() => setLoading(false));
   }, []);
 

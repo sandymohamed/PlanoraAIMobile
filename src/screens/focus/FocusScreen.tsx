@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { useAlarmStore } from '@/store/alarmStore';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { track, AnalyticsEvents } from '@/analytics/posthog';
 
@@ -13,42 +14,74 @@ const MODES: Record<FocusMode, { label: string; minutes: number }> = {
 };
 
 export const FocusScreen: React.FC = () => {
+  const { timers, activeTimer, fetchTimers, createTimer, startTimer, pauseTimer, stopTimer, deleteTimer } =
+    useAlarmStore();
   const [mode, setMode] = useState<FocusMode>('focus');
   const [secondsLeft, setSecondsLeft] = useState(MODES.focus.minutes * 60);
   const [running, setRunning] = useState(false);
+  const [backendTimerId, setBackendTimerId] = useState<string | null>(null);
   const interval = useRef<ReturnType<typeof setInterval> | null>(null);
   const progress = useSharedValue(1);
 
   useEffect(() => {
+    fetchTimers(1, 20);
+  }, [fetchTimers]);
+
+  useEffect(() => {
+    if (activeTimer?.remainingTime != null) {
+      setSecondsLeft(activeTimer.remainingTime);
+      setRunning(activeTimer.isRunning);
+      setBackendTimerId(activeTimer.id);
+    }
+  }, [activeTimer?.id, activeTimer?.remainingTime, activeTimer?.isRunning]);
+
+  useEffect(() => {
     if (running && secondsLeft > 0) {
       interval.current = setInterval(() => setSecondsLeft((s) => s - 1), 1000);
+    } else if (secondsLeft === 0 && running) {
+      setRunning(false);
+      track(AnalyticsEvents.FOCUS_SESSION_ENDED, { mode, completed: true });
+      Alert.alert('Session complete', 'Great focus block.');
     }
     return () => {
       if (interval.current) clearInterval(interval.current);
     };
-  }, [running, secondsLeft]);
+  }, [running, secondsLeft, mode]);
 
   useEffect(() => {
     const total = MODES[mode].minutes * 60;
     progress.value = withTiming(secondsLeft / total, { duration: 300 });
-  }, [secondsLeft, mode]);
+  }, [secondsLeft, mode, progress]);
 
-  const ringStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: 0.85 + progress.value * 0.15 }],
-    opacity: 0.4 + progress.value * 0.6,
-  }));
-
-  const start = () => {
-    track(AnalyticsEvents.FOCUS_SESSION_STARTED, { mode });
-    setRunning(true);
+  const ensureTimer = async () => {
+    if (backendTimerId) return backendTimerId;
+    const t = await createTimer({ title: `${MODES[mode].label} session`, duration: MODES[mode].minutes });
+    setBackendTimerId(t.id);
+    return t.id;
   };
 
-  const stop = () => {
-    track(AnalyticsEvents.FOCUS_SESSION_ENDED, { mode, secondsLeft });
+  const start = async () => {
+    try {
+      const id = await ensureTimer();
+      await startTimer(id);
+      track(AnalyticsEvents.FOCUS_SESSION_STARTED, { mode });
+      setRunning(true);
+    } catch (e: any) {
+      Alert.alert('Timer error', e.message);
+    }
+  };
+
+  const pause = async () => {
+    if (backendTimerId) await pauseTimer(backendTimerId);
     setRunning(false);
   };
 
-  const reset = () => {
+  const reset = async () => {
+    if (backendTimerId) {
+      await stopTimer(backendTimerId).catch(() => {});
+      await deleteTimer(backendTimerId).catch(() => {});
+      setBackendTimerId(null);
+    }
     setRunning(false);
     setSecondsLeft(MODES[mode].minutes * 60);
   };
@@ -56,9 +89,15 @@ export const FocusScreen: React.FC = () => {
   const m = Math.floor(secondsLeft / 60);
   const s = secondsLeft % 60;
 
+  const ringStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: 0.85 + progress.value * 0.15 }],
+    opacity: 0.4 + progress.value * 0.6,
+  }));
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Focus</Text>
+      <Text style={styles.sub}>Synced with backend timers ({timers.length} saved)</Text>
       <View style={styles.modes}>
         {(Object.keys(MODES) as FocusMode[]).map((k) => (
           <TouchableOpacity
@@ -66,7 +105,7 @@ export const FocusScreen: React.FC = () => {
             style={[styles.modeBtn, mode === k && styles.modeActive]}
             onPress={() => {
               setMode(k);
-              reset();
+              void reset();
               setSecondsLeft(MODES[k].minutes * 60);
             }}
           >
@@ -86,7 +125,7 @@ export const FocusScreen: React.FC = () => {
             <Text style={styles.startText}>Start session</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity style={styles.stopBtn} onPress={stop}>
+          <TouchableOpacity style={styles.stopBtn} onPress={pause}>
             <Text style={styles.startText}>Pause</Text>
           </TouchableOpacity>
         )}
@@ -94,7 +133,6 @@ export const FocusScreen: React.FC = () => {
           <Text style={styles.reset}>Reset</Text>
         </TouchableOpacity>
       </View>
-      <Text style={styles.hint}>Distraction-free mode — native alarms from Manage Time App integrate here.</Text>
     </View>
   );
 };
@@ -102,6 +140,7 @@ export const FocusScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, padding: spacing.lg, alignItems: 'center' },
   title: { ...typography.h1, color: colors.text, alignSelf: 'flex-start' },
+  sub: { ...typography.caption, color: colors.textMuted, alignSelf: 'flex-start', marginBottom: spacing.md },
   modes: { flexDirection: 'row', gap: spacing.sm, marginVertical: spacing.lg },
   modeBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 20, backgroundColor: colors.surface },
   modeActive: { backgroundColor: colors.primarySoft },
@@ -122,5 +161,4 @@ const styles = StyleSheet.create({
   stopBtn: { backgroundColor: colors.surfaceElevated, paddingHorizontal: spacing.xxl, paddingVertical: spacing.md, borderRadius: 16 },
   startText: { ...typography.h3, color: '#fff' },
   reset: { color: colors.textSecondary },
-  hint: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: spacing.xl, paddingHorizontal: spacing.lg },
 });

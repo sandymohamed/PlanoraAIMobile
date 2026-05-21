@@ -10,6 +10,7 @@ import { WeeklyReviewScreen } from '@/screens/reviews/WeeklyReviewScreen';
 import { FocusScreen } from '@/screens/focus/FocusScreen';
 import { GoalsStack } from './GoalsStack';
 import { RoutinesStack } from './RoutinesStack';
+import { AlarmsStack } from './AlarmsStack';
 import { colors } from '@/theme/tokens';
 
 const Stack = createNativeStackNavigator();
@@ -46,6 +47,7 @@ export const RootNavigator: React.FC = () => {
             <Stack.Screen name="Focus" component={FocusScreen} options={{ presentation: 'fullScreenModal' }} />
             <Stack.Screen name="Goals" component={GoalsStack} />
             <Stack.Screen name="Routines" component={RoutinesStack} />
+            <Stack.Screen name="Alarms" component={AlarmsStack} />
           </>
         )}
       </Stack.Navigator>

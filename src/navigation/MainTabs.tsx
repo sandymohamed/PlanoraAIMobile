@@ -2,7 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { HomeScreen } from '@/screens/home/HomeScreen';
-import { TasksScreen } from '@/screens/tasks/TasksScreen';
+import { TasksStack } from '@/navigation/TasksStack';
 import { CalendarScreen } from '@/screens/calendar/CalendarScreen';
 import { ProfileScreen } from '@/screens/profile/ProfileScreen';
 import { colors } from '@/theme/tokens';
@@ -33,7 +33,7 @@ export const MainTabs: React.FC = () => (
     />
     <Tab.Screen
       name="Tasks"
-      component={TasksScreen}
+      component={TasksStack}
       options={{
         tabBarIcon: ({ color, size }) => <Icon name="checkbox-marked-circle-outline" color={color} size={size} />,
       }}

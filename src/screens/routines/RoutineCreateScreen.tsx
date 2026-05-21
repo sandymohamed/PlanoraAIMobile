@@ -1,0 +1,38 @@
+import React, { useState } from 'react';
+import { View, StyleSheet, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { routineService } from '@/services/routineService';
+import { useAlarmStore } from '@/store/alarmStore';
+import { RoutineForm } from '@/components/routines/RoutineForm';
+import { CreateRoutineData } from '@/types/routine';
+import { colors } from '@/theme/tokens';
+import { getApiErrorMessage } from '@/utils/apiError';
+
+export const RoutineCreateScreen: React.FC = () => {
+  const navigation = useNavigation();
+  const fetchAlarms = useAlarmStore((s) => s.fetchAlarms);
+  const [loading, setLoading] = useState(false);
+
+  const onSubmit = async (data: CreateRoutineData) => {
+    setLoading(true);
+    try {
+      await routineService.createRoutine(data);
+      setTimeout(() => fetchAlarms(1, 1000, true).catch(() => {}), 1000);
+      navigation.goBack();
+    } catch (e) {
+      Alert.alert('Error', getApiErrorMessage(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <RoutineForm onSubmit={onSubmit} submitLabel="Create routine" loading={loading} />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+});

@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { isSameDay } from 'date-fns';
 import {
   View,
   Text,
@@ -11,13 +12,38 @@ import { useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuthStore } from '@/store/authStore';
+import { useTaskStore } from '@/store/taskStore';
+import { routineService } from '@/services/routineService';
+import { goalService } from '@/services/goalService';
+import { Goal } from '@/types/goal';
+import { Task, TaskStatus } from '@/types/task';
+import { Routine } from '@/types/routine';
 import { Card } from '@/components/ui/Card';
 import { colors, spacing, typography, radius } from '@/theme/tokens';
+import { track, AnalyticsEvents } from '@/analytics/posthog';
 
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const user = useAuthStore((s) => s.user);
-  const [refreshing, setRefreshing] = React.useState(false);
+  const { tasks, fetchTasks } = useTaskStore();
+  const [routines, setRoutines] = useState<Routine[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(async () => {
+    await fetchTasks();
+    try {
+      const [r, gRes] = await Promise.all([routineService.getUserRoutines(), goalService.getGoals({ limit: 5 })]);
+      setRoutines(r.filter((x) => x.enabled).slice(0, 3));
+      setGoals((gRes.data || []).slice(0, 3));
+    } catch {
+      /* keep partial data */
+    }
+  }, [fetchTasks]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -28,9 +54,13 @@ export const HomeScreen: React.FC = () => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await new Promise((r) => setTimeout(r, 600));
+    await load();
     setRefreshing(false);
   };
+
+  const todayTasks = tasks
+    .filter((t) => t.dueDate && isSameDay(new Date(t.dueDate), new Date()) && !t.metadata?.isRoutineTask)
+    .slice(0, 5);
 
   return (
     <ScrollView
@@ -52,7 +82,12 @@ export const HomeScreen: React.FC = () => {
       </Card>
 
       {/* AI suggestion */}
-      <TouchableOpacity onPress={() => navigation.navigate('Goals')}>
+      <TouchableOpacity
+        onPress={() => {
+          track(AnalyticsEvents.AI_PLAN_GENERATED, { source: 'home' });
+          navigation.navigate('Goals');
+        }}
+      >
         <LinearGradient
           colors={[colors.gradientStart, colors.gradientEnd]}
           start={{ x: 0, y: 0 }}
@@ -71,6 +106,7 @@ export const HomeScreen: React.FC = () => {
       {/* Quick actions row */}
       <View style={styles.quickRow}>
         <QuickAction icon="timer-outline" label="Focus" onPress={() => navigation.navigate('Focus')} />
+        <QuickAction icon="alarm" label="Alarms" onPress={() => navigation.navigate('Alarms')} />
         <QuickAction icon="repeat" label="Routines" onPress={() => navigation.navigate('Routines')} />
         <QuickAction icon="chart-timeline-variant" label="Weekly" onPress={() => navigation.navigate('WeeklyReview')} />
       </View>
@@ -78,23 +114,37 @@ export const HomeScreen: React.FC = () => {
       {/* Today's tasks preview */}
       <SectionHeader title="Today's tasks" action="See all" onAction={() => navigation.navigate('Tasks')} />
       <Card>
-        <TaskRow title="Review morning routine" done />
-        <TaskRow title="Deep work block — 90 min" />
-        <TaskRow title="Evening reflection" />
+        {todayTasks.length === 0 ? (
+          <Text style={styles.focusMeta}>No tasks due today</Text>
+        ) : (
+          todayTasks.map((t) => (
+            <TaskRow key={t.id} title={t.title} done={t.status === TaskStatus.DONE} />
+          ))
+        )}
       </Card>
 
       {/* Active routines */}
       <SectionHeader title="Active routines" action="Manage" onAction={() => navigation.navigate('Routines')} />
       <Card>
-        <RoutineRow name="Morning reset" streak={5} />
-        <RoutineRow name="Evening wind-down" streak={12} />
+        {routines.length === 0 ? (
+          <Text style={styles.focusMeta}>No active routines</Text>
+        ) : (
+          routines.map((r) => (
+            <RoutineRow key={r.id} name={r.title} streak={r.routineTasks?.filter((t) => t.completed).length || 0} />
+          ))
+        )}
       </Card>
 
       {/* Goal progress */}
       <SectionHeader title="Goal progress" action="Goals" onAction={() => navigation.navigate('Goals')} />
       <Card>
-        <ProgressBar label="Launch side project" progress={42} />
-        <ProgressBar label="Read 24 books this year" progress={18} />
+        {goals.length === 0 ? (
+          <Text style={styles.focusMeta}>No goals — tap AI on Goals tab</Text>
+        ) : (
+          goals.map((g) => (
+            <ProgressBar key={g.id} label={g.title} progress={Math.round(g.progress || 0)} />
+          ))
+        )}
       </Card>
 
       {/* Streak */}

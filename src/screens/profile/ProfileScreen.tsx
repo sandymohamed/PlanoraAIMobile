@@ -29,7 +29,7 @@ export const ProfileScreen: React.FC = () => {
       <MenuItem icon="target" label="Goals" onPress={() => navigation.navigate('Goals')} />
       <MenuItem icon="repeat" label="Routines" onPress={() => navigation.navigate('Routines')} />
       <MenuItem icon="timer-outline" label="Focus & timers" onPress={() => navigation.navigate('Focus')} />
-      <MenuItem icon="bell-outline" label="Reminders & alarms" onPress={() => {}} />
+      <MenuItem icon="bell-outline" label="Reminders & alarms" onPress={() => navigation.navigate('Alarms')} />
       <MenuItem icon="logout" label="Sign out" onPress={logout} danger />
     </ScrollView>
   );

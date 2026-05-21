@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosError } from 'axios';
+import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
 import { config } from '@/config/env';
 import { useAuthStore } from '@/store/authStore';
 
@@ -75,20 +75,20 @@ class ApiClient {
     );
   }
 
-  get<T>(url: string) {
-    return this.client.get<T>(url).then((r) => r.data);
+  get<T>(url: string, config?: AxiosRequestConfig) {
+    return this.client.get<T>(url, config).then((r) => r.data);
   }
-  post<T>(url: string, data?: unknown) {
-    return this.client.post<T>(url, data).then((r) => r.data);
+  post<T>(url: string, data?: unknown, config?: AxiosRequestConfig) {
+    return this.client.post<T>(url, data, config).then((r) => r.data);
   }
-  put<T>(url: string, data?: unknown) {
-    return this.client.put<T>(url, data).then((r) => r.data);
+  put<T>(url: string, data?: unknown, config?: AxiosRequestConfig) {
+    return this.client.put<T>(url, data, config).then((r) => r.data);
   }
-  patch<T>(url: string, data?: unknown) {
-    return this.client.patch<T>(url, data).then((r) => r.data);
+  patch<T>(url: string, data?: unknown, config?: AxiosRequestConfig) {
+    return this.client.patch<T>(url, data, config).then((r) => r.data);
   }
-  delete<T>(url: string) {
-    return this.client.delete<T>(url).then((r) => r.data);
+  delete<T>(url: string, config?: AxiosRequestConfig) {
+    return this.client.delete<T>(url, config).then((r) => r.data);
   }
 
   /** Ping backend /health (no auth). */
