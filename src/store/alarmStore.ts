@@ -53,6 +53,9 @@ interface AlarmState {
   // Local storage methods for offline support
   saveTimersToStorage: () => Promise<void>;
   loadTimersFromStorage: () => Promise<Timer[]>;
+
+  /** Schedule one alarm on device (permissions + native AlarmManager). */
+  scheduleAlarmNative: (alarm: Alarm) => Promise<void>;
 }
 
 const inFlightAlarmDeletes = new Set<string>();
@@ -71,6 +74,33 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
     limit: 20,
     total: 0,
     totalPages: 0,
+  },
+
+  scheduleAlarmNative: async (alarm: Alarm) => {
+    if (!alarm.enabled) return;
+
+    const { alarmPermissionService } = await import('@/services/AlarmPermissionService');
+    const granted = await alarmPermissionService.requestAllPermissions();
+    if (!granted) {
+      logger.warn('Alarm permissions incomplete; native schedule may not fire', { alarmId: alarm.id });
+    }
+
+    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    try {
+      const stoppedAlarms = await AsyncStorage.getItem('stopped_alarms');
+      if (stoppedAlarms) {
+        const stoppedSet = new Set<string>(JSON.parse(stoppedAlarms));
+        if (stoppedSet.has(alarm.id)) {
+          logger.info('Skipping native schedule — alarm marked stopped', { alarmId: alarm.id });
+          return;
+        }
+      }
+    } catch {
+      // ignore storage errors
+    }
+
+    await reliableAlarmService.cancelAlarm(alarm.id).catch(() => {});
+    await reliableAlarmService.scheduleAlarm(alarm);
   },
 
   // Alarm actions
@@ -344,11 +374,16 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
         loading: false,
       }));
 
-      // Schedule the new alarm using native Android AlarmManager if enabled
       if (alarm.enabled) {
-        reliableAlarmService.scheduleAlarm(alarm).catch((error) => {
-          console.error('Failed to schedule native alarm:', error);
-        });
+        try {
+          await get().scheduleAlarmNative(alarm);
+        } catch (scheduleError) {
+          const detail =
+            scheduleError instanceof Error ? scheduleError.message : 'Could not schedule on device';
+          throw new Error(
+            `Alarm saved but may not ring: ${detail}. Tap "verify alarm permissions" on the Alarms screen.`
+          );
+        }
       }
 
       return alarm;
@@ -386,14 +421,11 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
         }
       }
 
-      // Reschedule the alarm if it was updated
-      reliableAlarmService.cancelAlarm(id).catch((error) => {
+      await reliableAlarmService.cancelAlarm(id).catch((error) => {
         console.error('Failed to cancel native alarm:', error);
       });
       if (alarm.enabled) {
-        // Use fetchAlarms to properly schedule (respects stopped alarms, past alarms, etc.)
-        // Don't schedule directly here - let fetchAlarms handle it
-        console.log('📅 Alarm updated - will be scheduled on next fetchAlarms call');
+        await get().scheduleAlarmNative(alarm);
       }
 
       return alarm;
@@ -503,9 +535,10 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
       });
       
       if (newEnabledState) {
-        // Use fetchAlarms to properly schedule (respects stopped alarms, past alarms, etc.)
-        // Don't schedule directly here - let fetchAlarms handle it
-        console.log('📅 Alarm toggled on - will be scheduled on next fetchAlarms call');
+        const toSchedule = get().alarms.find((a) => a.id === id);
+        if (toSchedule) {
+          await get().scheduleAlarmNative(toSchedule);
+        }
       }
 
       // Update backend (non-blocking - local state already updated)

@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useCallback, useMemo, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,34 +8,37 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
-  ScrollView,
+  FlatList,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { AppIcon as Icon } from '@/components/ui/AppIcon';
 import { useTaskStore } from '@/store/taskStore';
 import { Task, TaskPriority, TaskStatus } from '@/types/task';
 import { TasksStackParamList } from '@/navigation/TasksStack';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { showDeleteConfirmation } from '@/components/ConfirmationDialog';
 import { colors, spacing, typography } from '@/theme/tokens';
-import { formatDueLabel, priorityColor, statusColor } from '@/utils/taskUi';
+import { formatDueLabel, isTaskOverdue, priorityColor, sortTasksByDueDate, statusColor } from '@/utils/taskUi';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { BannerAdPlaceholder } from '@/features/ads';
 
 type Nav = NativeStackNavigationProp<TasksStackParamList, 'TasksList'>;
 
-let DraggableFlatList: React.ComponentType<any> | null = null;
-try {
-  DraggableFlatList = require('react-native-draggable-flatlist').default;
-} catch {
-  DraggableFlatList = null;
-}
+/** `all` = active work (everything except done) */
+type StatusTab = 'all' | TaskStatus;
 
-const STATUS_FILTERS: { label: string; value?: TaskStatus }[] = [
-  { label: 'All' },
+const STATUS_FILTERS: { label: string; value: StatusTab }[] = [
+  { label: 'All', value: 'all' },
   { label: 'To do', value: TaskStatus.TODO },
   { label: 'Active', value: TaskStatus.IN_PROGRESS },
   { label: 'Done', value: TaskStatus.DONE },
+];
+
+const ALL_OPEN_STATUSES: TaskStatus[] = [
+  TaskStatus.TODO,
+  TaskStatus.IN_PROGRESS,
+  TaskStatus.ARCHIVED,
 ];
 
 export const TasksScreen: React.FC = () => {
@@ -49,23 +52,24 @@ export const TasksScreen: React.FC = () => {
     refreshTasks,
     setSearchQuery,
     setFilter,
-    clearFilters,
     deleteTask,
     completeTask,
     uncompleteTask,
-    updateTaskOrder,
     setCurrentTask,
     clearError,
   } = useTaskStore();
 
-  const [statusFilter, setStatusFilter] = useState<TaskStatus | undefined>();
+  const [statusTab, setStatusTab] = useState<StatusTab>('all');
   const [refreshing, setRefreshing] = useState(false);
+
+  const sortedTasks = useMemo(() => sortTasksByDueDate(filteredTasks), [filteredTasks]);
   const fetchingRef = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
       if (fetchingRef.current) return;
       fetchingRef.current = true;
+      setFilter({ status: ALL_OPEN_STATUSES });
       fetchTasks()
         .catch(() => {})
         .finally(() => {
@@ -74,7 +78,7 @@ export const TasksScreen: React.FC = () => {
       return () => {
         fetchingRef.current = false;
       };
-    }, [fetchTasks])
+    }, [fetchTasks, setFilter])
   );
 
   const onRefresh = async () => {
@@ -86,10 +90,13 @@ export const TasksScreen: React.FC = () => {
     }
   };
 
-  const applyStatusFilter = (status?: TaskStatus) => {
-    setStatusFilter(status);
-    if (status) setFilter({ status: [status] });
-    else clearFilters();
+  const applyStatusFilter = (tab: StatusTab) => {
+    setStatusTab(tab);
+    if (tab === 'all') {
+      setFilter({ status: ALL_OPEN_STATUSES });
+    } else {
+      setFilter({ status: [tab] });
+    }
   };
 
   const handleCreate = () => navigation.navigate('TaskCreate', {});
@@ -118,11 +125,18 @@ export const TasksScreen: React.FC = () => {
     });
   };
 
-  const renderTask = ({ item: task, drag }: { item: Task; drag?: () => void }) => (
+  const renderTask = ({ item: task }: { item: Task }) => {
+    const overdue = isTaskOverdue(task);
+    const dueLabel = formatDueLabel(task.dueDate, task.dueTime, { overdue });
+
+    return (
     <TouchableOpacity
-      style={[styles.row, task.status === TaskStatus.DONE && styles.rowDone]}
+      style={[
+        styles.row,
+        task.status === TaskStatus.DONE && styles.rowDone,
+        overdue && styles.rowOverdue,
+      ]}
       onPress={() => handleOpen(task)}
-      onLongPress={drag}
       activeOpacity={0.85}
     >
       <TouchableOpacity
@@ -140,8 +154,8 @@ export const TasksScreen: React.FC = () => {
         <Text style={[styles.rowTitle, task.status === TaskStatus.DONE && styles.rowTitleDone]} numberOfLines={2}>
           {task.title}
         </Text>
-        {formatDueLabel(task.dueDate, task.dueTime) ? (
-          <Text style={styles.due}>{formatDueLabel(task.dueDate, task.dueTime)}</Text>
+        {dueLabel ? (
+          <Text style={[styles.due, overdue && styles.dueOverdue]}>{dueLabel}</Text>
         ) : null}
         <View style={styles.meta}>
           <View style={[styles.badge, { borderColor: priorityColor(task.priority) }]}>
@@ -154,7 +168,8 @@ export const TasksScreen: React.FC = () => {
         <Icon name="trash-can-outline" size={20} color={colors.textMuted} />
       </TouchableOpacity>
     </TouchableOpacity>
-  );
+    );
+  };
 
   const listHeader = (
     <>
@@ -179,10 +194,10 @@ export const TasksScreen: React.FC = () => {
         {STATUS_FILTERS.map((f) => (
           <TouchableOpacity
             key={f.label}
-            style={[styles.chip, statusFilter === f.value && styles.chipActive]}
+            style={[styles.chip, statusTab === f.value && styles.chipActive]}
             onPress={() => applyStatusFilter(f.value)}
           >
-            <Text style={[styles.chipText, statusFilter === f.value && styles.chipTextActive]}>{f.label}</Text>
+            <Text style={[styles.chipText, statusTab === f.value && styles.chipTextActive]}>{f.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -191,19 +206,19 @@ export const TasksScreen: React.FC = () => {
           <Text style={styles.errorText}>{error}</Text>
         </TouchableOpacity>
       ) : null}
+      <BannerAdPlaceholder placement="tasks" />
     </>
   );
 
   return (
     <View style={styles.container}>
-      {isLoading && filteredTasks.length === 0 ? (
+      {isLoading && sortedTasks.length === 0 ? (
         <ActivityIndicator color={colors.primary} style={{ marginTop: 48 }} />
-      ) : DraggableFlatList ? (
-        <DraggableFlatList
-          data={filteredTasks}
-          keyExtractor={(t: Task) => t.id}
-          onDragEnd={({ data }: { data: Task[] }) => updateTaskOrder(data)}
-          renderItem={({ item, drag }: { item: Task; drag: () => void }) => renderTask({ item, drag })}
+      ) : (
+        <FlatList
+          data={sortedTasks}
+          keyExtractor={(t) => t.id}
+          renderItem={renderTask}
           ListHeaderComponent={listHeader}
           ListEmptyComponent={
             <EmptyState
@@ -216,23 +231,6 @@ export const TasksScreen: React.FC = () => {
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         />
-      ) : (
-        <ScrollView
-          contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-        >
-          {listHeader}
-          {filteredTasks.length === 0 ? (
-            <EmptyState
-              title="No tasks yet"
-              message="Add your first task to start planning your day."
-              actionLabel="Add task"
-              onAction={handleCreate}
-            />
-          ) : (
-            filteredTasks.map((task) => <View key={task.id}>{renderTask({ item: task })}</View>)
-          )}
-        </ScrollView>
       )}
 
       <TouchableOpacity style={styles.fab} onPress={handleCreate} activeOpacity={0.9}>
@@ -289,11 +287,17 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSubtle,
   },
   rowDone: { opacity: 0.75 },
+  rowOverdue: {
+    borderColor: colors.error,
+    borderWidth: 1.5,
+    backgroundColor: 'rgba(248, 113, 113, 0.08)',
+  },
   check: { marginRight: spacing.sm, marginTop: 2 },
   rowBody: { flex: 1 },
   rowTitle: { ...typography.body, color: colors.text, fontWeight: '600' },
   rowTitleDone: { textDecorationLine: 'line-through', color: colors.textMuted },
   due: { ...typography.caption, color: colors.accent, marginTop: 4 },
+  dueOverdue: { color: colors.error, fontWeight: '600' },
   meta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
   badge: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
   badgeText: { fontSize: 10, fontWeight: '700' },

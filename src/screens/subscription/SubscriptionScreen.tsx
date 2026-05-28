@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -17,7 +18,9 @@ const PREMIUM_FEATURES = [
   'Premium themes',
 ];
 
-export const SubscriptionScreen: React.FC = () => (
+export const SubscriptionScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
+  return (
   <ScrollView style={styles.container} contentContainerStyle={{ padding: spacing.lg }}>
     <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.hero}>
       <Text style={styles.heroTitle}>Planora Premium</Text>
@@ -41,9 +44,13 @@ export const SubscriptionScreen: React.FC = () => (
         label="Upgrade now"
         onPress={() => trackPremiumClick('subscription_screen')}
       />
+      <TouchableOpacity onPress={() => navigation.navigate('Paywall')} style={{ marginTop: spacing.md }}>
+        <Text style={{ color: colors.primary, textAlign: 'center', fontWeight: '600' }}>View all plans →</Text>
+      </TouchableOpacity>
     </Card>
   </ScrollView>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },

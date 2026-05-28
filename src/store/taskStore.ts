@@ -233,12 +233,15 @@ export const useTaskStore = create<TaskStore>()(
           // which creates an alarm with linkedTaskId. Frontend should not create duplicate alarms.
           // The backend will create an alarm with title "Task Due: {taskTitle}" when dueDate and dueTime are provided.
 
-          set((state) => ({
-            tasks: [task, ...state.tasks],
-            isLoading: false,
-          }));
+          set((state) => {
+            const tasks = [task, ...state.tasks];
+            return {
+              tasks,
+              filteredTasks: tasks,
+              isLoading: false,
+            };
+          });
 
-          // Apply current filters
           get().applyFilters();
 
           // Refresh alarms after task creation if task has dueDate

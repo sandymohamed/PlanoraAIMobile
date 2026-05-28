@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -28,16 +28,19 @@ export const TaskCreateScreen: React.FC = () => {
     dueTime: route.params?.dueTime,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const submittingRef = useRef(false);
   const due = useTaskDueDate({ dueDate: route.params?.dueDate, dueTime: route.params?.dueTime });
 
   const patch = (p: Partial<TaskFormValues>) => setValues((v) => ({ ...v, ...p }));
 
   const handleSave = async () => {
+    if (submittingRef.current || isLoading) return;
     const validation = validateTaskForm(values);
     if (Object.keys(validation).length) {
       setErrors(validation);
       return;
     }
+    submittingRef.current = true;
     const payload: CreateTaskData = {
       title: values.title.trim(),
       description: values.description ?? '',
@@ -54,6 +57,8 @@ export const TaskCreateScreen: React.FC = () => {
       navigation.goBack();
     } catch (e) {
       Alert.alert('Could not create task', getApiErrorMessage(e));
+    } finally {
+      submittingRef.current = false;
     }
   };
 

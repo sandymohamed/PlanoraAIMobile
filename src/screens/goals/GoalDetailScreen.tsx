@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { openAndroidPicker } from '@/utils/dateTimePicker';
 import { useGoalStore } from '@/store/goalStore';
 import { Milestone, MilestoneStatus } from '@/types/goal';
 import { colors, spacing, typography } from '@/theme/tokens';
@@ -250,18 +251,21 @@ export const GoalDetailScreen: React.FC = () => {
               onChangeText={setMDesc}
               multiline
             />
-            <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
+            <TouchableOpacity
+              style={styles.input}
+              onPress={() => {
+                if (openAndroidPicker(mDate || new Date(), 'date', setMDate)) return;
+                setShowDatePicker(true);
+              }}
+            >
               <Text style={styles.dateText}>{mDate ? format(mDate, 'PPP') : 'No date'}</Text>
             </TouchableOpacity>
-            {showDatePicker && (
+            {showDatePicker && Platform.OS === 'ios' && (
               <DateTimePicker
                 value={mDate || new Date()}
                 mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={(_, d) => {
-                  setShowDatePicker(Platform.OS === 'ios');
-                  if (d) setMDate(d);
-                }}
+                display="spinner"
+                onChange={(_, d) => d && setMDate(d)}
               />
             )}
             <View style={styles.modalActions}>

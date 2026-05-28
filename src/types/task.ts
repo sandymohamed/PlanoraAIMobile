@@ -56,6 +56,12 @@ export interface TaskMetadata {
   isProjectMilestone?: boolean;
   isProjectTask?: boolean;
   projectName?: string;
+  isGoalTarget?: boolean;
+  isAlarm?: boolean;
+  alarmId?: string;
+  linkedTaskId?: string;
+  recurrenceInstance?: boolean;
+  recurrenceParentId?: string;
 }
 
 export interface TaskComment {

@@ -1,14 +1,22 @@
-import { Alert } from 'react-native';
+import { useConfirmationDialogStore } from '@/store/confirmationDialogStore';
+import type { ConfirmDialogOptions } from '@/store/confirmationDialogStore';
 
-export function showDeleteConfirmation(title: string, onConfirm: () => void | Promise<void>) {
-  Alert.alert('Delete task', `Delete "${title}"? This cannot be undone.`, [
-    { text: 'Cancel', style: 'cancel' },
-    {
-      text: 'Delete',
-      style: 'destructive',
-      onPress: () => {
-        void onConfirm();
-      },
-    },
-  ]);
+export function showConfirmDialog(options: ConfirmDialogOptions): void {
+  useConfirmationDialogStore.getState().show(options);
+}
+
+export function showDeleteConfirmation(
+  itemTitle: string,
+  onConfirm: () => void | Promise<void>,
+  entityLabel = 'task'
+): void {
+  showConfirmDialog({
+    title: `Delete ${entityLabel}?`,
+    itemName: itemTitle,
+    message: 'This cannot be undone. All related data will be removed.',
+    confirmLabel: 'Delete',
+    cancelLabel: 'Cancel',
+    destructive: true,
+    onConfirm,
+  });
 }

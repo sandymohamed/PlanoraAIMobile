@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { openAndroidPicker } from '@/utils/dateTimePicker';
 import { useGoalStore } from '@/store/goalStore';
 import { GoalPriority } from '@/types/goal';
 import { colors, spacing, typography } from '@/theme/tokens';
@@ -36,6 +37,7 @@ export const GoalCreateScreen: React.FC = () => {
       Alert.alert('Title required', 'Enter a goal title.');
       return;
     }
+    submitting.current = true;
     try {
       await createGoal({
         title: title.trim(),
@@ -47,6 +49,8 @@ export const GoalCreateScreen: React.FC = () => {
       navigation.goBack();
     } catch (e) {
       Alert.alert('Error', getApiErrorMessage(e));
+    } finally {
+      submitting.current = false;
     }
   };
 
@@ -84,7 +88,7 @@ export const GoalCreateScreen: React.FC = () => {
       </View>
 
       <Text style={styles.label}>Target date</Text>
-      <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
+      <TouchableOpacity style={styles.input} onPress={openTargetDate}>
         <Text style={styles.dateText}>{targetDate ? format(targetDate, 'PPP') : 'None'}</Text>
       </TouchableOpacity>
       {targetDate ? (
@@ -93,15 +97,12 @@ export const GoalCreateScreen: React.FC = () => {
         </TouchableOpacity>
       ) : null}
 
-      {showDatePicker && (
+      {showDatePicker && Platform.OS === 'ios' && (
         <DateTimePicker
           value={targetDate || new Date()}
           mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={(_, d) => {
-            setShowDatePicker(Platform.OS === 'ios');
-            if (d) setTargetDate(d);
-          }}
+          display="spinner"
+          onChange={(_, d) => d && setTargetDate(d)}
         />
       )}
 

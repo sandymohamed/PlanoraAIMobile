@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "android": "npm run android:install && npm run adb",
+    "android": "npm run adb:reset && node scripts/ensure-adb-device.js && npm run android:install && npm run adb",
     "android:rn": "react-native run-android",
     "android:gradle-stop": "cd android && gradlew.bat --stop",
-    "android:install": "cd android && gradlew.bat -I init-ssl.gradle app:installDebug -PreactNativeDevServerPort=8081",
+    "android:install": "node scripts/ensure-adb-device.js && cd android && gradlew.bat -I init-ssl.gradle app:installDebug -PreactNativeDevServerPort=8081",
     "android:reset": "powershell -NoProfile -Command \"Remove-Item -Recurse -Force android\\app\\.cxx, android\\app\\build, android\\build -ErrorAction SilentlyContinue\"",
     "android:rebuild": "npm run android:gradle-stop && npm run android:reset && npm run android:install",
     "android:from-legacy": "cd ../ManageTimeApp_React-Native && npm run android",

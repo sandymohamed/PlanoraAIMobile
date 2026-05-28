@@ -6,6 +6,8 @@ import { OnboardingScreen } from '@/screens/onboarding/OnboardingScreen';
 import { AuthNavigator } from './AuthNavigator';
 import { MainTabs } from './MainTabs';
 import { SubscriptionScreen } from '@/screens/subscription/SubscriptionScreen';
+import { PaywallScreen } from '@/screens/subscription/PaywallScreen';
+import { ComparePlansScreen } from '@/screens/subscription/ComparePlansScreen';
 import { WeeklyReviewScreen } from '@/screens/reviews/WeeklyReviewScreen';
 import { FocusScreen } from '@/screens/focus/FocusScreen';
 import { GoalsStack } from './GoalsStack';
@@ -43,6 +45,12 @@ export const RootNavigator: React.FC = () => {
           <>
             <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen name="Subscription" component={SubscriptionScreen} options={{ presentation: 'modal' }} />
+            <Stack.Screen name="Paywall" component={PaywallScreen} options={{ presentation: 'modal' }} />
+            <Stack.Screen
+              name="ComparePlans"
+              component={ComparePlansScreen}
+              options={{ presentation: 'modal', headerShown: true, title: 'Compare plans' }}
+            />
             <Stack.Screen name="WeeklyReview" component={WeeklyReviewScreen} options={{ presentation: 'modal' }} />
             <Stack.Screen name="Focus" component={FocusScreen} options={{ presentation: 'fullScreenModal' }} />
             <Stack.Screen name="Goals" component={GoalsStack} />

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet, Alert, ActivityIndicator, Text } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -27,6 +27,7 @@ export const TaskEditScreen: React.FC = () => {
     status: TaskStatus.TODO,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const submittingRef = useRef(false);
   const due = useTaskDueDate({ dueDate: task?.dueDate, dueTime: task?.dueTime });
 
   useEffect(() => {
@@ -48,11 +49,13 @@ export const TaskEditScreen: React.FC = () => {
   const patch = (p: Partial<TaskFormValues>) => setValues((v) => ({ ...v, ...p }));
 
   const handleSave = async () => {
+    if (submittingRef.current || isLoading) return;
     const validation = validateTaskForm(values);
     if (Object.keys(validation).length) {
       setErrors(validation);
       return;
     }
+    submittingRef.current = true;
     const payload: UpdateTaskData = {
       title: values.title.trim(),
       description: values.description,
@@ -66,6 +69,8 @@ export const TaskEditScreen: React.FC = () => {
       navigation.goBack();
     } catch (e) {
       Alert.alert('Could not update task', getApiErrorMessage(e));
+    } finally {
+      submittingRef.current = false;
     }
   };
 

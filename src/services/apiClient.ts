@@ -4,6 +4,29 @@ import { useAuthStore } from '@/store/authStore';
 
 const LOG = __DEV__;
 
+/** Auth routes must not trigger 401 → refresh → logout loops */
+const AUTH_SKIP_RETRY_PATHS = [
+  '/auth/login',
+  '/auth/signup',
+  '/auth/refresh',
+  '/auth/logout',
+  '/auth/forgot-password',
+  '/auth/verify-otp',
+  '/auth/reset-password',
+];
+
+export type PlanoraRequestConfig = AxiosRequestConfig & {
+  /** Do not attach Bearer token (login/refresh/signup) */
+  skipAuthHeader?: boolean;
+  /** Do not run refresh/logout on 401 (used during session bootstrap) */
+  skipAuthRetry?: boolean;
+};
+
+function isAuthSkipPath(url?: string): boolean {
+  if (!url) return false;
+  return AUTH_SKIP_RETRY_PATHS.some((p) => url.includes(p));
+}
+
 class ApiClient {
   private client: AxiosInstance;
   private isRefreshing = false;
@@ -20,8 +43,12 @@ class ApiClient {
 
   private setupInterceptors() {
     this.client.interceptors.request.use(async (conf) => {
-      const token = await useAuthStore.getState().getToken();
-      if (token) conf.headers.Authorization = `Bearer ${token}`;
+      const cfg = conf as PlanoraRequestConfig;
+      const skipHeader = cfg.skipAuthHeader || isAuthSkipPath(cfg.url);
+      if (!skipHeader) {
+        const token = await useAuthStore.getState().getToken();
+        if (token) conf.headers.Authorization = `Bearer ${token}`;
+      }
       if (LOG) {
         console.log(`[Planora API] → ${conf.method?.toUpperCase()} ${conf.baseURL}${conf.url}`, conf.data ?? '');
       }
@@ -44,7 +71,45 @@ class ApiClient {
           );
         }
         const original = error.config;
-        if (!original || error.response?.status !== 401 || (original as { _retry?: boolean })._retry) {
+        if (!original) {
+          throw error;
+        }
+
+        const cfg = original as AxiosRequestConfig & {
+          _retry?: boolean;
+          _networkRetry?: boolean;
+          _serviceRetry?: boolean;
+        };
+        const isNetworkError =
+          !error.response &&
+          (error.code === 'ERR_NETWORK' || error.message === 'Network Error' || error.message.includes('Network'));
+
+        if (isNetworkError && !cfg._networkRetry) {
+          cfg._networkRetry = true;
+          await new Promise((r) => setTimeout(r, 500));
+          if (LOG) console.log(`[Planora API] ↻ retry ${cfg.method?.toUpperCase()} ${cfg.url}`);
+          return this.client(cfg);
+        }
+
+        const errBody = error.response?.data as { code?: string } | undefined;
+        const isTransientDb =
+          error.response?.status === 503 ||
+          errBody?.code === 'SERVICE_UNAVAILABLE' ||
+          (error.response?.status === 400 && errBody?.code === 'DATABASE_ERROR');
+
+        if (isTransientDb && !cfg._serviceRetry) {
+          cfg._serviceRetry = true;
+          await new Promise((r) => setTimeout(r, 800));
+          if (LOG) console.log(`[Planora API] ↻ retry (db) ${cfg.method?.toUpperCase()} ${cfg.url}`);
+          return this.client(cfg);
+        }
+
+        if (
+          error.response?.status !== 401 ||
+          cfg._retry ||
+          cfg.skipAuthRetry ||
+          isAuthSkipPath(cfg.url)
+        ) {
           throw error;
         }
 
@@ -57,7 +122,7 @@ class ApiClient {
           });
         }
 
-        (original as { _retry?: boolean })._retry = true;
+        cfg._retry = true;
         this.isRefreshing = true;
         const ok = await useAuthStore.getState().refreshAuthToken();
         this.isRefreshing = false;
@@ -66,8 +131,9 @@ class ApiClient {
           const token = await useAuthStore.getState().getToken();
           this.queue.forEach((p) => p.resolve(token!));
           this.queue = [];
-          original.headers.Authorization = `Bearer ${token}`;
-          return this.client(original);
+          cfg.headers = cfg.headers ?? {};
+          cfg.headers.Authorization = `Bearer ${token}`;
+          return this.client(cfg);
         }
         await useAuthStore.getState().logout();
         throw error;
@@ -75,10 +141,10 @@ class ApiClient {
     );
   }
 
-  get<T>(url: string, config?: AxiosRequestConfig) {
+  get<T>(url: string, config?: PlanoraRequestConfig) {
     return this.client.get<T>(url, config).then((r) => r.data);
   }
-  post<T>(url: string, data?: unknown, config?: AxiosRequestConfig) {
+  post<T>(url: string, data?: unknown, config?: PlanoraRequestConfig) {
     return this.client.post<T>(url, data, config).then((r) => r.data);
   }
   put<T>(url: string, data?: unknown, config?: AxiosRequestConfig) {

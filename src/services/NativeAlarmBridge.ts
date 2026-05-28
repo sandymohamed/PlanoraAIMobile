@@ -16,7 +16,8 @@ class NativeAlarmBridge {
 
   constructor() {
     if (Platform.OS === 'android' && AlarmModule) {
-      this.eventEmitter = new NativeEventEmitter(AlarmModule);
+      // Use default emitter — events are sent via RCTDeviceEventEmitter from native code.
+      this.eventEmitter = new NativeEventEmitter();
       this.setupEventListeners();
     }
   }
@@ -27,13 +28,21 @@ class NativeAlarmBridge {
   private setupEventListeners(): void {
     if (!this.eventEmitter) return;
 
-    // Listen for snooze events
-    // Note: The actual snooze handling is done by alarmStore.snoozeAlarm() which is called
-    // from AlarmsScreen or other components that listen to these events
-    this.eventEmitter.addListener('AlarmSnooze', (event: { alarmId: string; action: string }) => {
-      logger.info('🔔 Native alarm snooze event received:', event.alarmId);
-      // Store the alarm ID so UI components can handle it
-      AsyncStorage.setItem('pending_snooze_alarm_id', event.alarmId).catch(() => {});
+    // Notification "Snooze" button → reschedule same alarm (+5 min)
+    this.eventEmitter.addListener('AlarmSnooze', async (event: { alarmId: string; action: string }) => {
+      const rawId = event?.alarmId;
+      if (!rawId) return;
+      const originalAlarmId = rawId.replace(/_snooze_\d+$/, '').replace(/_snooze$/, '');
+      logger.info('🔔 Native alarm snooze event:', { rawId, originalAlarmId });
+      try {
+        const { useAlarmStore } = await import('@/store/alarmStore');
+        await useAlarmStore.getState().snoozeAlarm(originalAlarmId, 5);
+        await AsyncStorage.removeItem('pending_snooze_alarm_id').catch(() => {});
+        logger.info('✅ Alarm snoozed from notification');
+      } catch (error) {
+        logger.error('❌ Snooze from notification failed:', error);
+        await AsyncStorage.setItem('pending_snooze_alarm_id', originalAlarmId).catch(() => {});
+      }
     });
 
     // Listen for stop events
@@ -385,18 +394,32 @@ class NativeAlarmBridge {
     const now = new Date();
     const next = new Date(alarmTime);
 
+    const isWeekday = (d: Date) => {
+      const day = d.getDay();
+      return day >= 1 && day <= 5;
+    };
+    const isWeekend = (d: Date) => {
+      const day = d.getDay();
+      return day === 0 || day === 6;
+    };
+
     if (recurrenceRule.includes('FREQ=DAILY') || recurrenceRule === 'daily') {
-      // Daily - add 1 day until in the future
       while (next.getTime() <= now.getTime()) {
         next.setDate(next.getDate() + 1);
       }
+    } else if (recurrenceRule === 'weekdays') {
+      do {
+        next.setDate(next.getDate() + 1);
+      } while (!isWeekday(next) || next.getTime() <= now.getTime());
+    } else if (recurrenceRule === 'weekends') {
+      do {
+        next.setDate(next.getDate() + 1);
+      } while (!isWeekend(next) || next.getTime() <= now.getTime());
     } else if (recurrenceRule.includes('FREQ=WEEKLY') || recurrenceRule === 'weekly') {
-      // Weekly - add 7 days
       while (next.getTime() <= now.getTime()) {
         next.setDate(next.getDate() + 7);
       }
     } else if (recurrenceRule.includes('FREQ=MONTHLY') || recurrenceRule === 'monthly') {
-      // Monthly - add 1 month
       while (next.getTime() <= now.getTime()) {
         next.setMonth(next.getMonth() + 1);
       }

@@ -8,6 +8,7 @@ import android.content.SharedPreferences
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import com.facebook.react.bridge.*
 import com.facebook.react.bridge.BaseActivityEventListener
 import com.facebook.react.modules.core.DeviceEventManagerModule
@@ -68,6 +69,13 @@ class AlarmModule(reactContext: ReactApplicationContext) :
 
   override fun getName(): String = "AlarmModule"
 
+  /** Required for React Native NativeEventEmitter (RN 0.65+). */
+  @ReactMethod
+  fun addListener(@Suppress("UNUSED_PARAMETER") eventName: String) {}
+
+  @ReactMethod
+  fun removeListeners(@Suppress("UNUSED_PARAMETER") count: Int) {}
+
   /**
    * Schedule an alarm using Android AlarmManager
    * @param alarmId Unique alarm identifier
@@ -111,6 +119,16 @@ class AlarmModule(reactContext: ReactApplicationContext) :
         pendingIntentFlags
       )
 
+      // Android 12+ requires user-granted exact alarm permission for setExact*
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+        android.util.Log.e("AlarmModule", "❌ Exact alarm permission not granted")
+        promise.reject(
+          "EXACT_ALARM_PERMISSION",
+          "Schedule exact alarms is disabled. Open Settings and allow exact alarms for Planora."
+        )
+        return
+      }
+
       // Schedule alarm using AlarmManager
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
         // Android 6.0+ - use setExactAndAllowWhileIdle for better reliability
@@ -119,7 +137,7 @@ class AlarmModule(reactContext: ReactApplicationContext) :
           timestamp.toLong(),
           pendingIntent
         )
-      } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+      } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
         // Android 4.4+ - use setExact
         alarmManager.setExact(AlarmManager.RTC_WAKEUP, timestamp.toLong(), pendingIntent)
       } else {
@@ -241,6 +259,41 @@ class AlarmModule(reactContext: ReactApplicationContext) :
     } catch (e: Exception) {
       android.util.Log.e("AlarmModule", "❌ Failed to get ringtone title: ${e.message}", e)
       promise.reject("RINGTONE_ERROR", "Failed to get ringtone title: ${e.message}", e)
+    }
+  }
+
+  @ReactMethod
+  fun canScheduleExactAlarms(promise: Promise) {
+    try {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val alarmManager =
+          reactApplicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        promise.resolve(alarmManager.canScheduleExactAlarms())
+      } else {
+        promise.resolve(true)
+      }
+    } catch (e: Exception) {
+      promise.reject("ALARM_ERROR", "Failed to check exact alarm permission: ${e.message}", e)
+    }
+  }
+
+  @ReactMethod
+  fun openExactAlarmSettings(promise: Promise) {
+    try {
+      val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+          data = Uri.parse("package:${reactApplicationContext.packageName}")
+        }
+      } else {
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+          data = Uri.parse("package:${reactApplicationContext.packageName}")
+        }
+      }
+      intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      reactApplicationContext.startActivity(intent)
+      promise.resolve(true)
+    } catch (e: Exception) {
+      promise.reject("ALARM_ERROR", "Failed to open alarm settings: ${e.message}", e)
     }
   }
 

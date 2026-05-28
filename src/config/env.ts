@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
  * Your PC's LAN IPv4 (same Wi‑Fi as the phone). Run `ipconfig` on Windows to find it.
  * Android emulator uses 10.0.2.2 instead — set USE_ANDROID_EMULATOR=true when using emulator.
  */
-const DEV_MACHINE_IP = '192.168.1.14';
+const DEV_MACHINE_IP = '192.168.1.15';
 const API_PORT = 3001;
 const USE_ANDROID_EMULATOR = false;
 

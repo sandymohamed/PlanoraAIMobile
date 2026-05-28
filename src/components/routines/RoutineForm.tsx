@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, ScrollView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { openAndroidPicker } from '@/utils/dateTimePicker';
 import { CreateRoutineData, RoutineFrequency } from '@/types/routine';
 import { colors, spacing, typography } from '@/theme/tokens';
 
@@ -31,28 +32,49 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({ initial, onSubmit, sub
   const [reminderBefore, setReminderBefore] = useState(initial?.reminderBefore || '1h');
   const [showTime, setShowTime] = useState(false);
   const [error, setError] = useState('');
+  const submitting = useRef(false);
 
   const toggleDay = (d: number) => {
     setDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort()));
   };
 
   const handleSave = async () => {
+    if (submitting.current || loading) return;
     if (!title.trim()) {
       setError('Title is required');
       return;
     }
+    submitting.current = true;
     const schedule: CreateRoutineData['schedule'] = { time };
     if (frequency === 'WEEKLY') schedule.days = days;
     if (frequency === 'MONTHLY') schedule.day = parseInt(monthDay, 10) || 1;
 
-    await onSubmit({
-      title: title.trim(),
-      description: description.trim() || undefined,
-      frequency,
-      schedule,
-      reminderBefore,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    });
+    try {
+      await onSubmit({
+        title: title.trim(),
+        description: description.trim() || undefined,
+        frequency,
+        schedule,
+        reminderBefore,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      });
+    } finally {
+      submitting.current = false;
+    }
+  };
+
+  const openTimePicker = () => {
+    const [h, m] = time.split(':').map(Number);
+    const d = new Date();
+    d.setHours(h, m);
+    if (
+      openAndroidPicker(d, 'time', (picked) => {
+        setTime(`${picked.getHours().toString().padStart(2, '0')}:${picked.getMinutes().toString().padStart(2, '0')}`);
+      })
+    ) {
+      return;
+    }
+    setShowTime(true);
   };
 
   return (
@@ -81,10 +103,10 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({ initial, onSubmit, sub
         ))}
       </View>
       <Text style={styles.label}>Time</Text>
-      <TouchableOpacity style={styles.input} onPress={() => setShowTime(true)}>
+      <TouchableOpacity style={styles.input} onPress={openTimePicker}>
         <Text style={{ color: colors.text }}>{time}</Text>
       </TouchableOpacity>
-      {showTime && (
+      {showTime && Platform.OS === 'ios' && (
         <DateTimePicker
           value={(() => {
             const [h, m] = time.split(':').map(Number);
@@ -94,7 +116,6 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({ initial, onSubmit, sub
           })()}
           mode="time"
           onChange={(_, d) => {
-            if (Platform.OS === 'android') setShowTime(false);
             if (d) {
               setTime(`${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`);
             }

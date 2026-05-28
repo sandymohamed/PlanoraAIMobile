@@ -24,6 +24,7 @@ export const ProfileScreen: React.FC = () => {
         </View>
       </Card>
 
+      <MenuItem icon="cog-outline" label="Settings & account" onPress={() => navigation.navigate('Settings')} />
       <MenuItem icon="crown-outline" label="Upgrade to Premium" onPress={() => { trackPremiumClick('profile'); navigation.navigate('Subscription'); }} highlight />
       <MenuItem icon="chart-timeline-variant" label="AI Weekly Review" onPress={() => navigation.navigate('WeeklyReview')} />
       <MenuItem icon="target" label="Goals" onPress={() => navigation.navigate('Goals')} />

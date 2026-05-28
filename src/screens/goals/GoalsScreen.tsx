@@ -16,6 +16,7 @@ import { Goal, GoalStatus } from '@/types/goal';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { format, isAfter, differenceInDays } from 'date-fns';
+import { BannerAdPlaceholder } from '@/features/ads';
 
 const STATUS_FILTERS: { key: 'all' | 'active' | 'completed'; label: string; statuses?: GoalStatus[] }[] = [
   { key: 'all', label: 'All' },
@@ -185,6 +186,7 @@ export const GoalsScreen: React.FC = () => {
           onEndReached={() => hasNextPage && loadMoreGoals()}
           onEndReachedThreshold={0.3}
           ListEmptyComponent={<Text style={styles.empty}>No goals yet. Create one to get started.</Text>}
+          ListFooterComponent={<BannerAdPlaceholder placement="goals" />}
         />
       )}
 

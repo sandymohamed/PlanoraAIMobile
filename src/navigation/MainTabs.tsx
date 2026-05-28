@@ -4,7 +4,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { HomeScreen } from '@/screens/home/HomeScreen';
 import { TasksStack } from '@/navigation/TasksStack';
 import { CalendarScreen } from '@/screens/calendar/CalendarScreen';
-import { ProfileScreen } from '@/screens/profile/ProfileScreen';
+import { ProfileStack } from '@/navigation/ProfileStack';
 import { colors } from '@/theme/tokens';
 
 const Tab = createBottomTabNavigator();
@@ -47,7 +47,7 @@ export const MainTabs: React.FC = () => (
     />
     <Tab.Screen
       name="Profile"
-      component={ProfileScreen}
+      component={ProfileStack}
       options={{
         tabBarIcon: ({ color, size }) => <Icon name="account-circle-outline" color={color} size={size} />,
       }}

@@ -40,6 +40,7 @@ interface AuthState {
   refreshAuthToken: () => Promise<boolean>;
   initializeAuth: () => Promise<void>;
   completeOnboarding: () => void;
+  updateUser: (user: User) => void;
   getToken: () => Promise<string | null>;
 }
 
@@ -93,7 +94,11 @@ export const useAuthStore = create<AuthState>()(
         try {
           const creds = await Keychain.getGenericPassword();
           const refreshToken = creds ? JSON.parse(creds.password).refreshToken : undefined;
-          await apiClient.post('/auth/logout', { refreshToken });
+          await apiClient.post(
+            '/auth/logout',
+            { refreshToken },
+            { skipAuthHeader: true, skipAuthRetry: true }
+          );
         } catch {
           /* ignore */
         }
@@ -105,13 +110,21 @@ export const useAuthStore = create<AuthState>()(
         const creds = await Keychain.getGenericPassword();
         if (!creds) return false;
         const { refreshToken } = JSON.parse(creds.password);
+        if (!refreshToken) return false;
         try {
-          const res = await apiClient.post<ApiEnvelope<{ tokens: AuthTokens }>>('/auth/refresh', { refreshToken });
+          const res = await apiClient.post<ApiEnvelope<{ tokens: AuthTokens }>>(
+            '/auth/refresh',
+            { refreshToken },
+            { skipAuthHeader: true, skipAuthRetry: true }
+          );
           const tokens = res.data.tokens;
-          await Keychain.setGenericPassword('planora_tokens', JSON.stringify({
-            token: tokens.accessToken,
-            refreshToken: tokens.refreshToken,
-          }));
+          await Keychain.setGenericPassword(
+            'planora_tokens',
+            JSON.stringify({
+              token: tokens.accessToken,
+              refreshToken: tokens.refreshToken,
+            })
+          );
           return true;
         } catch {
           return false;
@@ -119,25 +132,49 @@ export const useAuthStore = create<AuthState>()(
       },
 
       initializeAuth: async () => {
-        const health = await apiClient.pingHealth();
-        console.log('[Planora] backend health:', health.ok ? 'OK' : 'FAIL', health.detail);
-
-        const token = await get().getToken();
-        if (!token) {
-          set({ isInitialized: true });
-          return;
-        }
         try {
-          const res = await apiClient.get<ApiEnvelope<User>>('/me');
-          set({ user: res.data, isAuthenticated: true, isInitialized: true });
-        } catch (e) {
-          console.warn('[Planora Auth] session invalid', getApiErrorMessage(e));
+          const health = await apiClient.pingHealth();
+          console.log('[Planora] backend health:', health.ok ? 'OK' : 'FAIL', health.detail);
+
+          const token = await get().getToken();
+          if (!token) {
+            return;
+          }
+
+          // Bootstrap without interceptor refresh/logout loops
+          try {
+            const res = await apiClient.get<ApiEnvelope<User>>('/me', { skipAuthRetry: true });
+            set({ user: res.data, isAuthenticated: true });
+            console.log('[Planora Auth] session restored', res.data.id);
+            return;
+          } catch {
+            console.log('[Planora Auth] access token expired, trying refresh…');
+          }
+
+          const refreshed = await get().refreshAuthToken();
+          if (refreshed) {
+            try {
+              const res = await apiClient.get<ApiEnvelope<User>>('/me', { skipAuthRetry: true });
+              set({ user: res.data, isAuthenticated: true });
+              console.log('[Planora Auth] session restored after refresh', res.data.id);
+              return;
+            } catch (e) {
+              console.warn('[Planora Auth] /me failed after refresh', getApiErrorMessage(e));
+            }
+          } else {
+            console.warn('[Planora Auth] refresh token invalid or expired — sign in again');
+          }
+
           await Keychain.resetGenericPassword();
+          set({ user: null, isAuthenticated: false });
+        } finally {
           set({ isInitialized: true });
         }
       },
 
       completeOnboarding: () => set({ hasCompletedOnboarding: true }),
+
+      updateUser: (user) => set({ user }),
     }),
     {
       name: 'planora-auth',

@@ -17,7 +17,19 @@ export class ReliableAlarmService {
   // Initialize - now just a placeholder for compatibility
   async initialize(): Promise<void> {
     logger.info('🔧 Initializing ReliableAlarmService (using native Android alarms)...');
-    // Native alarms don't need initialization - they work via AlarmManager
+    const pendingSnooze = await AsyncStorage.getItem('pending_snooze_alarm_id');
+    if (pendingSnooze) {
+      const originalId = pendingSnooze.replace(/_snooze_\d+$/, '').replace(/_snooze$/, '');
+      try {
+        const { useAlarmStore } = await import('@/store/alarmStore');
+        await useAlarmStore.getState().snoozeAlarm(originalId, 5);
+        logger.info('✅ Applied pending snooze for', originalId);
+      } catch (e) {
+        logger.warn('Pending snooze failed', e);
+      } finally {
+        await AsyncStorage.removeItem('pending_snooze_alarm_id');
+      }
+    }
   }
 
   // Schedule alarm using native Android AlarmManager

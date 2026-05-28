@@ -21,6 +21,8 @@ import { Routine } from '@/types/routine';
 import { Card } from '@/components/ui/Card';
 import { colors, spacing, typography, radius } from '@/theme/tokens';
 import { track, AnalyticsEvents } from '@/analytics/posthog';
+import { BannerAdPlaceholder } from '@/features/ads';
+import { PremiumLabel } from '@/components/premium/PremiumBadge';
 
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -96,7 +98,9 @@ export const HomeScreen: React.FC = () => {
         >
           <Icon name="sparkles" size={28} color="#fff" />
           <View style={styles.aiText}>
-            <Text style={styles.aiTitle}>AI suggestion</Text>
+            <PremiumLabel requiredPlan="pro">
+              <Text style={styles.aiTitle}>AI suggestion</Text>
+            </PremiumLabel>
             <Text style={styles.aiBody}>Review your active goal and let AI refine this week's plan.</Text>
           </View>
           <Icon name="chevron-right" size={24} color="rgba(255,255,255,0.8)" />
@@ -155,6 +159,8 @@ export const HomeScreen: React.FC = () => {
           <Text style={styles.streakMeta}>Weekly consistency — keep going</Text>
         </View>
       </Card>
+
+      <BannerAdPlaceholder placement="home" />
     </ScrollView>
   );
 };

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, ScrollView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { openAndroidPicker } from '@/utils/dateTimePicker';
 import { TaskPriority, TaskStatus } from '@/types/task';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { priorityColor } from '@/utils/taskUi';
@@ -99,7 +100,13 @@ export const TaskForm: React.FC<TaskFormProps> = ({
 
     <Text style={styles.label}>Due date & time</Text>
     <View style={styles.dueRow}>
-      <TouchableOpacity style={styles.dueBtn} onPress={onToggleDatePicker}>
+      <TouchableOpacity
+        style={styles.dueBtn}
+        onPress={() => {
+          if (openAndroidPicker(selectedDate, 'date', onDateChange)) return;
+          onToggleDatePicker();
+        }}
+      >
         <Text style={styles.dueBtnText}>
           {values.dueDate ? selectedDate.toLocaleDateString() : 'Set date'}
         </Text>
@@ -112,7 +119,13 @@ export const TaskForm: React.FC<TaskFormProps> = ({
         <Text style={styles.dueBtnText}>{hasTime ? 'Time on' : 'Time off'}</Text>
       </TouchableOpacity>
       {hasTime && values.dueDate ? (
-        <TouchableOpacity style={styles.dueBtn} onPress={onToggleTimePicker}>
+        <TouchableOpacity
+          style={styles.dueBtn}
+          onPress={() => {
+            if (openAndroidPicker(selectedTime, 'time', onTimeChange)) return;
+            onToggleTimePicker();
+          }}
+        >
           <Text style={styles.dueBtnText}>
             {values.dueTime || selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
@@ -126,26 +139,20 @@ export const TaskForm: React.FC<TaskFormProps> = ({
     </View>
     {errors.dueDate ? <Text style={styles.err}>{errors.dueDate}</Text> : null}
 
-    {showDatePicker && (
+    {showDatePicker && Platform.OS === 'ios' && (
       <DateTimePicker
         value={selectedDate}
         mode="date"
-        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-        onChange={(_, d) => {
-          if (Platform.OS === 'android') onToggleDatePicker();
-          onDateChange(d);
-        }}
+        display="spinner"
+        onChange={(_, d) => onDateChange(d)}
       />
     )}
-    {showTimePicker && hasTime && (
+    {showTimePicker && hasTime && Platform.OS === 'ios' && (
       <DateTimePicker
         value={selectedTime}
         mode="time"
-        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-        onChange={(_, t) => {
-          if (Platform.OS === 'android') onToggleTimePicker();
-          onTimeChange(t);
-        }}
+        display="spinner"
+        onChange={(_, t) => onTimeChange(t)}
       />
     )}
   </ScrollView>

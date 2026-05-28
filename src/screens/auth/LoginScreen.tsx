@@ -37,6 +37,7 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <TextInput style={styles.input} placeholder="Password" placeholderTextColor={colors.textMuted} value={password} onChangeText={setPassword} secureTextEntry />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <Button label="Sign in" onPress={handleLogin} loading={loading} />
+      <Button label="Forgot password?" onPress={() => navigation.navigate('ForgotPassword')} variant="ghost" />
       <Button label="Create account" onPress={() => navigation.navigate('Register')} variant="ghost" />
     </KeyboardAvoidingView>
   );
