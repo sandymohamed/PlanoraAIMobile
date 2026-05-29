@@ -1,10 +1,17 @@
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient } from '@/services/apiClient';
 import { logger } from '@/utils/logger';
+import { headlessNotificationHandler } from '@/services/headlessNotificationHandler';
+import { processOfflineQueue } from '@/services/offlineQueue';
+
+type NavigationTarget = {
+  screen: string;
+  params?: Record<string, string>;
+};
 
 /**
- * Registers FCM device token with backend when @react-native-firebase/messaging is installed.
- * Safe no-op when Firebase is not configured in the build.
+ * FCM token registration + notification routing when @react-native-firebase/messaging is installed.
  */
 class PushNotificationService {
   private registered = false;
@@ -12,8 +19,9 @@ class PushNotificationService {
   async initialize(): Promise<void> {
     if (this.registered || Platform.OS === 'web') return;
 
+    headlessNotificationHandler.initialize();
+
     try {
-      // Optional dependency — not required for native AlarmManager alarms
       const messaging = require('@react-native-firebase/messaging').default;
       const authStatus = await messaging().requestPermission();
       const enabled =
@@ -25,24 +33,50 @@ class PushNotificationService {
       }
 
       const token = await messaging().getToken();
-      if (!token) return;
-
-      await apiClient.post('/me/push-token', {
-        token,
-        platform: Platform.OS === 'ios' ? 'ios' : 'android',
-      });
+      if (token) {
+        await this.registerToken(token);
+      }
 
       messaging().onTokenRefresh(async (newToken: string) => {
-        await apiClient.post('/me/push-token', {
-          token: newToken,
-          platform: Platform.OS === 'ios' ? 'ios' : 'android',
-        });
+        await this.registerToken(newToken);
+      });
+
+      messaging().onMessage(async (remoteMessage: { data?: Record<string, string> }) => {
+        const data = remoteMessage?.data ?? {};
+        if (data.type === 'TASK_REMINDER' || data.type === 'ROUTINE_REMINDER') {
+          await AsyncStorage.setItem('pending_navigation', JSON.stringify({
+            screen: data.screen || 'Tasks',
+            params: data.taskId ? { taskId: data.taskId } : undefined,
+          }));
+        }
       });
 
       this.registered = true;
-      logger.info('Push token registered with backend');
+      await processOfflineQueue();
+      logger.info('Push: FCM initialized');
     } catch {
-      logger.debug('Push notifications unavailable (install @react-native-firebase/messaging for FCM)');
+      logger.debug('Push: FCM unavailable — install @react-native-firebase/messaging for production push');
+      await processOfflineQueue();
+    }
+  }
+
+  private async registerToken(token: string): Promise<void> {
+    await apiClient.post('/me/push-token', {
+      token,
+      platform: Platform.OS === 'ios' ? 'ios' : 'android',
+    });
+    logger.info('Push token registered');
+  }
+
+  /** Consume pending navigation from notification tap (call from RootNavigator). */
+  async consumePendingNavigation(): Promise<NavigationTarget | null> {
+    const raw = await AsyncStorage.getItem('pending_navigation');
+    if (!raw) return null;
+    await AsyncStorage.removeItem('pending_navigation');
+    try {
+      return JSON.parse(raw) as NavigationTarget;
+    } catch {
+      return { screen: raw };
     }
   }
 }

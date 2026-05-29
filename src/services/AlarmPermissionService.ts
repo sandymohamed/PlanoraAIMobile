@@ -78,6 +78,10 @@ class AlarmPermissionService {
     if (!perms.notifications) await this.requestNotificationPermission();
     if (!perms.exactAlarm) await this.requestExactAlarmPermission();
     const final = await this.checkAllPermissions();
+    if (final.allGranted || final.exactAlarm) {
+      const { alarmFixService } = await import('@/services/AlarmFixService');
+      await alarmFixService.onPermissionsGranted();
+    }
     return final.allGranted;
   }
 

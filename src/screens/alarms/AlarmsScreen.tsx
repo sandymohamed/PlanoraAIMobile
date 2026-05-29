@@ -12,8 +12,9 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { AppIcon as Icon } from '@/components/ui/AppIcon';
 import { useAlarmStore } from '@/store/alarmStore';
-import { reliableAlarmService } from '@/services/ReliableAlarmService';
+import { alarmFixService } from '@/services/AlarmFixService';
 import { alarmPermissionService } from '@/services/AlarmPermissionService';
+import { groupAlarmsByRecurrence, getAlarmStatus, statusColor } from '@/utils/alarmUi';
 import { validateAndCleanPendingState } from '@/utils/alarmCleanup';
 import { showDeleteConfirmation } from '@/components/ConfirmationDialog';
 import { colors, spacing, typography } from '@/theme/tokens';
@@ -26,7 +27,7 @@ export const AlarmsScreen: React.FC = () => {
 
   useFocusEffect(
     useCallback(() => {
-      reliableAlarmService.initialize().catch(() => {});
+      alarmFixService.initialize().catch(() => {});
       alarmPermissionService.showPermissionSetupDialog().catch(() => {});
       fetchAlarms(1, 100, undefined);
       fetchTimers(1, 50);
@@ -77,34 +78,42 @@ export const AlarmsScreen: React.FC = () => {
             <Text style={styles.permText}>Tap to verify alarm permissions</Text>
           </TouchableOpacity>
 
-          <Text style={styles.section}>Alarms</Text>
-          {alarms.length === 0 ? (
-            <Text style={styles.empty}>No alarms</Text>
-          ) : (
-            alarms.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.row}
-                onPress={() => navigation.navigate('AlarmEdit', { alarmId: item.id })}
-                activeOpacity={0.85}
-              >
-                <View style={styles.rowBody}>
-                  <Text style={styles.rowTitle}>{item.title}</Text>
-                  <Text style={styles.rowMeta}>
-                    {format(new Date(item.time), 'EEE MMM d · h:mm a')}
-                    {item.recurrenceRule ? ` · ${item.recurrenceRule}` : ''}
-                  </Text>
-                </View>
-                <Switch value={item.enabled} onValueChange={() => onToggle(item.id)} />
-                <TouchableOpacity
-                  onPress={() => onDelete(item.id, item.title)}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                >
-                  <Icon name="trash-can-outline" size={20} color={colors.textMuted} />
-                </TouchableOpacity>
-              </TouchableOpacity>
-            ))
-          )}
+          {groupAlarmsByRecurrence(alarms).map((group) => (
+            <View key={group.key}>
+              <Text style={styles.section}>
+                {group.label} ({group.items.length})
+              </Text>
+              {group.items.map((item) => {
+                const status = getAlarmStatus(item);
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[styles.row, !item.enabled && styles.rowDisabled]}
+                    onPress={() => navigation.navigate('AlarmEdit', { alarmId: item.id })}
+                    activeOpacity={0.85}
+                  >
+                    <View style={[styles.statusDot, { backgroundColor: statusColor(status) }]} />
+                    <View style={styles.rowBody}>
+                      <Text style={[styles.rowTitle, !item.enabled && styles.textMuted]}>{item.title}</Text>
+                      <Text style={styles.rowMeta}>
+                        {format(new Date(item.time), 'EEE MMM d · h:mm a')}
+                        {status === 'soon' ? ' · Soon' : ''}
+                        {status === 'past' ? ' · Past' : ''}
+                      </Text>
+                    </View>
+                    <Switch value={item.enabled} onValueChange={() => onToggle(item.id)} />
+                    <TouchableOpacity
+                      onPress={() => onDelete(item.id, item.title)}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    >
+                      <Icon name="trash-can-outline" size={20} color={colors.textMuted} />
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ))}
+          {alarms.length === 0 && <Text style={styles.empty}>No alarms</Text>}
 
           <Text style={styles.section}>Timers</Text>
           {timers.length === 0 ? (
@@ -159,8 +168,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderSubtle,
   },
+  rowDisabled: { opacity: 0.65 },
+  statusDot: { width: 8, height: 8, borderRadius: 4 },
   rowBody: { flex: 1 },
   rowTitle: { ...typography.body, color: colors.text, fontWeight: '600' },
+  textMuted: { color: colors.textMuted },
   rowMeta: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
   empty: { ...typography.body, color: colors.textMuted, marginBottom: spacing.lg },
   fab: {

@@ -317,6 +317,22 @@ class NativeAlarmBridge {
     }
   }
 
+  /** Read native boot/update flag set by BootReceiver. */
+  async getAndClearNeedsReschedule(): Promise<boolean> {
+    if (Platform.OS !== 'android' || !AlarmModule) return false;
+    try {
+      if (
+        AlarmModule.getAndClearNeedsReschedule &&
+        typeof AlarmModule.getAndClearNeedsReschedule === 'function'
+      ) {
+        return Boolean(await AlarmModule.getAndClearNeedsReschedule());
+      }
+    } catch (error) {
+      logger.warn('getAndClearNeedsReschedule failed:', error);
+    }
+    return false;
+  }
+
   /**
    * Check if exact alarm permission is granted (Android 12+)
    */

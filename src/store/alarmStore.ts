@@ -14,7 +14,7 @@ interface AlarmState {
   loading: boolean;
   error: string | null;
   lastSaveTime: number | null;
-  countdownInterval: NodeJS.Timeout | null;
+  countdownInterval: ReturnType<typeof setInterval> | null;
   pagination: {
     page: number;
     limit: number;
@@ -121,7 +121,6 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
       const localSnoozeAlarms = currentState.alarms.filter(a => 
         a.id.includes('_snooze_') || a.id.endsWith('_snooze')
       );
-      console.log(`🔍 Found ${localSnoozeAlarms.length} local snooze alarms to preserve`);
       
       const mergedAlarms = response.data.map(backendAlarm => {
         // Find if this alarm exists in local state
@@ -322,6 +321,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
       // Try to fetch from server first
       try {
         const response = await alarmService.getTimers(page, limit);
+        logger.info(`🔍 Fetched ${response.data} timers from server`);
         set({
           timers: response.data,
           pagination: response.pagination,
@@ -331,6 +331,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
 
         // Load from local storage or create default timers
         const storedTimers = await get().loadTimersFromStorage();
+        logger.info(`🔍 Loaded ${storedTimers} timers from local storage`);
         const localTimers = storedTimers.length > 0 ? storedTimers : [
           {
             id: 'default_pomodoro',

@@ -263,6 +263,17 @@ class AlarmModule(reactContext: ReactApplicationContext) :
   }
 
   @ReactMethod
+  fun getAndClearNeedsReschedule(promise: Promise) {
+    try {
+      val needs = prefs.getBoolean("needs_reschedule", false)
+      prefs.edit().putBoolean("needs_reschedule", false).apply()
+      promise.resolve(needs)
+    } catch (e: Exception) {
+      promise.reject("ALARM_ERROR", "Failed to read reschedule flag: ${e.message}", e)
+    }
+  }
+
+  @ReactMethod
   fun canScheduleExactAlarms(promise: Promise) {
     try {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
