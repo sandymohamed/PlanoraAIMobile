@@ -1,8 +1,9 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { canShowRewardedAd } from './adHelpers';
 import { isFeatureEnabled } from '@/config/featureFlags';
+import { showConfirmDialog } from '@/components/ConfirmationDialog';
 import { colors, spacing, typography, radius } from '@/theme/tokens';
 
 interface RewardedAdButtonProps {
@@ -22,17 +23,13 @@ export const RewardedAdButton: React.FC<RewardedAdButtonProps> = ({
   }
 
   const handlePress = () => {
-    Alert.alert(
-      'Rewarded ad (coming soon)',
-      'AdMob rewarded ads will grant bonus AI credits here.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Simulate reward',
-          onPress: () => onReward?.(),
-        },
-      ]
-    );
+    showConfirmDialog({
+      title: 'Rewarded ad (coming soon)',
+      message: 'AdMob rewarded ads will grant bonus AI credits here.',
+      confirmLabel: 'Simulate reward',
+      cancelLabel: 'Cancel',
+      onConfirm: () => onReward?.(),
+    });
   };
 
   return (

@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   Modal,
-  Alert,
   Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -30,6 +29,7 @@ import { colors, spacing, typography } from '@/theme/tokens';
 import { priorityColor } from '@/utils/taskUi';
 import { Button } from '@/components/ui/Button';
 import { BannerAdPlaceholder } from '@/features/ads';
+import { showError } from '@/components/ConfirmationDialog';
 
 const WEEK_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const VIEW_MODES: CalendarViewMode[] = ['month', 'week', 'day', 'agenda'];
@@ -409,76 +409,82 @@ export const CalendarScreen: React.FC = () => {
               </Text>
             </TouchableOpacity>
           ))}
-        </View>
-      </ScrollView>
+    </View>
+      </ScrollView >
 
-      {cal.isLoading ? (
-        <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
-      ) : (
-        <ScrollView
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-          }
-          contentContainerStyle={styles.scroll}
-        >
-          {renderUpcoming()}
-          {cal.viewMode === 'month' && renderMonth()}
-          {cal.viewMode === 'week' && renderWeek()}
-          {cal.viewMode === 'day' && renderDayTimeline()}
-          {cal.viewMode === 'agenda' && renderAgenda()}
-          {renderSelectedList()}
-          <BannerAdPlaceholder placement="calendar" />
-        </ScrollView>
-      )}
+{
+  cal.isLoading ? (
+    <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
+  ) : (
+    <ScrollView
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+      }
+      contentContainerStyle={styles.scroll}
+    >
+      {renderUpcoming()}
+      {cal.viewMode === 'month' && renderMonth()}
+      {cal.viewMode === 'week' && renderWeek()}
+      {cal.viewMode === 'day' && renderDayTimeline()}
+      {cal.viewMode === 'agenda' && renderAgenda()}
+      {renderSelectedList()}
+      <BannerAdPlaceholder placement="calendar" />
+    </ScrollView>
+  )
+}
 
-      {fabOpen ? (
-        <TouchableOpacity style={styles.fabBackdrop} activeOpacity={1} onPress={() => setFabOpen(false)} />
-      ) : null}
+{
+  fabOpen ? (
+    <TouchableOpacity style={styles.fabBackdrop} activeOpacity={1} onPress={() => setFabOpen(false)} />
+  ) : null
+}
 
-      {fabOpen ? (
-        <View style={styles.fabMenu}>
-          <TouchableOpacity
-            style={styles.fabMenuItem}
-            onPress={() => {
-              setFabOpen(false);
-              navigateCreateTask(cal.selectedDate);
-            }}
-          >
-            <Icon name="checkbox-marked-circle-outline" size={20} color={colors.text} />
-            <Text style={styles.fabMenuText}>New task</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.fabMenuItem}
-            onPress={() => {
-              setFabOpen(false);
-              rootNav?.navigate('Goals', { screen: 'GoalCreate' });
-            }}
-          >
-            <Icon name="flag-outline" size={20} color={colors.text} />
-            <Text style={styles.fabMenuText}>New goal</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.fabMenuItem}
-            onPress={() => {
-              setFabOpen(false);
-              rootNav?.navigate('Routines', { screen: 'RoutineCreate' });
-            }}
-          >
-            <Icon name="repeat" size={20} color={colors.text} />
-            <Text style={styles.fabMenuText}>New routine</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.fabMenuItem}
-            onPress={() => {
-              setFabOpen(false);
-              rootNav?.navigate('Alarms', { screen: 'AlarmCreate' });
-            }}
-          >
-            <Icon name="alarm" size={20} color={colors.text} />
-            <Text style={styles.fabMenuText}>New alarm</Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
+{
+  fabOpen ? (
+    <View style={styles.fabMenu}>
+      <TouchableOpacity
+        style={styles.fabMenuItem}
+        onPress={() => {
+          setFabOpen(false);
+          navigateCreateTask(cal.selectedDate);
+        }}
+      >
+        <Icon name="checkbox-marked-circle-outline" size={20} color={colors.text} />
+        <Text style={styles.fabMenuText}>New task</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.fabMenuItem}
+        onPress={() => {
+          setFabOpen(false);
+          rootNav?.navigate('Goals', { screen: 'GoalCreate' });
+        }}
+      >
+        <Icon name="flag-outline" size={20} color={colors.text} />
+        <Text style={styles.fabMenuText}>New goal</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.fabMenuItem}
+        onPress={() => {
+          setFabOpen(false);
+          rootNav?.navigate('Routines', { screen: 'RoutineCreate' });
+        }}
+      >
+        <Icon name="repeat" size={20} color={colors.text} />
+        <Text style={styles.fabMenuText}>New routine</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.fabMenuItem}
+        onPress={() => {
+          setFabOpen(false);
+          rootNav?.navigate('Alarms', { screen: 'AlarmCreate' });
+        }}
+      >
+        <Icon name="alarm" size={20} color={colors.text} />
+        <Text style={styles.fabMenuText}>New alarm</Text>
+      </TouchableOpacity>
+    </View>
+  ) : null
+}
 
       <TouchableOpacity style={styles.fab} onPress={() => setFabOpen((o) => !o)}>
         <Icon name={fabOpen ? 'close' : 'plus'} size={24} color="#fff" />
@@ -506,8 +512,8 @@ export const CalendarScreen: React.FC = () => {
               </Text>
             ) : null}
             {!modalTask?.metadata?.isGoalMilestone &&
-            !modalTask?.metadata?.isGoalTarget &&
-            !modalTask?.metadata?.isAlarm ? (
+              !modalTask?.metadata?.isGoalTarget &&
+              !modalTask?.metadata?.isAlarm ? (
               <Button
                 label={modalTask?.status === TaskStatus.DONE ? 'Mark incomplete' : 'Mark complete'}
                 onPress={async () => {
@@ -516,15 +522,15 @@ export const CalendarScreen: React.FC = () => {
                     await cal.completeCalendarTask(modalTask);
                     setModalTask(null);
                   } catch (e: any) {
-                    Alert.alert('Error', e.message);
+                    showError('Error', e.message);
                   }
                 }}
               />
             ) : null}
             <Button label="Open details" onPress={() => modalTask && navigateFromEvent(modalTask)} />
             {!modalTask?.metadata?.isRoutineTask &&
-            !modalTask?.metadata?.isGoalMilestone &&
-            !modalTask?.metadata?.isAlarm ? (
+              !modalTask?.metadata?.isGoalMilestone &&
+              !modalTask?.metadata?.isAlarm ? (
               <Button
                 label="Edit task"
                 variant="secondary"
@@ -540,7 +546,7 @@ export const CalendarScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
-    </View>
+    </View >
   );
 };
 
@@ -555,7 +561,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: { ...typography.h2, color: colors.text, textAlign: 'center' },
   headerSub: { ...typography.caption, color: colors.textMuted, textAlign: 'center', fontSize: 10 },
-  modeScroll: { maxHeight: 48 },
+  modeScroll: { maxHeight: 48, },
   modeRow: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
   modeChip: {
     paddingHorizontal: spacing.md,
@@ -566,8 +572,8 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSubtle,
   },
   modeChipActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
-  modeText: { ...typography.label, color: colors.textMuted, fontSize: 11 },
-  modeTextActive: { color: colors.primary },
+  modeText: { ...typography.label, color: colors.textMuted, minHeight: 25, fontSize: 10, lineHeight: 6.8 },
+  modeTextActive: { color: colors.primary,  },
   scroll: { padding: spacing.lg, paddingBottom: 120 },
   weekHeader: { flexDirection: 'row', marginBottom: spacing.sm },
   weekLabel: { flex: 1, textAlign: 'center', ...typography.label, color: colors.textMuted, fontSize: 10 },

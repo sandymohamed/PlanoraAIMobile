@@ -6,7 +6,6 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Platform,
 } from 'react-native';
@@ -17,6 +16,7 @@ import { useGoalStore } from '@/store/goalStore';
 import { GoalPriority } from '@/types/goal';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { showAlert, showError } from '@/components/ConfirmationDialog';
 import { format } from 'date-fns';
 
 const CATEGORIES = ['Personal', 'Work', 'Health', 'Learning', 'Finance', 'Other'];
@@ -31,10 +31,17 @@ export const GoalCreateScreen: React.FC = () => {
   const [category, setCategory] = useState('Personal');
   const [targetDate, setTargetDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const submitting = useRef(false);
+
+  const openTargetDate = () => {
+    if (openAndroidPicker(targetDate || new Date(), 'date', setTargetDate)) return;
+    setShowDatePicker(true);
+  };
 
   const submit = async () => {
+    if (submitting.current) return;
     if (!title.trim()) {
-      Alert.alert('Title required', 'Enter a goal title.');
+      showAlert('Title required', 'Enter a goal title.', { variant: 'warning' });
       return;
     }
     submitting.current = true;
@@ -48,7 +55,7 @@ export const GoalCreateScreen: React.FC = () => {
       });
       navigation.goBack();
     } catch (e) {
-      Alert.alert('Error', getApiErrorMessage(e));
+      showError('Error', getApiErrorMessage(e));
     } finally {
       submitting.current = false;
     }

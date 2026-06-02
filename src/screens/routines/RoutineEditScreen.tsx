@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { routineService } from '@/services/routineService';
 import { useAlarmStore } from '@/store/alarmStore';
@@ -8,6 +8,7 @@ import { CreateRoutineData } from '@/types/routine';
 import { RoutinesStackParamList } from '@/navigation/RoutinesStack';
 import { colors } from '@/theme/tokens';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { showError } from '@/components/ConfirmationDialog';
 
 export const RoutineEditScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -28,7 +29,7 @@ export const RoutineEditScreen: React.FC = () => {
           reminderBefore: r.reminderBefore,
         })
       )
-      .catch((e) => Alert.alert('Error', getApiErrorMessage(e)));
+      .catch((e) => showError('Error', getApiErrorMessage(e)));
   }, [routineId]);
 
   const onSubmit = async (data: CreateRoutineData) => {
@@ -38,7 +39,7 @@ export const RoutineEditScreen: React.FC = () => {
       setTimeout(() => fetchAlarms(1, 1000, true).catch(() => {}), 1000);
       navigation.goBack();
     } catch (e) {
-      Alert.alert('Error', getApiErrorMessage(e));
+      showError('Error', getApiErrorMessage(e));
     } finally {
       setLoading(false);
     }

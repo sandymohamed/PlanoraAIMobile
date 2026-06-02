@@ -18,12 +18,17 @@ export async function initPostHog(): Promise<void> {
 
 export const AnalyticsEvents = {
   ONBOARDING_COMPLETED: 'onboarding_completed',
+  SIGNUP_COMPLETED: 'signup_completed',
   GOAL_CREATED: 'goal_created',
   AI_PLAN_GENERATED: 'ai_plan_generated',
   ROUTINE_COMPLETED: 'routine_completed',
   FOCUS_SESSION_STARTED: 'focus_session_started',
   FOCUS_SESSION_ENDED: 'focus_session_ended',
   PREMIUM_UPGRADE_CLICKED: 'premium_upgrade_clicked',
+  PAYWALL_VIEWED: 'paywall_viewed',
+  PREMIUM_INTEREST: 'premium_interest',
+  WAITLIST_JOINED: 'waitlist_joined',
+  CONTACT_SUBMITTED: 'contact_submitted',
   WEEKLY_REVIEW_VIEWED: 'weekly_review_viewed',
   WEEKLY_REVIEW_SHARED: 'weekly_review_shared',
 } as const;

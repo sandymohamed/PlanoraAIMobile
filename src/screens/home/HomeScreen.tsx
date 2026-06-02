@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing.sm,
   },
-  quickLabel: { ...typography.caption, color: colors.text, fontWeight: '600' },
+  quickLabel: { ...typography.caption, color: colors.text, fontWeight: '600', fontSize: 8 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm, marginTop: spacing.sm },
   sectionTitle: { ...typography.h3, color: colors.text },
   sectionAction: { ...typography.caption, color: colors.primary, fontWeight: '600' },

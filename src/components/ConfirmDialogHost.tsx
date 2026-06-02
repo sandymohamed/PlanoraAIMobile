@@ -12,6 +12,17 @@ import { AppIcon as Icon } from '@/components/ui/AppIcon';
 import { useConfirmationDialogStore } from '@/store/confirmationDialogStore';
 import { colors, spacing, typography, radius, shadows } from '@/theme/tokens';
 
+const VARIANT_STYLE: Record<
+  string,
+  { icon: string; color: string; soft: string }
+> = {
+  info: { icon: 'information-outline', color: colors.primary, soft: 'rgba(124, 108, 246, 0.15)' },
+  success: { icon: 'check-circle-outline', color: colors.success, soft: 'rgba(74, 222, 128, 0.15)' },
+  error: { icon: 'close-circle-outline', color: colors.error, soft: 'rgba(248, 113, 113, 0.15)' },
+  warning: { icon: 'alert-outline', color: colors.warning, soft: 'rgba(251, 191, 36, 0.15)' },
+  danger: { icon: 'trash-can-outline', color: colors.error, soft: 'rgba(248, 113, 113, 0.15)' },
+};
+
 export const ConfirmDialogHost: React.FC = () => {
   const {
     visible,
@@ -21,6 +32,8 @@ export const ConfirmDialogHost: React.FC = () => {
     confirmLabel,
     cancelLabel,
     destructive,
+    variant,
+    alert,
     loading,
     onConfirm,
     hide,
@@ -28,7 +41,11 @@ export const ConfirmDialogHost: React.FC = () => {
   } = useConfirmationDialogStore();
 
   const handleConfirm = async () => {
-    if (!onConfirm || loading) return;
+    if (loading) return;
+    if (!onConfirm) {
+      hide();
+      return;
+    }
     try {
       setLoading(true);
       await onConfirm();
@@ -38,17 +55,15 @@ export const ConfirmDialogHost: React.FC = () => {
     }
   };
 
+  const v = VARIANT_STYLE[variant] ?? VARIANT_STYLE.info;
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={hide} statusBarTranslucent>
       <View style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={hide} accessibilityRole="button" accessibilityLabel="Dismiss" />
         <View style={styles.card}>
-          <View style={[styles.iconWrap, destructive && styles.iconWrapDanger]}>
-            <Icon
-              name={destructive ? 'trash-can-outline' : 'alert-circle-outline'}
-              size={28}
-              color={destructive ? colors.error : colors.primary}
-            />
+          <View style={[styles.iconWrap, { backgroundColor: v.soft }]}>
+            <Icon name={v.icon} size={28} color={v.color} />
           </View>
 
           <Text style={styles.title}>{title}</Text>
@@ -64,14 +79,16 @@ export const ConfirmDialogHost: React.FC = () => {
           {message ? <Text style={styles.message}>{message}</Text> : null}
 
           <View style={styles.actions}>
-            <TouchableOpacity
-              style={styles.cancelBtn}
-              onPress={hide}
-              disabled={loading}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.cancelText}>{cancelLabel}</Text>
-            </TouchableOpacity>
+            {!alert && (
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={hide}
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.cancelText}>{cancelLabel}</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={[styles.confirmBtn, destructive && styles.confirmBtnDanger]}
@@ -119,9 +136,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
-  },
-  iconWrapDanger: {
-    backgroundColor: 'rgba(248, 113, 113, 0.15)',
   },
   title: {
     ...typography.h2,

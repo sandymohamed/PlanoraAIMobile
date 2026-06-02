@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTaskStore } from '@/store/taskStore';
 import { TaskStatus } from '@/types/task';
 import { Button } from '@/components/ui/Button';
-import { showDeleteConfirmation } from '@/components/ConfirmationDialog';
+import { showDeleteConfirmation, showError } from '@/components/ConfirmationDialog';
 import { TasksStackParamList } from '@/navigation/TasksStack';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { formatDueLabel, priorityColor, statusColor } from '@/utils/taskUi';
@@ -47,7 +47,7 @@ export const TaskDetailScreen: React.FC = () => {
       if (task.status === TaskStatus.DONE) await uncompleteTask(task.id);
       else await completeTask(task.id);
     } catch (e) {
-      Alert.alert('Error', getApiErrorMessage(e));
+      showError('Error', getApiErrorMessage(e));
     }
   };
 
@@ -57,7 +57,7 @@ export const TaskDetailScreen: React.FC = () => {
         await deleteTask(task.id);
         navigation.goBack();
       } catch (e) {
-        Alert.alert('Error', getApiErrorMessage(e));
+        showError('Error', getApiErrorMessage(e));
       }
     });
   };

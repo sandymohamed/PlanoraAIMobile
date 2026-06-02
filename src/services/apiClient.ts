@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
 import { config } from '@/config/env';
 import { useAuthStore } from '@/store/authStore';
+import { captureException } from '@/analytics/sentry';
 
 const LOG = __DEV__;
 
@@ -73,6 +74,17 @@ class ApiClient {
         const original = error.config;
         if (!original) {
           throw error;
+        }
+
+        // Report server-side (5xx) and network failures to Sentry. We send only
+        // method/url/status — never request bodies, tokens, or response payloads.
+        const status = error.response?.status;
+        if (!status || status >= 500) {
+          captureException(error, {
+            method: original.method?.toUpperCase(),
+            url: original.url,
+            status: status ?? 'network_error',
+          });
         }
 
         const cfg = original as AxiosRequestConfig & {

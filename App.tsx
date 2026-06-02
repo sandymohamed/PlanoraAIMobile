@@ -10,7 +10,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PaperProvider } from 'react-native-paper';
 import { RootNavigator } from '@/navigation/RootNavigator';
 import { ConfirmDialogHost } from '@/components/ConfirmDialogHost';
+import { ActionSheetHost } from '@/components/ActionSheetHost';
 import { useAuthStore } from '@/store/authStore';
+import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { planoraTheme } from '@/theme/paperTheme';
 import { initSentry, wrapApp } from '@/analytics/sentry';
 import { initPostHog } from '@/analytics/posthog';
@@ -37,6 +39,7 @@ function App() {
       pushNotificationService.initialize().catch(() => {});
       alarmFixService.initialize().catch(() => {});
       processOfflineQueue().catch(() => {});
+      useSubscriptionStore.getState().fetchAIUsage().catch(() => {});
     }
   }, [isAuthenticated]);
 
@@ -47,6 +50,7 @@ function App() {
           <StatusBar barStyle="light-content" backgroundColor={colors.background} />
           <RootNavigator />
           <ConfirmDialogHost />
+          <ActionSheetHost />
         </PaperProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

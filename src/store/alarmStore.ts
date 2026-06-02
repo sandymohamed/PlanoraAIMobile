@@ -31,6 +31,8 @@ interface AlarmState {
   toggleAlarm: (id: string) => Promise<void>;
   snoozeAlarm: (id: string, duration?: number) => Promise<void>;
   dismissAlarm: (id: string) => Promise<void>;
+  /** Permanently delete one-time alarms whose time has already passed. */
+  cleanupExpiredAlarms: () => Promise<void>;
 
   createTimer: (data: CreateTimerData) => Promise<Timer>;
   updateTimer: (id: string, data: UpdateTimerData) => Promise<Timer>;
@@ -300,7 +302,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
       // Retry on network errors
       if (isNetworkError && retryCount < maxRetries) {
         logger.warn(`Network error fetching alarms, retrying... (${retryCount + 1}/${maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, retryDelay * (retryCount + 1)));
+        await new Promise<void>(resolve => setTimeout(() => resolve(), retryDelay * (retryCount + 1)));
         return get().fetchAlarms(page, limit, enabled, retryCount + 1);
       }
       
@@ -679,6 +681,23 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
         error: error instanceof Error ? error.message : 'Failed to dismiss alarm',
       });
     }
+  },
+
+  cleanupExpiredAlarms: async () => {
+    const now = Date.now();
+    const expired = get().alarms.filter((a) => {
+      const isOneTime = !a.recurrenceRule || a.recurrenceRule === 'none';
+      if (!isOneTime) return false;
+      // Skip locally-created snooze alarms — they don't exist in the backend
+      // and are already pruned by fetchAlarms.
+      if (a.id.includes('_snooze_') || a.id.endsWith('_snooze')) return false;
+      return new Date(a.time).getTime() < now - 60_000;
+    });
+
+    if (expired.length === 0) return;
+
+    logger.info(`🧹 Cleaning up ${expired.length} expired one-time alarm(s)`);
+    await Promise.allSettled(expired.map((a) => get().deleteAlarm(a.id)));
   },
 
   // Timer actions

@@ -12,6 +12,16 @@ export function getAlarmStatus(alarm: Alarm): AlarmStatus {
   return 'scheduled';
 }
 
+/**
+ * A one-time alarm whose time has already passed will never ring again.
+ * Recurring alarms always have a future occurrence, so they never expire.
+ */
+export function isAlarmExpired(alarm: Alarm): boolean {
+  const isOneTime = !alarm.recurrenceRule || alarm.recurrenceRule === 'none';
+  if (!isOneTime) return false;
+  return new Date(alarm.time).getTime() < Date.now() - 60_000;
+}
+
 export function groupAlarmsByRecurrence(alarms: Alarm[]): { key: string; label: string; items: Alarm[] }[] {
   const order = ['none', 'daily', 'weekdays', 'weekends', 'weekly'];
   const labels: Record<string, string> = {

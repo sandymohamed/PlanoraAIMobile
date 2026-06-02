@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { apiClient } from '@/services/apiClient';
 import { Button } from '@/components/ui/Button';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { showAlert, showError, showSuccess } from '@/components/ConfirmationDialog';
 
 export const ChangePasswordScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -15,19 +16,19 @@ export const ChangePasswordScreen: React.FC = () => {
 
   const submit = async () => {
     if (newPassword.length < 8) {
-      Alert.alert('Password too short', 'Use at least 8 characters.');
+      showAlert('Password too short', 'Use at least 8 characters.', { variant: 'warning' });
       return;
     }
     if (newPassword !== confirm) {
-      Alert.alert('Mismatch', 'New passwords do not match.');
+      showAlert('Mismatch', 'New passwords do not match.', { variant: 'warning' });
       return;
     }
     setLoading(true);
     try {
       await apiClient.post('/me/change-password', { currentPassword, newPassword });
-      Alert.alert('Success', 'Password updated.', [{ text: 'OK', onPress: () => navigation.goBack() }]);
+      showSuccess('Success', 'Password updated.', () => navigation.goBack());
     } catch (e) {
-      Alert.alert('Error', getApiErrorMessage(e));
+      showError('Error', getApiErrorMessage(e));
     } finally {
       setLoading(false);
     }

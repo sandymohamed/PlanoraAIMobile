@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTaskStore } from '@/store/taskStore';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { TasksStackParamList } from '@/navigation/TasksStack';
 import { colors, spacing } from '@/theme/tokens';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { showError } from '@/components/ConfirmationDialog';
 
 type Route = RouteProp<TasksStackParamList, 'TaskCreate'>;
 type Nav = NativeStackNavigationProp<TasksStackParamList, 'TaskCreate'>;
@@ -56,7 +57,7 @@ export const TaskCreateScreen: React.FC = () => {
       await createTask(payload);
       navigation.goBack();
     } catch (e) {
-      Alert.alert('Could not create task', getApiErrorMessage(e));
+      showError('Could not create task', getApiErrorMessage(e));
     } finally {
       submittingRef.current = false;
     }

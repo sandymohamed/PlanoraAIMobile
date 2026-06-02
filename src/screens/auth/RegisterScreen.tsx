@@ -6,12 +6,13 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { getApiErrorMessage, isEmailExistsError } from '@/utils/apiError';
+import { showError, showConfirmDialog } from '@/components/ConfirmationDialog';
+import { track, AnalyticsEvents } from '@/analytics/posthog';
 import { config } from '@/config/env';
 
 export const RegisterScreen: React.FC<{ navigation: { navigate: (screen: string) => void } }> = ({
@@ -48,6 +49,7 @@ export const RegisterScreen: React.FC<{ navigation: { navigate: (screen: string)
     console.log('[Planora] Create account pressed', { api: config.API_BASE_URL, email: trimmedEmail });
     try {
       await register(trimmedEmail, password, trimmedName);
+      track(AnalyticsEvents.SIGNUP_COMPLETED, { method: 'email' });
       console.log('[Planora] Create account success');
     } catch (e) {
       const msg = getApiErrorMessage(e);
@@ -56,12 +58,16 @@ export const RegisterScreen: React.FC<{ navigation: { navigate: (screen: string)
       setError(msg);
       setEmailTaken(taken);
       if (taken) {
-        Alert.alert('Email already registered', msg, [
-          { text: 'Use different email', style: 'cancel' },
-          { text: 'Sign in', onPress: () => navigation.navigate('Login') },
-        ]);
+        showConfirmDialog({
+          title: 'Email already registered',
+          message: msg,
+          variant: 'warning',
+          confirmLabel: 'Sign in',
+          cancelLabel: 'Use different email',
+          onConfirm: () => navigation.navigate('Login'),
+        });
       } else {
-        Alert.alert('Could not create account', msg);
+        showError('Could not create account', msg);
       }
     } finally {
       setLoading(false);

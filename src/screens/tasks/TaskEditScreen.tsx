@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, Alert, ActivityIndicator, Text } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTaskStore } from '@/store/taskStore';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { TasksStackParamList } from '@/navigation/TasksStack';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { showError } from '@/components/ConfirmationDialog';
 
 type Route = RouteProp<TasksStackParamList, 'TaskEdit'>;
 type Nav = NativeStackNavigationProp<TasksStackParamList, 'TaskEdit'>;
@@ -68,7 +69,7 @@ export const TaskEditScreen: React.FC = () => {
       await updateTask(taskId, payload);
       navigation.goBack();
     } catch (e) {
-      Alert.alert('Could not update task', getApiErrorMessage(e));
+      showError('Could not update task', getApiErrorMessage(e));
     } finally {
       submittingRef.current = false;
     }

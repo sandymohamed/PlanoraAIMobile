@@ -6,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   Platform,
-  Alert,
   ScrollView,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -14,6 +13,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAlarmStore } from '@/store/alarmStore';
 import { nativeAlarmBridge } from '@/services/NativeAlarmBridge';
 import { openAndroidPicker } from '@/utils/dateTimePicker';
+import { showAlert, showError } from '@/components/ConfirmationDialog';
 import { colors, spacing, typography } from '@/theme/tokens';
 
 const RECURRENCE_OPTIONS = [
@@ -67,7 +67,7 @@ export const AlarmEditScreen: React.FC = () => {
 
   const pickRingtone = async () => {
     if (Platform.OS !== 'android') {
-      Alert.alert('Alarm sound', 'Custom ringtones are available on Android.');
+      showAlert('Alarm sound', 'Custom ringtones are available on Android.');
       return;
     }
     try {
@@ -78,7 +78,7 @@ export const AlarmEditScreen: React.FC = () => {
       setRingtoneName(name || 'Custom ringtone');
     } catch (e: any) {
       if (!String(e?.message).includes('CANCELLED')) {
-        Alert.alert('Error', e?.message || 'Could not pick ringtone');
+        showError('Error', e?.message || 'Could not pick ringtone');
       }
     }
   };
@@ -86,7 +86,7 @@ export const AlarmEditScreen: React.FC = () => {
   const save = async () => {
     if (!alarm || saving.current) return;
     if (!title.trim()) {
-      Alert.alert('Title required', 'Please enter an alarm title.');
+      showAlert('Title required', 'Please enter an alarm title.', { variant: 'warning' });
       return;
     }
     saving.current = true;
@@ -100,7 +100,7 @@ export const AlarmEditScreen: React.FC = () => {
       });
       navigation.goBack();
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      showError('Error', e.message);
     } finally {
       saving.current = false;
     }

@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Alert,
   FlatList,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -17,7 +16,7 @@ import { useTaskStore } from '@/store/taskStore';
 import { Task, TaskPriority, TaskStatus } from '@/types/task';
 import { TasksStackParamList } from '@/navigation/TasksStack';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { showDeleteConfirmation } from '@/components/ConfirmationDialog';
+import { showDeleteConfirmation, showError } from '@/components/ConfirmationDialog';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { formatDueLabel, isTaskOverdue, priorityColor, sortTasksByDueDate, statusColor } from '@/utils/taskUi';
 import { getApiErrorMessage } from '@/utils/apiError';
@@ -111,7 +110,7 @@ export const TasksScreen: React.FC = () => {
       if (task.status === TaskStatus.DONE) await uncompleteTask(task.id);
       else await completeTask(task.id);
     } catch (e) {
-      Alert.alert('Error', getApiErrorMessage(e));
+      showError('Error', getApiErrorMessage(e));
     }
   };
 
@@ -120,7 +119,7 @@ export const TasksScreen: React.FC = () => {
       try {
         await deleteTask(task.id);
       } catch (e) {
-        Alert.alert('Error', getApiErrorMessage(e));
+        showError('Error', getApiErrorMessage(e));
       }
     });
   };
@@ -174,7 +173,6 @@ export const TasksScreen: React.FC = () => {
   const listHeader = (
     <>
       <Text style={styles.title}>Tasks</Text>
-      <Text style={styles.sub}>Your real tasks from Planora API</Text>
       <View style={styles.searchWrap}>
         <Icon name="magnify" size={20} color={colors.textMuted} style={styles.searchIcon} />
         <TextInput

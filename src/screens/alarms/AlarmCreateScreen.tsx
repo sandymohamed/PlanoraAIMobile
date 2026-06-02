@@ -6,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   Platform,
-  Alert,
   ScrollView,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -15,6 +14,7 @@ import { useAlarmStore } from '@/store/alarmStore';
 import { alarmPermissionService } from '@/services/AlarmPermissionService';
 import { nativeAlarmBridge } from '@/services/NativeAlarmBridge';
 import { openAndroidPicker } from '@/utils/dateTimePicker';
+import { showAlert, showError } from '@/components/ConfirmationDialog';
 import { colors, spacing, typography } from '@/theme/tokens';
 
 const RECURRENCE_OPTIONS = [
@@ -43,7 +43,7 @@ export const AlarmCreateScreen: React.FC = () => {
 
   const pickRingtone = async () => {
     if (Platform.OS !== 'android') {
-      Alert.alert('Alarm sound', 'Custom ringtones are available on Android.');
+      showAlert('Alarm sound', 'Custom ringtones are available on Android.');
       return;
     }
     try {
@@ -54,7 +54,7 @@ export const AlarmCreateScreen: React.FC = () => {
       setRingtoneName(name || 'Custom ringtone');
     } catch (e: any) {
       if (!String(e?.message).includes('CANCELLED')) {
-        Alert.alert('Error', e?.message || 'Could not pick ringtone');
+        showError('Error', e?.message || 'Could not pick ringtone');
       }
     }
   };
@@ -75,7 +75,7 @@ export const AlarmCreateScreen: React.FC = () => {
       });
       navigation.goBack();
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      showError('Error', e.message);
     } finally {
       saving.current = false;
     }

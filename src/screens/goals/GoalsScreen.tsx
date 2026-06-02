@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   RefreshControl,
   TextInput,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -15,6 +14,7 @@ import { useGoalStore } from '@/store/goalStore';
 import { Goal, GoalStatus } from '@/types/goal';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { showError, showConfirmDialog, showActionSheet } from '@/components/ConfirmationDialog';
 import { format, isAfter, differenceInDays } from 'date-fns';
 import { BannerAdPlaceholder } from '@/features/ads';
 
@@ -74,42 +74,46 @@ export const GoalsScreen: React.FC = () => {
   };
 
   const onGoalLongPress = (goal: Goal) => {
-    Alert.alert(goal.title, undefined, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Complete',
-        onPress: async () => {
-          try {
-            await completeGoal(goal.id);
-          } catch (e) {
-            Alert.alert('Error', getApiErrorMessage(e));
-          }
+    showActionSheet({
+      title: goal.title,
+      options: [
+        {
+          label: 'Complete',
+          icon: 'check-circle-outline',
+          onPress: async () => {
+            try {
+              await completeGoal(goal.id);
+            } catch (e) {
+              showError('Error', getApiErrorMessage(e));
+            }
+          },
         },
-      },
-      {
-        text: 'Edit',
-        onPress: () => navigation.navigate('GoalEdit', { goalId: goal.id }),
-      },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () =>
-          Alert.alert('Delete goal?', goal.title, [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Delete',
-              style: 'destructive',
-              onPress: async () => {
+        {
+          label: 'Edit',
+          icon: 'pencil-outline',
+          onPress: () => navigation.navigate('GoalEdit', { goalId: goal.id }),
+        },
+        {
+          label: 'Delete',
+          icon: 'trash-can-outline',
+          destructive: true,
+          onPress: () =>
+            showConfirmDialog({
+              title: 'Delete goal?',
+              itemName: goal.title,
+              confirmLabel: 'Delete',
+              destructive: true,
+              onConfirm: async () => {
                 try {
                   await deleteGoal(goal.id);
                 } catch (e) {
-                  Alert.alert('Error', getApiErrorMessage(e));
+                  showError('Error', getApiErrorMessage(e));
                 }
               },
-            },
-          ]),
-      },
-    ]);
+            }),
+        },
+      ],
+    });
   };
 
   const renderGoal = ({ item }: { item: Goal }) => {

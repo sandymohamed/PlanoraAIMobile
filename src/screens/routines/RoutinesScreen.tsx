@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  Alert,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -19,6 +18,7 @@ import { RoutinesStackParamList } from '@/navigation/RoutinesStack';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { showError, showConfirmDialog } from '@/components/ConfirmationDialog';
 
 type Nav = NativeStackNavigationProp<RoutinesStackParamList, 'RoutinesList'>;
 
@@ -37,7 +37,7 @@ export const RoutinesScreen: React.FC = () => {
       const data = await routineService.getUserRoutines();
       setRoutines(data);
     } catch (e) {
-      Alert.alert('Error', getApiErrorMessage(e));
+      showError('Error', getApiErrorMessage(e));
     } finally {
       setLoading(false);
       loadingRef.current = false;
@@ -61,44 +61,42 @@ export const RoutinesScreen: React.FC = () => {
       await routineService.toggleTaskCompletion(taskId, !completed);
       await loadRoutines();
     } catch (e) {
-      Alert.alert('Error', getApiErrorMessage(e));
+      showError('Error', getApiErrorMessage(e));
     }
   };
 
   const resetRoutine = (id: string) => {
-    Alert.alert('Reset routine', 'Reset all sub-task completion for this period?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Reset',
-        onPress: async () => {
-          try {
-            await routineService.resetRoutine(id);
-            await loadRoutines();
-          } catch (e) {
-            Alert.alert('Error', getApiErrorMessage(e));
-          }
-        },
+    showConfirmDialog({
+      title: 'Reset routine',
+      message: 'Reset all sub-task completion for this period?',
+      confirmLabel: 'Reset',
+      onConfirm: async () => {
+        try {
+          await routineService.resetRoutine(id);
+          await loadRoutines();
+        } catch (e) {
+          showError('Error', getApiErrorMessage(e));
+        }
       },
-    ]);
+    });
   };
 
   const deleteRoutine = (routine: Routine) => {
-    Alert.alert('Delete routine', `Delete "${routine.title}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await routineService.deleteRoutine(routine.id);
-            await fetchAlarms(1, 1000, true);
-            await loadRoutines();
-          } catch (e) {
-            Alert.alert('Error', getApiErrorMessage(e));
-          }
-        },
+    showConfirmDialog({
+      title: 'Delete routine',
+      itemName: routine.title,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await routineService.deleteRoutine(routine.id);
+          await fetchAlarms(1, 1000, true);
+          await loadRoutines();
+        } catch (e) {
+          showError('Error', getApiErrorMessage(e));
+        }
       },
-    ]);
+    });
   };
 
   return (

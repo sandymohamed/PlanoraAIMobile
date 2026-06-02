@@ -1,5 +1,6 @@
-import { Platform, PermissionsAndroid, Linking, Alert } from 'react-native';
+import { Platform, PermissionsAndroid, Linking } from 'react-native';
 import { logger } from '@/utils/logger';
+import { showConfirmDialog } from '@/components/ConfirmationDialog';
 
 class AlarmPermissionService {
   async checkAllPermissions(): Promise<{ exactAlarm: boolean; notifications: boolean; allGranted: boolean }> {
@@ -33,14 +34,14 @@ class AlarmPermissionService {
         await AlarmModule.openExactAlarmSettings();
         return true;
       }
-      Alert.alert(
-        'Exact alarm permission',
-        'Grant "Schedule exact alarms" in app settings for reliable alarms.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Open Settings', onPress: () => Linking.openSettings() },
-        ]
-      );
+      showConfirmDialog({
+        title: 'Exact alarm permission',
+        message: 'Grant "Schedule exact alarms" in app settings for reliable alarms.',
+        confirmLabel: 'Open Settings',
+        cancelLabel: 'Cancel',
+        variant: 'warning',
+        onConfirm: () => Linking.openSettings(),
+      });
       return false;
     } catch (error) {
       logger.error('Exact alarm permission request failed', error);
@@ -93,14 +94,16 @@ class AlarmPermissionService {
     if (!perms.exactAlarm) missing.push('• Schedule exact alarms');
     if (!perms.notifications) missing.push('• Notifications');
 
-    Alert.alert(
-      'Alarm permissions',
-      `For reliable alarms, please grant:\n\n${missing.join('\n')}`,
-      [
-        { text: 'Later', style: 'cancel' },
-        { text: 'Open settings', onPress: () => this.requestAllPermissions() },
-      ]
-    );
+    showConfirmDialog({
+      title: 'Alarm permissions',
+      message: `For reliable alarms, please grant:\n\n${missing.join('\n')}`,
+      confirmLabel: 'Open settings',
+      cancelLabel: 'Later',
+      variant: 'warning',
+      onConfirm: async () => {
+        await this.requestAllPermissions();
+      },
+    });
   }
 }
 

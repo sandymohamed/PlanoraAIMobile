@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -20,6 +21,13 @@
       android:theme="@style/AppTheme"
       android:usesCleartextTraffic="${usesCleartextTraffic}"
       android:supportsRtl="true">
+
+      <!-- Default FCM notification channel used when a message does not specify one.
+           Matches the native alarm channel created by AlarmPlayerService. -->
+      <meta-data
+          android:name="com.google.firebase.messaging.default_notification_channel_id"
+          android:value="alarm_channel"
+          tools:replace="android:value" />
 
       <receiver
           android:name="com.mobile.alarm.AlarmReceiver"

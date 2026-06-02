@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '@/store/authStore';
 import { apiClient } from '@/services/apiClient';
 import { Button } from '@/components/ui/Button';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { showAlert, showError } from '@/components/ConfirmationDialog';
 
 export const EditProfileScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -15,7 +16,7 @@ export const EditProfileScreen: React.FC = () => {
 
   const save = async () => {
     if (!name.trim()) {
-      Alert.alert('Name required', 'Please enter your name.');
+      showAlert('Name required', 'Please enter your name.', { variant: 'warning' });
       return;
     }
     setLoading(true);
@@ -27,7 +28,7 @@ export const EditProfileScreen: React.FC = () => {
       if (res.data) updateUser(res.data);
       navigation.goBack();
     } catch (e) {
-      Alert.alert('Error', getApiErrorMessage(e));
+      showError('Error', getApiErrorMessage(e));
     } finally {
       setLoading(false);
     }

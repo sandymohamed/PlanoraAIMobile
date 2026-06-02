@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert, Share } from 'react-native';
+import { View, Text, StyleSheet, Share } from 'react-native';
 import { apiClient } from '@/services/apiClient';
 import { Button } from '@/components/ui/Button';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { useAuthStore } from '@/store/authStore';
+import { showError, showConfirmDialog } from '@/components/ConfirmationDialog';
 
 export const DataExportScreen: React.FC = () => {
   const { logout } = useAuthStore();
@@ -17,32 +18,27 @@ export const DataExportScreen: React.FC = () => {
       const json = JSON.stringify(res.data, null, 2);
       await Share.share({ message: json, title: 'Planora data export' });
     } catch (e) {
-      Alert.alert('Export failed', getApiErrorMessage(e));
+      showError('Export failed', getApiErrorMessage(e));
     } finally {
       setLoading(false);
     }
   };
 
   const deleteAccount = () => {
-    Alert.alert(
-      'Delete account',
-      'This permanently deletes your account and data. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await apiClient.delete('/me');
-              await logout();
-            } catch (e) {
-              Alert.alert('Error', getApiErrorMessage(e));
-            }
-          },
-        },
-      ]
-    );
+    showConfirmDialog({
+      title: 'Delete account',
+      message: 'This permanently deletes your account and data. This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await apiClient.delete('/me');
+          await logout();
+        } catch (e) {
+          showError('Error', getApiErrorMessage(e));
+        }
+      },
+    });
   };
 
   return (

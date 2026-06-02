@@ -7,31 +7,37 @@ import {
   TouchableOpacity,
   Switch,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { AppIcon as Icon } from '@/components/ui/AppIcon';
 import { useAlarmStore } from '@/store/alarmStore';
 import { alarmFixService } from '@/services/AlarmFixService';
 import { alarmPermissionService } from '@/services/AlarmPermissionService';
-import { groupAlarmsByRecurrence, getAlarmStatus, statusColor } from '@/utils/alarmUi';
+import { groupAlarmsByRecurrence, getAlarmStatus, statusColor, isAlarmExpired } from '@/utils/alarmUi';
 import { validateAndCleanPendingState } from '@/utils/alarmCleanup';
-import { showDeleteConfirmation } from '@/components/ConfirmationDialog';
+import { showDeleteConfirmation, showError } from '@/components/ConfirmationDialog';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { format } from 'date-fns';
 import { getApiErrorMessage } from '@/utils/apiError';
 
 export const AlarmsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { alarms, timers, loading, fetchAlarms, fetchTimers, toggleAlarm, deleteAlarm } = useAlarmStore();
+  const { alarms, timers, loading, fetchAlarms, fetchTimers, toggleAlarm, deleteAlarm, cleanupExpiredAlarms } =
+    useAlarmStore();
+
+  // Hide one-time alarms that have already rung — only keep alarms that will ring in the future.
+  const visibleAlarms = alarms.filter((a) => !isAlarmExpired(a));
 
   useFocusEffect(
     useCallback(() => {
       alarmFixService.initialize().catch(() => {});
       alarmPermissionService.showPermissionSetupDialog().catch(() => {});
-      fetchAlarms(1, 100, undefined);
+      // Fetch, then permanently delete expired one-time alarms so they don't pile up in the DB.
+      fetchAlarms(1, 100, undefined)
+        .then(() => cleanupExpiredAlarms())
+        .catch(() => {});
       fetchTimers(1, 50);
-    }, [fetchAlarms, fetchTimers])
+    }, [fetchAlarms, fetchTimers, cleanupExpiredAlarms])
   );
 
   useEffect(() => {
@@ -42,7 +48,7 @@ export const AlarmsScreen: React.FC = () => {
     try {
       await toggleAlarm(id);
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      showError('Error', e.message);
     }
   };
 
@@ -51,14 +57,14 @@ export const AlarmsScreen: React.FC = () => {
       try {
         await deleteAlarm(id);
       } catch (e) {
-        Alert.alert('Error', getApiErrorMessage(e));
+        showError('Error', getApiErrorMessage(e));
       }
     }, 'alarm');
   };
 
   return (
     <View style={styles.container}>
-      {loading && alarms.length === 0 ? (
+      {loading && visibleAlarms.length === 0 ? (
         <ActivityIndicator color={colors.primary} style={{ marginTop: 48 }} />
       ) : (
         <ScrollView
@@ -78,7 +84,7 @@ export const AlarmsScreen: React.FC = () => {
             <Text style={styles.permText}>Tap to verify alarm permissions</Text>
           </TouchableOpacity>
 
-          {groupAlarmsByRecurrence(alarms).map((group) => (
+          {groupAlarmsByRecurrence(visibleAlarms).map((group) => (
             <View key={group.key}>
               <Text style={styles.section}>
                 {group.label} ({group.items.length})
@@ -113,23 +119,8 @@ export const AlarmsScreen: React.FC = () => {
               })}
             </View>
           ))}
-          {alarms.length === 0 && <Text style={styles.empty}>No alarms</Text>}
+          {visibleAlarms.length === 0 && <Text style={styles.empty}>No upcoming alarms</Text>}
 
-          <Text style={styles.section}>Timers</Text>
-          {timers.length === 0 ? (
-            <Text style={styles.empty}>No timers</Text>
-          ) : (
-            timers.map((t) => (
-              <View key={t.id} style={styles.row}>
-                <View style={styles.rowBody}>
-                  <Text style={styles.rowTitle}>{t.title}</Text>
-                  <Text style={styles.rowMeta}>
-                    {Math.floor(t.remainingTime / 60)}m left · {t.isRunning ? 'Running' : 'Paused'}
-                  </Text>
-                </View>
-              </View>
-            ))
-          )}
         </ScrollView>
       )}
 

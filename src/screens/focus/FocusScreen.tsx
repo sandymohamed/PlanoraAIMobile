@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   AppState,
   AppStateStatus,
   Modal,
@@ -12,6 +11,7 @@ import {
 import Svg, { Circle } from 'react-native-svg';
 import { useFocusEffect } from '@react-navigation/native';
 import { AppIcon as Icon } from '@/components/ui/AppIcon';
+import { showAlert } from '@/components/ConfirmationDialog';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { track, AnalyticsEvents } from '@/analytics/posthog';
 import {
@@ -166,9 +166,10 @@ export const FocusScreen: React.FC = () => {
       await scheduleFocusAlarm(endsAt, `${FOCUS_MODES[mode].label} session`);
     } catch {
       // Permission denied or native error — countdown still runs in-app.
-      Alert.alert(
+      showAlert(
         'Background alarm unavailable',
-        'Grant exact alarm + notification permissions so the timer can ring when the screen is off.'
+        'Grant exact alarm + notification permissions so the timer can ring when the screen is off.',
+        { variant: 'warning' }
       );
     }
     await saveSession({

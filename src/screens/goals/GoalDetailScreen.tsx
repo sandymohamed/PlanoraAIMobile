@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   RefreshControl,
   TextInput,
-  Alert,
   ActivityIndicator,
   Modal,
   Platform,
@@ -16,9 +15,12 @@ import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navig
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { openAndroidPicker } from '@/utils/dateTimePicker';
 import { useGoalStore } from '@/store/goalStore';
+import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { Milestone, MilestoneStatus } from '@/types/goal';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { track, AnalyticsEvents } from '@/analytics/posthog';
+import { showAlert, showError, showSuccess, showConfirmDialog } from '@/components/ConfirmationDialog';
 import { format } from 'date-fns';
 
 export const GoalDetailScreen: React.FC = () => {
@@ -81,7 +83,7 @@ export const GoalDetailScreen: React.FC = () => {
 
   const saveMilestone = async () => {
     if (!mTitle.trim()) {
-      Alert.alert('Title required', 'Enter a milestone title.');
+      showAlert('Title required', 'Enter a milestone title.', { variant: 'warning' });
       return;
     }
     try {
@@ -98,7 +100,7 @@ export const GoalDetailScreen: React.FC = () => {
       setMilestoneModal(null);
       await fetchGoal(goalId);
     } catch (e) {
-      Alert.alert('Error', getApiErrorMessage(e));
+      showError('Error', getApiErrorMessage(e));
     }
   };
 
@@ -106,10 +108,32 @@ export const GoalDetailScreen: React.FC = () => {
     setAiLoading(true);
     try {
       await generateAIPlan(goalId);
-      Alert.alert('Plan generated', 'Milestones and tasks were updated from your AI plan.');
+      track(AnalyticsEvents.AI_PLAN_GENERATED, { goalId });
+      const { fetchAIUsage } = useSubscriptionStore.getState();
+      await fetchAIUsage();
+      const { aiPlansRemaining, isPremium } = useSubscriptionStore.getState();
+      const remainingNote =
+        isPremium || aiPlansRemaining == null
+          ? 'Milestones and tasks were updated from your AI plan.'
+          : `Milestones and tasks were updated. You have ${aiPlansRemaining} AI plan${
+              aiPlansRemaining === 1 ? '' : 's'
+            } remaining this month.`;
+      showSuccess('Plan generated', remainingNote);
       await fetchGoal(goalId);
     } catch (e) {
-      Alert.alert('Error', getApiErrorMessage(e));
+      const status = (e as { response?: { status?: number } })?.response?.status;
+      if (status === 403) {
+        showConfirmDialog({
+          title: 'Monthly AI limit reached',
+          message: getApiErrorMessage(e),
+          variant: 'warning',
+          confirmLabel: 'See Premium',
+          cancelLabel: 'Not now',
+          onConfirm: () => navigation.navigate('Paywall'),
+        });
+      } else {
+        showError('Error', getApiErrorMessage(e));
+      }
     } finally {
       setAiLoading(false);
     }
@@ -155,11 +179,11 @@ export const GoalDetailScreen: React.FC = () => {
 
         <View style={styles.actions}>
           <ActionBtn label="Edit" onPress={() => navigation.navigate('GoalEdit', { goalId })} />
-          <ActionBtn label="Complete" onPress={() => completeGoal(goalId).catch((e) => Alert.alert('Error', getApiErrorMessage(e)))} />
+          <ActionBtn label="Complete" onPress={() => completeGoal(goalId).catch((e) => showError('Error', getApiErrorMessage(e)))} />
           {goal.status === 'PAUSED' ? (
-            <ActionBtn label="Resume" onPress={() => resumeGoal(goalId).catch((e) => Alert.alert('Error', getApiErrorMessage(e)))} />
+            <ActionBtn label="Resume" onPress={() => resumeGoal(goalId).catch((e) => showError('Error', getApiErrorMessage(e)))} />
           ) : (
-            <ActionBtn label="Pause" onPress={() => pauseGoal(goalId).catch((e) => Alert.alert('Error', getApiErrorMessage(e)))} />
+            <ActionBtn label="Pause" onPress={() => pauseGoal(goalId).catch((e) => showError('Error', getApiErrorMessage(e)))} />
           )}
         </View>
 
@@ -200,14 +224,13 @@ export const GoalDetailScreen: React.FC = () => {
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() =>
-                    Alert.alert('Delete milestone?', m.title, [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Delete',
-                        style: 'destructive',
-                        onPress: () => deleteMilestone(goalId, m.id).then(() => fetchGoal(goalId)),
-                      },
-                    ])
+                    showConfirmDialog({
+                      title: 'Delete milestone?',
+                      itemName: m.title,
+                      confirmLabel: 'Delete',
+                      destructive: true,
+                      onConfirm: () => deleteMilestone(goalId, m.id).then(() => fetchGoal(goalId)),
+                    })
                   }
                 >
                   <Text style={[styles.link, { color: colors.error }]}>Delete</Text>
@@ -222,10 +245,14 @@ export const GoalDetailScreen: React.FC = () => {
         <TouchableOpacity
           style={styles.danger}
           onPress={() =>
-            Alert.alert('Cancel goal?', goal.title, [
-              { text: 'No', style: 'cancel' },
-              { text: 'Yes', style: 'destructive', onPress: () => cancelGoal(goalId).then(() => navigation.goBack()) },
-            ])
+            showConfirmDialog({
+              title: 'Cancel goal?',
+              itemName: goal.title,
+              confirmLabel: 'Yes',
+              cancelLabel: 'No',
+              destructive: true,
+              onConfirm: () => cancelGoal(goalId).then(() => navigation.goBack()),
+            })
           }
         >
           <Text style={styles.dangerText}>Cancel goal</Text>

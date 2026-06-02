@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { routineService } from '@/services/routineService';
 import { useAlarmStore } from '@/store/alarmStore';
@@ -7,6 +7,7 @@ import { RoutineForm } from '@/components/routines/RoutineForm';
 import { CreateRoutineData } from '@/types/routine';
 import { colors } from '@/theme/tokens';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { showError } from '@/components/ConfirmationDialog';
 
 export const RoutineCreateScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -20,7 +21,7 @@ export const RoutineCreateScreen: React.FC = () => {
       setTimeout(() => fetchAlarms(1, 1000, true).catch(() => {}), 1000);
       navigation.goBack();
     } catch (e) {
-      Alert.alert('Error', getApiErrorMessage(e));
+      showError('Error', getApiErrorMessage(e));
     } finally {
       setLoading(false);
     }
