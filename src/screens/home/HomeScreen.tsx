@@ -13,6 +13,9 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuthStore } from '@/store/authStore';
 import { useTaskStore } from '@/store/taskStore';
+import { TaskListRow } from '@/components/tasks/TaskListRow';
+import { showError } from '@/components/ConfirmationDialog';
+import { getApiErrorMessage } from '@/utils/apiError';
 import { routineService } from '@/services/routineService';
 import { goalService } from '@/services/goalService';
 import { Goal } from '@/types/goal';
@@ -27,7 +30,7 @@ import { PremiumLabel } from '@/components/premium/PremiumBadge';
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const user = useAuthStore((s) => s.user);
-  const { tasks, fetchTasks } = useTaskStore();
+  const { tasks, fetchTasks, completeTask, uncompleteTask } = useTaskStore();
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -63,6 +66,11 @@ export const HomeScreen: React.FC = () => {
   const todayTasks = tasks
     .filter((t) => t.dueDate && isSameDay(new Date(t.dueDate), new Date()) && !t.metadata?.isRoutineTask)
     .slice(0, 5);
+
+  const toggleTaskComplete = async (task: Task) => {
+    if (task.status === TaskStatus.DONE) await uncompleteTask(task.id);
+    else await completeTask(task.id);
+  };
 
   return (
     <ScrollView
@@ -116,13 +124,33 @@ export const HomeScreen: React.FC = () => {
       </View>
 
       {/* Today's tasks preview */}
-      <SectionHeader title="Today's tasks" action="See all" onAction={() => navigation.navigate('Tasks')} />
+      <SectionHeader
+        title="Today's tasks"
+        action="See all"
+        onAction={() => navigation.navigate('Tasks', { screen: 'TasksList' })}
+      />
       <Card>
         {todayTasks.length === 0 ? (
           <Text style={styles.focusMeta}>No tasks due today</Text>
         ) : (
           todayTasks.map((t) => (
-            <TaskRow key={t.id} title={t.title} done={t.status === TaskStatus.DONE} />
+            <TaskListRow
+              key={t.id}
+              task={t}
+              compact
+              dismissOnComplete={false}
+              onPress={() =>
+                navigation.navigate('Tasks', { screen: 'TaskDetail', params: { taskId: t.id } })
+              }
+              onToggleComplete={async () => {
+                try {
+                  await toggleTaskComplete(t);
+                } catch (e) {
+                  showError('Error', getApiErrorMessage(e));
+                  throw e;
+                }
+              }}
+            />
           ))
         )}
       </Card>
@@ -180,13 +208,6 @@ const SectionHeader: React.FC<{ title: string; action: string; onAction: () => v
     <TouchableOpacity onPress={onAction}>
       <Text style={styles.sectionAction}>{action}</Text>
     </TouchableOpacity>
-  </View>
-);
-
-const TaskRow: React.FC<{ title: string; done?: boolean }> = ({ title, done }) => (
-  <View style={styles.taskRow}>
-    <Icon name={done ? 'check-circle' : 'circle-outline'} size={22} color={done ? colors.success : colors.textMuted} />
-    <Text style={[styles.taskTitle, done && styles.taskDone]}>{title}</Text>
   </View>
 );
 
@@ -255,7 +276,6 @@ const styles = StyleSheet.create({
   sectionAction: { ...typography.caption, color: colors.primary, fontWeight: '600' },
   taskRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
   taskTitle: { ...typography.body, color: colors.text, flex: 1 },
-  taskDone: { textDecorationLine: 'line-through', color: colors.textMuted },
   streakBadge: { ...typography.caption, color: colors.accent, fontWeight: '700' },
   progressWrap: { marginBottom: spacing.md },
   progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },

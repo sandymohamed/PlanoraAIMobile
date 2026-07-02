@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,9 @@ import {
   RefreshControl,
   ActivityIndicator,
   FlatList,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -18,7 +21,8 @@ import { TasksStackParamList } from '@/navigation/TasksStack';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { showDeleteConfirmation, showError } from '@/components/ConfirmationDialog';
 import { colors, spacing, typography } from '@/theme/tokens';
-import { formatDueLabel, isTaskOverdue, priorityColor, sortTasksByDueDate, statusColor } from '@/utils/taskUi';
+import { sortTasksByDueDate } from '@/utils/taskUi';
+import { TaskListRow } from '@/components/tasks/TaskListRow';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { BannerAdPlaceholder } from '@/features/ads';
 
@@ -60,6 +64,12 @@ export const TasksScreen: React.FC = () => {
 
   const [statusTab, setStatusTab] = useState<StatusTab>('all');
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+  }, []);
 
   const sortedTasks = useMemo(() => sortTasksByDueDate(filteredTasks), [filteredTasks]);
   const fetchingRef = useRef(false);
@@ -105,13 +115,14 @@ export const TasksScreen: React.FC = () => {
     navigation.navigate('TaskDetail', { taskId: task.id });
   };
 
-  const handleToggleComplete = async (task: Task) => {
-    try {
-      if (task.status === TaskStatus.DONE) await uncompleteTask(task.id);
-      else await completeTask(task.id);
-    } catch (e) {
-      showError('Error', getApiErrorMessage(e));
+  const toggleTaskComplete = async (task: Task) => {
+    if (task.status !== TaskStatus.DONE) {
+      LayoutAnimation.configureNext(
+        LayoutAnimation.create(160, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity)
+      );
     }
+    if (task.status === TaskStatus.DONE) await uncompleteTask(task.id);
+    else await completeTask(task.id);
   };
 
   const handleDelete = (task: Task) => {
@@ -124,51 +135,21 @@ export const TasksScreen: React.FC = () => {
     });
   };
 
-  const renderTask = ({ item: task }: { item: Task }) => {
-    const overdue = isTaskOverdue(task);
-    const dueLabel = formatDueLabel(task.dueDate, task.dueTime, { overdue });
-
-    return (
-    <TouchableOpacity
-      style={[
-        styles.row,
-        task.status === TaskStatus.DONE && styles.rowDone,
-        overdue && styles.rowOverdue,
-      ]}
+  const renderTask = ({ item: task }: { item: Task }) => (
+    <TaskListRow
+      task={task}
       onPress={() => handleOpen(task)}
-      activeOpacity={0.85}
-    >
-      <TouchableOpacity
-        style={styles.check}
-        onPress={() => handleToggleComplete(task)}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <Icon
-          name={task.status === TaskStatus.DONE ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
-          size={26}
-          color={task.status === TaskStatus.DONE ? colors.success : colors.textMuted}
-        />
-      </TouchableOpacity>
-      <View style={styles.rowBody}>
-        <Text style={[styles.rowTitle, task.status === TaskStatus.DONE && styles.rowTitleDone]} numberOfLines={2}>
-          {task.title}
-        </Text>
-        {dueLabel ? (
-          <Text style={[styles.due, overdue && styles.dueOverdue]}>{dueLabel}</Text>
-        ) : null}
-        <View style={styles.meta}>
-          <View style={[styles.badge, { borderColor: priorityColor(task.priority) }]}>
-            <Text style={[styles.badgeText, { color: priorityColor(task.priority) }]}>{task.priority}</Text>
-          </View>
-          <Text style={[styles.statusText, { color: statusColor(task.status) }]}>{task.status}</Text>
-        </View>
-      </View>
-      <TouchableOpacity onPress={() => handleDelete(task)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <Icon name="trash-can-outline" size={20} color={colors.textMuted} />
-      </TouchableOpacity>
-    </TouchableOpacity>
-    );
-  };
+      onToggleComplete={async () => {
+        try {
+          await toggleTaskComplete(task);
+        } catch (e) {
+          showError('Error', getApiErrorMessage(e));
+          throw e;
+        }
+      }}
+      onDelete={() => handleDelete(task)}
+    />
+  );
 
   const listHeader = (
     <>
@@ -274,32 +255,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   errorText: { color: colors.error, ...typography.caption },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: spacing.md,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  rowDone: { opacity: 0.75 },
-  rowOverdue: {
-    borderColor: colors.error,
-    borderWidth: 1.5,
-    backgroundColor: 'rgba(248, 113, 113, 0.08)',
-  },
-  check: { marginRight: spacing.sm, marginTop: 2 },
-  rowBody: { flex: 1 },
-  rowTitle: { ...typography.body, color: colors.text, fontWeight: '600' },
-  rowTitleDone: { textDecorationLine: 'line-through', color: colors.textMuted },
-  due: { ...typography.caption, color: colors.accent, marginTop: 4 },
-  dueOverdue: { color: colors.error, fontWeight: '600' },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
-  badge: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  badgeText: { fontSize: 10, fontWeight: '700' },
-  statusText: { ...typography.label, fontSize: 10 },
   fab: {
     position: 'absolute',
     right: spacing.lg,

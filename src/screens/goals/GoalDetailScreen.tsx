@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,10 @@ import {
   ActivityIndicator,
   Modal,
   Platform,
+  Animated,
+  Easing,
 } from 'react-native';
+import { AppIcon as Icon } from '@/components/ui/AppIcon';
 import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { openAndroidPicker } from '@/utils/dateTimePicker';
@@ -79,6 +82,25 @@ export const GoalDetailScreen: React.FC = () => {
     setMDesc(m.description || '');
     setMDate(m.targetDate ? new Date(m.targetDate) : null);
     setMilestoneModal('edit');
+  };
+
+  const toggleMilestoneComplete = async (m: Milestone) => {
+    try {
+      if (m.status === MilestoneStatus.DONE) {
+        await updateMilestone(goalId, m.id, {
+          title: m.title,
+          description: m.description,
+          status: MilestoneStatus.TODO,
+          targetDate: m.targetDate,
+        });
+      } else {
+        await completeMilestone(goalId, m.id);
+      }
+      await fetchGoal(goalId);
+    } catch (e) {
+      showError('Error', getApiErrorMessage(e));
+      throw e;
+    }
   };
 
   const saveMilestone = async () => {
@@ -203,22 +225,25 @@ export const GoalDetailScreen: React.FC = () => {
         </View>
 
         {goal.milestones?.length ? (
-          goal.milestones.map((m) => (
-            <View key={m.id} style={styles.milestone}>
+          goal.milestones.map((m) => {
+            const isDone = m.status === MilestoneStatus.DONE;
+            return (
+            <View key={m.id} style={[styles.milestone, isDone && styles.milestoneDone]}>
               <View style={styles.mRow}>
-                <Text style={styles.mTitle}>{m.title}</Text>
-                <Text style={[styles.mStatus, m.status === MilestoneStatus.DONE && { color: colors.success }]}>
-                  {m.status}
-                </Text>
+                <MilestoneCheckToggle
+                  isDone={isDone}
+                  onToggle={() => toggleMilestoneComplete(m)}
+                />
+                <View style={styles.mBody}>
+                  <View style={styles.mTitleRow}>
+                    <Text style={[styles.mTitle, isDone && styles.mTitleDone]}>{m.title}</Text>
+                    <Text style={[styles.mStatus, isDone && { color: colors.success }]}>{m.status}</Text>
+                  </View>
+                  {m.description ? <Text style={styles.mDesc}>{m.description}</Text> : null}
+                  {m.targetDate ? <Text style={styles.mMeta}>{format(new Date(m.targetDate), 'MMM d, yyyy')}</Text> : null}
+                </View>
               </View>
-              {m.description ? <Text style={styles.mDesc}>{m.description}</Text> : null}
-              {m.targetDate ? <Text style={styles.mMeta}>{format(new Date(m.targetDate), 'MMM d, yyyy')}</Text> : null}
               <View style={styles.mActions}>
-                {m.status !== MilestoneStatus.DONE && (
-                  <TouchableOpacity onPress={() => completeMilestone(goalId, m.id).then(() => fetchGoal(goalId))}>
-                    <Text style={styles.link}>Complete</Text>
-                  </TouchableOpacity>
-                )}
                 <TouchableOpacity onPress={() => openEditMilestone(m)}>
                   <Text style={styles.link}>Edit</Text>
                 </TouchableOpacity>
@@ -237,7 +262,8 @@ export const GoalDetailScreen: React.FC = () => {
                 </TouchableOpacity>
               </View>
             </View>
-          ))
+            );
+          })
         ) : (
           <Text style={styles.body}>No milestones yet.</Text>
         )}
@@ -316,6 +342,122 @@ const ActionBtn: React.FC<{ label: string; onPress: () => void }> = ({ label, on
   </TouchableOpacity>
 );
 
+const MilestoneCheckToggle: React.FC<{
+  isDone: boolean;
+  onToggle: () => Promise<void>;
+}> = ({ isDone, onToggle }) => {
+  const [phase, setPhase] = useState<'idle' | 'completing' | 'uncompleting'>('idle');
+  const [busy, setBusy] = useState(false);
+
+  const checkScale = useRef(new Animated.Value(isDone ? 1 : 0)).current;
+  const checkOpacity = useRef(new Animated.Value(isDone ? 1 : 0)).current;
+  const ringScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (isDone && phase === 'idle') {
+      checkScale.setValue(1);
+      checkOpacity.setValue(1);
+    } else if (!isDone && phase === 'idle') {
+      checkScale.setValue(0);
+      checkOpacity.setValue(0);
+    }
+  }, [isDone, phase, checkScale, checkOpacity]);
+
+  const runCompleteAnimation = () =>
+    new Promise<void>((resolve) => {
+      checkScale.setValue(0);
+      checkOpacity.setValue(0);
+      Animated.parallel([
+        Animated.sequence([
+          Animated.spring(ringScale, { toValue: 1.15, friction: 5, tension: 200, useNativeDriver: true }),
+          Animated.spring(ringScale, { toValue: 1, friction: 6, useNativeDriver: true }),
+        ]),
+        Animated.sequence([
+          Animated.delay(120),
+          Animated.parallel([
+            Animated.spring(checkScale, { toValue: 1, friction: 5, tension: 180, useNativeDriver: true }),
+            Animated.timing(checkOpacity, {
+              toValue: 1,
+              duration: 220,
+              easing: Easing.out(Easing.quad),
+              useNativeDriver: true,
+            }),
+          ]),
+        ]),
+      ]).start(() => resolve());
+    });
+
+  const runUncompleteAnimation = () =>
+    new Promise<void>((resolve) => {
+      Animated.parallel([
+        Animated.timing(checkOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+        Animated.timing(checkScale, { toValue: 0, duration: 200, useNativeDriver: true }),
+      ]).start(() => resolve());
+    });
+
+  const handlePress = async () => {
+    if (busy || phase !== 'idle') return;
+    setBusy(true);
+
+    const resetVisuals = (done?: boolean) => {
+      const completed = done ?? isDone;
+      setPhase('idle');
+      ringScale.setValue(1);
+      if (completed) {
+        checkOpacity.setValue(1);
+        checkScale.setValue(1);
+      } else {
+        checkOpacity.setValue(0);
+        checkScale.setValue(0);
+      }
+    };
+
+    try {
+      if (isDone) {
+        setPhase('uncompleting');
+        await runUncompleteAnimation();
+        await onToggle();
+        resetVisuals(false);
+      } else {
+        setPhase('completing');
+        await runCompleteAnimation();
+        await onToggle();
+        resetVisuals(true);
+      }
+    } catch {
+      resetVisuals();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const showCompletedLook = phase === 'completing' || isDone;
+
+  return (
+    <TouchableOpacity
+      style={styles.mCheck}
+      onPress={handlePress}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      disabled={busy}
+    >
+      <Animated.View style={{ transform: [{ scale: ringScale }] }}>
+        <View style={styles.mCheckIconStack}>
+          <Icon
+            name="checkbox-blank-circle-outline"
+            size={26}
+            color={showCompletedLook ? colors.success : colors.textMuted}
+          />
+          <Animated.View
+            style={[styles.mCheckFilled, { opacity: checkOpacity, transform: [{ scale: checkScale }] }]}
+          >
+            <Icon name="checkbox-marked-circle" size={26} color={colors.success} />
+          </Animated.View>
+        </View>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, paddingBottom: 48 },
@@ -361,8 +503,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderSubtle,
   },
-  mRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  milestoneDone: {
+    borderColor: colors.success,
+    backgroundColor: 'rgba(74, 222, 128, 0.08)',
+  },
+  mRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  mCheck: { marginRight: spacing.sm, marginTop: 2 },
+  mCheckIconStack: { width: 26, height: 26 },
+  mCheckFilled: { position: 'absolute', left: 0, top: 0 },
+  mBody: { flex: 1 },
+  mTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm },
   mTitle: { ...typography.body, color: colors.text, fontWeight: '600', flex: 1 },
+  mTitleDone: { textDecorationLine: 'line-through', color: colors.textSecondary },
   mStatus: { ...typography.caption, color: colors.textMuted },
   mDesc: { ...typography.caption, color: colors.textSecondary, marginTop: 4 },
   mMeta: { ...typography.caption, color: colors.textMuted, marginTop: 4 },

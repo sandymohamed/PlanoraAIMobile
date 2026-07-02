@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { Image, Text, StyleSheet, TextInput, KeyboardAvoidingView, Platform, View } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { getApiErrorMessage, isInvalidCredentialsError } from '@/utils/apiError';
+
+const logoImage = require('@/assets/logo.jpg');
 
 export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const login = useAuthStore((s) => s.login);
@@ -30,7 +32,10 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Text style={styles.brand}>Planora AI</Text>
+      <View style={styles.brandBlock}>
+        <Image source={logoImage} style={styles.logo} />
+        <Text style={styles.brand}>Planora</Text>
+      </View>
       <Text style={styles.title}>Welcome back</Text>
       <Text style={styles.sub}>Your goals deserve a real plan.</Text>
       <TextInput style={styles.input} placeholder="Email" placeholderTextColor={colors.textMuted} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
@@ -45,7 +50,9 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, padding: spacing.lg, justifyContent: 'center' },
-  brand: { ...typography.label, color: colors.primary, marginBottom: spacing.md },
+  brandBlock: { alignItems: 'center', marginBottom: spacing.lg },
+  logo: { width: 96, height: 96, borderRadius: 24, marginBottom: spacing.sm },
+  brand: { ...typography.h1, color: colors.primary },
   title: { ...typography.hero, color: colors.text },
   sub: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.xl },
   input: {

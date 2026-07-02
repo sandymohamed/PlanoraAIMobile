@@ -1,4 +1,5 @@
 import React from 'react';
+import { Image, Pressable } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { HomeScreen } from '@/screens/home/HomeScreen';
@@ -8,11 +9,25 @@ import { ProfileStack } from '@/navigation/ProfileStack';
 import { colors } from '@/theme/tokens';
 
 const Tab = createBottomTabNavigator();
+const logoImage = require('@/assets/logo.jpg');
 
 export const MainTabs: React.FC = () => (
   <Tab.Navigator
-    screenOptions={{
-      headerShown: false,
+    screenOptions={({ navigation }) => ({
+      headerShown: true,
+      headerStyle: { backgroundColor: colors.background },
+      headerShadowVisible: false,
+      headerTitleStyle: { color: colors.text },
+      headerLeft: () => (
+        <Pressable
+          onPress={() => navigation.navigate('Home' as never)}
+          style={{ marginLeft: 16 }}
+          accessibilityRole="button"
+          accessibilityLabel="Go to Home"
+        >
+          <Image source={logoImage} style={{ width: 40, height: 40, borderRadius: 10 }} />
+        </Pressable>
+      ),
       tabBarStyle: {
         backgroundColor: colors.surface,
         borderTopColor: colors.borderSubtle,
@@ -22,7 +37,7 @@ export const MainTabs: React.FC = () => (
       tabBarActiveTintColor: colors.primary,
       tabBarInactiveTintColor: colors.textMuted,
       tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-    }}
+    })}
   >
     <Tab.Screen
       name="Home"
@@ -34,6 +49,13 @@ export const MainTabs: React.FC = () => (
     <Tab.Screen
       name="Tasks"
       component={TasksStack}
+      listeners={({ navigation }) => ({
+        tabPress: (e) => {
+          // Always show the task list — opening a task from Home leaves TaskDetail on the stack.
+          e.preventDefault();
+          navigation.navigate('Tasks', { screen: 'TasksList' });
+        },
+      })}
       options={{
         tabBarIcon: ({ color, size }) => <Icon name="checkbox-marked-circle-outline" color={color} size={size} />,
       }}

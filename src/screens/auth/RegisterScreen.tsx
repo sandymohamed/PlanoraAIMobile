@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   TextInput,
   KeyboardAvoidingView,
@@ -14,6 +15,8 @@ import { getApiErrorMessage, isEmailExistsError } from '@/utils/apiError';
 import { showError, showConfirmDialog } from '@/components/ConfirmationDialog';
 import { track, AnalyticsEvents } from '@/analytics/posthog';
 import { config } from '@/config/env';
+
+const logoImage = require('@/assets/logo.jpg');
 
 export const RegisterScreen: React.FC<{ navigation: { navigate: (screen: string) => void } }> = ({
   navigation,
@@ -79,6 +82,10 @@ export const RegisterScreen: React.FC<{ navigation: { navigate: (screen: string)
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <View style={styles.brandBlock}>
+        <Image source={logoImage} style={styles.logo} />
+        <Text style={styles.brand}>Planora</Text>
+      </View>
       <Text style={styles.title}>Start your plan</Text>
       <Text style={styles.hint}>API: {config.API_BASE_URL}</Text>
       <TextInput
@@ -121,6 +128,9 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     justifyContent: 'center',
   },
+  brandBlock: { alignItems: 'center', marginBottom: spacing.lg },
+  logo: { width: 96, height: 96, borderRadius: 24, marginBottom: spacing.sm },
+  brand: { ...typography.h1, color: colors.primary },
   title: { ...typography.h1, color: colors.text, marginBottom: spacing.sm },
   hint: { ...typography.label, color: colors.textMuted, marginBottom: spacing.lg, fontSize: 11 },
   input: {

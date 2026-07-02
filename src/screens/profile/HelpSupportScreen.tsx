@@ -3,7 +3,7 @@ import { ScrollView, Text, StyleSheet, Linking, TouchableOpacity } from 'react-n
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { colors, spacing, typography } from '@/theme/tokens';
 
-const SUPPORT_EMAIL = 'support@planora.app';
+const SUPPORT_EMAIL = 'planora0ai@gmail.com';
 
 export const HelpSupportScreen: React.FC = () => (
   <ScrollView style={styles.container} contentContainerStyle={{ padding: spacing.lg }}>

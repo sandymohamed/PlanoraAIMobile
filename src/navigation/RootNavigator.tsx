@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import {
   NavigationContainer,
   DarkTheme,
   createNavigationContainerRef,
+  ParamListBase,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthStore } from '@/store/authStore';
@@ -16,6 +17,7 @@ import { PaywallScreen } from '@/screens/subscription/PaywallScreen';
 import { ComparePlansScreen } from '@/screens/subscription/ComparePlansScreen';
 import { WeeklyReviewScreen } from '@/screens/reviews/WeeklyReviewScreen';
 import { FocusScreen } from '@/screens/focus/FocusScreen';
+import { AnimatedSplashScreen } from '@/screens/splash/AnimatedSplashScreen';
 import { GoalsStack } from './GoalsStack';
 import { RoutinesStack } from './RoutinesStack';
 import { AlarmsStack } from './AlarmsStack';
@@ -23,7 +25,7 @@ import { colors } from '@/theme/tokens';
 
 const Stack = createNativeStackNavigator();
 
-export const navigationRef = createNavigationContainerRef();
+export const navigationRef = createNavigationContainerRef<ParamListBase>();
 
 /** Map a notification's target screen to a top-level route Planora can navigate to. */
 function routeForScreen(screen: string): { name: string; params?: object } {
@@ -57,6 +59,7 @@ const navTheme = {
 export const RootNavigator: React.FC = () => {
   const { isAuthenticated, isInitialized, hasCompletedOnboarding } = useAuthStore();
   const handledRef = useRef(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   // Consume any pending navigation stored by a notification tap (foreground/background/cold start).
   const consumePending = useCallback(async () => {
@@ -65,10 +68,7 @@ export const RootNavigator: React.FC = () => {
     if (!target?.screen) return;
     const route = routeForScreen(target.screen);
     try {
-      navigationRef.navigate(
-        route.name as never,
-        (route.params ?? target.params) as never
-      );
+      navigationRef.navigate(route.name, route.params ?? target.params);
     } catch {
       /* unknown route — ignore */
     }
@@ -82,6 +82,10 @@ export const RootNavigator: React.FC = () => {
   }, [consumePending]);
 
   if (!isInitialized) return null;
+
+  if (showSplash) {
+    return <AnimatedSplashScreen onFinish={() => setShowSplash(false)} />;
+  }
 
   return (
     <NavigationContainer
