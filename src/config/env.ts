@@ -39,7 +39,3 @@ export const config = {
   POSTHOG_HOST: process.env.POSTHOG_HOST || 'https://us.i.posthog.com',
   APP_NAME: 'Planora AI',
 };
-
-if (__DEV__) {
-  console.log('[Planora] API_BASE_URL =', config.API_BASE_URL);
-}

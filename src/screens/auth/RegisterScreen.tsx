@@ -15,7 +15,6 @@ import { colors, spacing, typography } from '@/theme/tokens';
 import { getApiErrorMessage, isEmailExistsError } from '@/utils/apiError';
 import { showError, showConfirmDialog } from '@/components/ConfirmationDialog';
 import { track, AnalyticsEvents } from '@/analytics/posthog';
-import { config } from '@/config/env';
 
 const logoImage = require('@/assets/logo.jpg');
 
@@ -50,7 +49,7 @@ export const RegisterScreen: React.FC<{ navigation: { navigate: (screen: string)
     }
 
     setLoading(true);
-    console.log('[Planora] Create account pressed', { api: config.API_BASE_URL, email: trimmedEmail });
+    console.log('[Planora] Create account pressed', { email: trimmedEmail });
     try {
       await register(trimmedEmail, password, trimmedName);
       track(AnalyticsEvents.SIGNUP_COMPLETED, { method: 'email' });
@@ -88,7 +87,6 @@ export const RegisterScreen: React.FC<{ navigation: { navigate: (screen: string)
         <Text style={styles.brand}>Planora</Text>
       </View>
       <Text style={styles.title}>Start your plan</Text>
-      <Text style={styles.hint}>API: {config.API_BASE_URL}</Text>
       <TextInput
         style={styles.input}
         placeholder="Name"
@@ -131,7 +129,6 @@ const styles = StyleSheet.create({
   logo: { width: 96, height: 96, borderRadius: 24, marginBottom: spacing.sm },
   brand: { ...typography.h1, color: colors.primary },
   title: { ...typography.h1, color: colors.text, marginBottom: spacing.sm },
-  hint: { ...typography.label, color: colors.textMuted, marginBottom: spacing.lg, fontSize: 11 },
   input: {
     backgroundColor: colors.surface,
     borderRadius: 12,

@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { config } from '@/config/env';
 
 export type ApiErrorBody = {
   success?: boolean;
@@ -27,7 +26,7 @@ export function getApiErrorMessage(error: unknown): string {
 
   if (axios.isAxiosError(error)) {
     if (!error.response) {
-      return `Cannot reach server (${config.API_BASE_URL}). Same Wi‑Fi? Update DEV_MACHINE_IP in src/config/env.ts`;
+      return 'Connection error. Please check your internet connection and try again.';
     }
     return error.message || 'Request failed';
   }

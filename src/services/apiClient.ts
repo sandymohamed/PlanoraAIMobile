@@ -51,7 +51,7 @@ class ApiClient {
         if (token) conf.headers.Authorization = `Bearer ${token}`;
       }
       if (LOG) {
-        console.log(`[Planora API] → ${conf.method?.toUpperCase()} ${conf.baseURL}${conf.url}`, conf.data ?? '');
+        console.log(`[Planora API] → ${conf.method?.toUpperCase()} ${conf.url}`, conf.data ?? '');
       }
       return conf;
     });
@@ -174,11 +174,11 @@ class ApiClient {
     const url = `${config.API_ROOT_URL}/health`;
     try {
       const res = await axios.get(url, { timeout: 8000 });
-      if (LOG) console.log('[Planora] health OK', url, res.data);
+      if (LOG) console.log('[Planora] health OK', res.data);
       return { ok: true, detail: JSON.stringify(res.data) };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      if (LOG) console.warn('[Planora] health FAIL', url, msg);
+      if (LOG) console.warn('[Planora] health FAIL', msg);
       return { ok: false, detail: msg };
     }
   }
