@@ -12,7 +12,8 @@ export const SettingsScreen: React.FC = () => {
     { icon: 'lock-outline', label: 'Change password', route: 'ChangePassword' },
     { icon: 'bell-outline', label: 'Notifications', route: 'NotificationSettings' },
     { icon: 'shield-account-outline', label: 'Privacy', route: 'PrivacySettings' },
-    { icon: 'database-export-outline', label: 'Data export', route: 'DataExport' },
+  //  TODO: Enhance exports files to publish this feature
+    // { icon: 'database-export-outline', label: 'Data export', route: 'DataExport' },
     { icon: 'help-circle-outline', label: 'Help & support', route: 'HelpSupport' },
     { icon: 'information-outline', label: 'About', route: 'About' },
   ];

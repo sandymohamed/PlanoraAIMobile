@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Image, Text, StyleSheet, TextInput, KeyboardAvoidingView, Platform, View } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { getApiErrorMessage, isInvalidCredentialsError } from '@/utils/apiError';
 
@@ -39,7 +40,12 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <Text style={styles.title}>Welcome back</Text>
       <Text style={styles.sub}>Your goals deserve a real plan.</Text>
       <TextInput style={styles.input} placeholder="Email" placeholderTextColor={colors.textMuted} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-      <TextInput style={styles.input} placeholder="Password" placeholderTextColor={colors.textMuted} value={password} onChangeText={setPassword} secureTextEntry />
+      <PasswordInput
+        placeholder="Password"
+        placeholderTextColor={colors.textMuted}
+        value={password}
+        onChangeText={setPassword}
+      />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <Button label="Sign in" onPress={handleLogin} loading={loading} />
       <Button label="Forgot password?" onPress={() => navigation.navigate('ForgotPassword')} variant="ghost" />

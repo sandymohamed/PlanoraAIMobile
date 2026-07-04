@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { getApiErrorMessage, isEmailExistsError } from '@/utils/apiError';
 import { showError, showConfirmDialog } from '@/components/ConfirmationDialog';
@@ -104,13 +105,11 @@ export const RegisterScreen: React.FC<{ navigation: { navigate: (screen: string)
         autoCapitalize="none"
         keyboardType="email-address"
       />
-      <TextInput
-        style={styles.input}
+      <PasswordInput
         placeholder="Password (min 6)"
         placeholderTextColor={colors.textMuted}
         value={password}
         onChangeText={setPassword}
-        secureTextEntry
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <Button label="Create account" loading={loading} onPress={handleRegister} />

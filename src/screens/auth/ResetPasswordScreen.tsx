@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { apiClient } from '@/services/apiClient';
 import { Button } from '@/components/ui/Button';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { getApiErrorMessage } from '@/utils/apiError';
 
@@ -17,8 +18,8 @@ export const ResetPasswordScreen: React.FC = () => {
 
   const submit = async () => {
     setError('');
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters');
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
       return;
     }
     if (password !== confirm) {
@@ -40,21 +41,17 @@ export const ResetPasswordScreen: React.FC = () => {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Text style={styles.title}>New password</Text>
       <Text style={styles.sub}>Choose a strong password for your account.</Text>
-      <TextInput
-        style={styles.input}
+      <PasswordInput
         placeholder="New password"
         placeholderTextColor={colors.textMuted}
         value={password}
         onChangeText={setPassword}
-        secureTextEntry
       />
-      <TextInput
-        style={styles.input}
+      <PasswordInput
         placeholder="Confirm password"
         placeholderTextColor={colors.textMuted}
         value={confirm}
         onChangeText={setConfirm}
-        secureTextEntry
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <Button label="Reset password" onPress={submit} loading={loading} />
@@ -67,14 +64,5 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, padding: spacing.lg, justifyContent: 'center' },
   title: { ...typography.h1, color: colors.text },
   sub: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.lg },
-  input: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: spacing.md,
-    color: colors.text,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
   error: { color: colors.error, marginBottom: spacing.md },
 });

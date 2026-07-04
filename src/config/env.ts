@@ -27,7 +27,7 @@ function getDevApiHost(): string {
 }
 
 // const devBase = `http://${getDevApiHost()}:${API_PORT}`;
-const devBase = `http://${getDevApiHost()}`;
+const devBase = `https://${getDevApiHost()}`;
 
 export const config = {
   API_BASE_URL: __DEV__
