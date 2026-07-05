@@ -88,6 +88,7 @@ class ApiClient {
         }
 
         const cfg = original as AxiosRequestConfig & {
+          skipAuthRetry?: boolean;
           _retry?: boolean;
           _networkRetry?: boolean;
           _serviceRetry?: boolean;
@@ -98,7 +99,7 @@ class ApiClient {
 
         if (isNetworkError && !cfg._networkRetry) {
           cfg._networkRetry = true;
-          await new Promise((r) => setTimeout(r, 500));
+          await new Promise<void>((resolve) => setTimeout(() => resolve(), 500));
           if (LOG) console.log(`[Planora API] ↻ retry ${cfg.method?.toUpperCase()} ${cfg.url}`);
           return this.client(cfg);
         }
@@ -111,7 +112,7 @@ class ApiClient {
 
         if (isTransientDb && !cfg._serviceRetry) {
           cfg._serviceRetry = true;
-          await new Promise((r) => setTimeout(r, 800));
+          await new Promise<void>((resolve) => setTimeout(() => resolve(), 800));
           if (LOG) console.log(`[Planora API] ↻ retry (db) ${cfg.method?.toUpperCase()} ${cfg.url}`);
           return this.client(cfg);
         }

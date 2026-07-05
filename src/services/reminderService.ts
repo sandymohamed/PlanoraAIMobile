@@ -57,7 +57,7 @@ class ReminderServiceClass {
       // Filter reminders that have a schedule with time information
       const upcoming = response.data.filter(reminder => {
         if (reminder.triggerType !== 'TIME') {
-          console.log('Reminder not TIME type:', reminder.triggerType);
+          logger.info('Reminder not TIME type', reminder.triggerType);
           return false;
         }
         
@@ -80,7 +80,6 @@ class ReminderServiceClass {
       });
     } catch (error) {
       logger.error('Get upcoming reminders error:', error);
-      console.error('Get upcoming reminders error:', error);
       return [];
     }
   }

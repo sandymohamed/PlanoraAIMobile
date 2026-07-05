@@ -46,21 +46,19 @@ const ALL_OPEN_STATUSES: TaskStatus[] = [
 
 export const TasksScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
-  const {
-    filteredTasks,
-    isLoading,
-    error,
-    searchQuery,
-    fetchTasks,
-    refreshTasks,
-    setSearchQuery,
-    setFilter,
-    deleteTask,
-    completeTask,
-    uncompleteTask,
-    setCurrentTask,
-    clearError,
-  } = useTaskStore();
+  const filteredTasks = useTaskStore((s) => s.filteredTasks);
+  const isLoading = useTaskStore((s) => s.isLoading);
+  const error = useTaskStore((s) => s.error);
+  const searchQuery = useTaskStore((s) => s.searchQuery);
+  const fetchTasks = useTaskStore((s) => s.fetchTasks);
+  const refreshTasks = useTaskStore((s) => s.refreshTasks);
+  const setSearchQuery = useTaskStore((s) => s.setSearchQuery);
+  const setFilter = useTaskStore((s) => s.setFilter);
+  const deleteTask = useTaskStore((s) => s.deleteTask);
+  const completeTask = useTaskStore((s) => s.completeTask);
+  const uncompleteTask = useTaskStore((s) => s.uncompleteTask);
+  const setCurrentTask = useTaskStore((s) => s.setCurrentTask);
+  const clearError = useTaskStore((s) => s.clearError);
 
   const [statusTab, setStatusTab] = useState<StatusTab>('all');
   const [refreshing, setRefreshing] = useState(false);
@@ -90,32 +88,32 @@ export const TasksScreen: React.FC = () => {
     }, [fetchTasks, setFilter])
   );
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       await refreshTasks();
     } finally {
       setRefreshing(false);
     }
-  };
+  }, [refreshTasks]);
 
-  const applyStatusFilter = (tab: StatusTab) => {
+  const applyStatusFilter = useCallback((tab: StatusTab) => {
     setStatusTab(tab);
     if (tab === 'all') {
       setFilter({ status: ALL_OPEN_STATUSES });
     } else {
       setFilter({ status: [tab] });
     }
-  };
+  }, [setFilter]);
 
-  const handleCreate = () => navigation.navigate('TaskCreate', {});
+  const handleCreate = useCallback(() => navigation.navigate('TaskCreate', {}), [navigation]);
 
-  const handleOpen = (task: Task) => {
+  const handleOpen = useCallback((task: Task) => {
     setCurrentTask(task);
     navigation.navigate('TaskDetail', { taskId: task.id });
-  };
+  }, [navigation, setCurrentTask]);
 
-  const toggleTaskComplete = async (task: Task) => {
+  const toggleTaskComplete = useCallback(async (task: Task) => {
     if (task.status !== TaskStatus.DONE) {
       LayoutAnimation.configureNext(
         LayoutAnimation.create(160, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity)
@@ -123,9 +121,9 @@ export const TasksScreen: React.FC = () => {
     }
     if (task.status === TaskStatus.DONE) await uncompleteTask(task.id);
     else await completeTask(task.id);
-  };
+  }, [completeTask, uncompleteTask]);
 
-  const handleDelete = (task: Task) => {
+  const handleDelete = useCallback((task: Task) => {
     showDeleteConfirmation(task.title, async () => {
       try {
         await deleteTask(task.id);
@@ -133,9 +131,9 @@ export const TasksScreen: React.FC = () => {
         showError('Error', getApiErrorMessage(e));
       }
     });
-  };
+  }, [deleteTask]);
 
-  const renderTask = ({ item: task }: { item: Task }) => (
+  const renderTask = useCallback(({ item: task }: { item: Task }) => (
     <TaskListRow
       task={task}
       onPress={() => handleOpen(task)}
@@ -149,9 +147,24 @@ export const TasksScreen: React.FC = () => {
       }}
       onDelete={() => handleDelete(task)}
     />
-  );
+  ), [handleDelete, handleOpen, toggleTaskComplete]);
 
-  const listHeader = (
+  const keyExtractor = useCallback((task: Task) => task.id, []);
+
+  const listEmpty = useMemo(() => (
+    <EmptyState
+      title="No tasks yet"
+      message="Add your first task to start planning your day."
+      actionLabel="Add task"
+      onAction={handleCreate}
+    />
+  ), [handleCreate]);
+
+  const refreshControl = useMemo(() => (
+    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+  ), [onRefresh, refreshing]);
+
+  const listHeader = useMemo(() => (
     <>
       <Text style={styles.title}>Tasks</Text>
       <View style={styles.searchWrap}>
@@ -187,7 +200,7 @@ export const TasksScreen: React.FC = () => {
       ) : null}
       <BannerAdPlaceholder placement="tasks" />
     </>
-  );
+  ), [applyStatusFilter, clearError, error, searchQuery, setSearchQuery, statusTab]);
 
   return (
     <View style={styles.container}>
@@ -196,19 +209,16 @@ export const TasksScreen: React.FC = () => {
       ) : (
         <FlatList
           data={sortedTasks}
-          keyExtractor={(t) => t.id}
+          keyExtractor={keyExtractor}
           renderItem={renderTask}
           ListHeaderComponent={listHeader}
-          ListEmptyComponent={
-            <EmptyState
-              title="No tasks yet"
-              message="Add your first task to start planning your day."
-              actionLabel="Add task"
-              onAction={handleCreate}
-            />
-          }
+          ListEmptyComponent={listEmpty}
           contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+          refreshControl={refreshControl}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
         />
       )}
 

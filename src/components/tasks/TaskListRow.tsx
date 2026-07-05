@@ -15,6 +15,7 @@ import { formatDueLabel, isTaskOverdue, priorityColor, statusColor } from '@/uti
 const COMPLETE_ANIM_MS = 380;
 const EXIT_ANIM_MS = 140;
 const ROW_MARGIN = spacing.sm;
+const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 
 type Props = {
   task: Task;
@@ -27,7 +28,7 @@ type Props = {
   dismissOnComplete?: boolean;
 };
 
-export const TaskListRow: React.FC<Props> = ({
+const TaskListRowComponent: React.FC<Props> = ({
   task,
   onPress,
   onToggleComplete,
@@ -273,7 +274,7 @@ export const TaskListRow: React.FC<Props> = ({
         <TouchableOpacity
           style={[styles.check, compact && styles.checkCompact]}
           onPress={handleCheckPress}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          hitSlop={HIT_SLOP}
           disabled={busy}
         >
           <Animated.View style={animatedRingStyle}>
@@ -320,7 +321,7 @@ export const TaskListRow: React.FC<Props> = ({
         </View>
 
         {onDelete ? (
-          <TouchableOpacity onPress={onDelete} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} disabled={busy}>
+          <TouchableOpacity onPress={onDelete} hitSlop={HIT_SLOP} disabled={busy}>
             <Icon name="trash-can-outline" size={20} color={colors.textMuted} />
           </TouchableOpacity>
         ) : null}
@@ -328,6 +329,18 @@ export const TaskListRow: React.FC<Props> = ({
     </Animated.View>
   );
 };
+
+export const TaskListRow = React.memo(TaskListRowComponent, (prev, next) => (
+  prev.compact === next.compact &&
+  prev.dismissOnComplete === next.dismissOnComplete &&
+  Boolean(prev.onDelete) === Boolean(next.onDelete) &&
+  prev.task.id === next.task.id &&
+  prev.task.title === next.task.title &&
+  prev.task.status === next.task.status &&
+  prev.task.priority === next.task.priority &&
+  prev.task.dueDate === next.task.dueDate &&
+  prev.task.dueTime === next.task.dueTime
+));
 
 const styles = StyleSheet.create({
   rowCompact: {

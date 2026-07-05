@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { LogBox, StatusBar } from 'react-native';
+import { InteractionManager, LogBox, StatusBar } from 'react-native';
 
 LogBox.ignoreLogs([
   'Legacy Architecture',
@@ -17,10 +17,6 @@ import { planoraTheme } from '@/theme/paperTheme';
 import { initSentry, wrapApp } from '@/analytics/sentry';
 import { initPostHog } from '@/analytics/posthog';
 import { colors } from '@/theme/tokens';
-import { alarmFixService } from '@/services/AlarmFixService';
-import { pushNotificationService } from '@/services/pushNotificationService';
-import { processOfflineQueue } from '@/services/offlineQueue';
-import { clearAllAlarmTimerState } from '@/utils/alarmCleanup';
 
 function App() {
   const initializeAuth = useAuthStore((s) => s.initializeAuth);
@@ -28,17 +24,32 @@ function App() {
 
   useEffect(() => {
     initSentry();
-    initPostHog();
-    clearAllAlarmTimerState().catch(() => {});
-    alarmFixService.initialize().catch(() => {});
-    initializeAuth().then(() => processOfflineQueue()).catch(() => {});
+    const startupTask = InteractionManager.runAfterInteractions(() => {
+      initPostHog();
+      import('@/utils/alarmCleanup')
+        .then(({ clearAllAlarmTimerState }) => clearAllAlarmTimerState())
+        .catch(() => {});
+      import('@/services/AlarmFixService')
+        .then(({ alarmFixService }) => alarmFixService.initialize())
+        .catch(() => {});
+    });
+
+    initializeAuth()
+      .then(() => import('@/services/offlineQueue'))
+      .then(({ processOfflineQueue }) => processOfflineQueue())
+      .catch(() => {});
+
+    return () => startupTask.cancel();
   }, [initializeAuth]);
 
   useEffect(() => {
     if (isAuthenticated) {
-      pushNotificationService.initialize().catch(() => {});
-      alarmFixService.initialize().catch(() => {});
-      processOfflineQueue().catch(() => {});
+      import('@/services/pushNotificationService')
+        .then(({ pushNotificationService }) => pushNotificationService.initialize())
+        .catch(() => {});
+      import('@/services/offlineQueue')
+        .then(({ processOfflineQueue }) => processOfflineQueue())
+        .catch(() => {});
       useSubscriptionStore.getState().fetchAIUsage().catch(() => {});
     }
   }, [isAuthenticated]);

@@ -57,7 +57,9 @@ const navTheme = {
 };
 
 export const RootNavigator: React.FC = () => {
-  const { isAuthenticated, isInitialized, hasCompletedOnboarding } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isInitialized = useAuthStore((s) => s.isInitialized);
+  const hasCompletedOnboarding = useAuthStore((s) => s.hasCompletedOnboarding);
   const handledRef = useRef(false);
   const [showSplash, setShowSplash] = useState(true);
 
@@ -81,9 +83,7 @@ export const RootNavigator: React.FC = () => {
     return () => sub.remove();
   }, [consumePending]);
 
-  if (!isInitialized) return null;
-
-  if (showSplash) {
+  if (!isInitialized || showSplash) {
     return <AnimatedSplashScreen onFinish={() => setShowSplash(false)} />;
   }
 

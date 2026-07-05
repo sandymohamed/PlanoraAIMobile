@@ -1,9 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, ScrollView } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { openAndroidPicker } from '@/utils/dateTimePicker';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { CreateRoutineData, RoutineFrequency } from '@/types/routine';
 import { colors, spacing, typography } from '@/theme/tokens';
+import { DateTimePicker } from '@/components/ui/DateTimePicker';
 
 const DAYS = [
   { v: 0, l: 'Sun' },
@@ -30,9 +29,15 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({ initial, onSubmit, sub
   const [days, setDays] = useState<number[]>(initial?.schedule?.days || [1, 2, 3, 4, 5]);
   const [monthDay, setMonthDay] = useState(String(initial?.schedule?.day || 1));
   const [reminderBefore, setReminderBefore] = useState(initial?.reminderBefore || '1h');
-  const [showTime, setShowTime] = useState(false);
   const [error, setError] = useState('');
   const submitting = useRef(false);
+
+  const timeValue = (() => {
+    const [h, m] = time.split(':').map(Number);
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
+    return d;
+  })();
 
   const toggleDay = (d: number) => {
     setDays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort()));
@@ -63,20 +68,6 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({ initial, onSubmit, sub
     }
   };
 
-  const openTimePicker = () => {
-    const [h, m] = time.split(':').map(Number);
-    const d = new Date();
-    d.setHours(h, m);
-    if (
-      openAndroidPicker(d, 'time', (picked) => {
-        setTime(`${picked.getHours().toString().padStart(2, '0')}:${picked.getMinutes().toString().padStart(2, '0')}`);
-      })
-    ) {
-      return;
-    }
-    setShowTime(true);
-  };
-
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       {error ? <Text style={styles.err}>{error}</Text> : null}
@@ -103,25 +94,16 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({ initial, onSubmit, sub
         ))}
       </View>
       <Text style={styles.label}>Time</Text>
-      <TouchableOpacity style={styles.input} onPress={openTimePicker}>
-        <Text style={{ color: colors.text }}>{time}</Text>
-      </TouchableOpacity>
-      {showTime && Platform.OS === 'ios' && (
-        <DateTimePicker
-          value={(() => {
-            const [h, m] = time.split(':').map(Number);
-            const d = new Date();
-            d.setHours(h, m);
-            return d;
-          })()}
-          mode="time"
-          onChange={(_, d) => {
-            if (d) {
-              setTime(`${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`);
-            }
-          }}
-        />
-      )}
+      <DateTimePicker
+        mode="time"
+        value={timeValue}
+        onChange={(d) => {
+          if (!d) return;
+          setTime(`${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`);
+        }}
+        quickActions={false}
+        showClear={false}
+      />
       {frequency === 'WEEKLY' && (
         <>
           <Text style={styles.label}>Days</Text>

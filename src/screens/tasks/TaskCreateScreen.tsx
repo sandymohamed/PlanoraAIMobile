@@ -69,15 +69,9 @@ export const TaskCreateScreen: React.FC = () => {
         values={values}
         errors={errors}
         onChange={patch}
-        showDatePicker={due.showDatePicker}
-        showTimePicker={due.showTimePicker}
-        selectedDate={due.selectedDate}
-        selectedTime={due.selectedTime}
         hasTime={due.hasTime}
-        onToggleDatePicker={() => due.setShowDatePicker(!due.showDatePicker)}
-        onToggleTimePicker={() => due.setShowTimePicker(!due.showTimePicker)}
-        onDateChange={(d) => d && patch(due.applyDate(d, values))}
-        onTimeChange={(t) => t && patch(due.applyTime(t, values))}
+        selectedDateTime={due.selectedDateTime}
+        onDueChange={(d) => patch(due.applyDueDateTime(d))}
         onToggleHasTime={(v) => patch(due.toggleHasTime(v, values))}
         onClearDue={() => patch(due.clearDue())}
       />

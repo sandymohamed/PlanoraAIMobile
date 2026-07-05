@@ -7,17 +7,14 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { openAndroidPicker } from '@/utils/dateTimePicker';
 import { useGoalStore } from '@/store/goalStore';
 import { GoalPriority } from '@/types/goal';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { showAlert, showError } from '@/components/ConfirmationDialog';
-import { format } from 'date-fns';
+import { DateTimePicker } from '@/components/ui/DateTimePicker';
 
 const CATEGORIES = ['Personal', 'Work', 'Health', 'Learning', 'Finance', 'Other'];
 
@@ -30,13 +27,7 @@ export const GoalCreateScreen: React.FC = () => {
   const [priority, setPriority] = useState<GoalPriority>(GoalPriority.MEDIUM);
   const [category, setCategory] = useState('Personal');
   const [targetDate, setTargetDate] = useState<Date | null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const submitting = useRef(false);
-
-  const openTargetDate = () => {
-    if (openAndroidPicker(targetDate || new Date(), 'date', setTargetDate)) return;
-    setShowDatePicker(true);
-  };
 
   const submit = async () => {
     if (submitting.current) return;
@@ -95,23 +86,15 @@ export const GoalCreateScreen: React.FC = () => {
       </View>
 
       <Text style={styles.label}>Target date</Text>
-      <TouchableOpacity style={styles.input} onPress={openTargetDate}>
-        <Text style={styles.dateText}>{targetDate ? format(targetDate, 'PPP') : 'None'}</Text>
-      </TouchableOpacity>
-      {targetDate ? (
-        <TouchableOpacity onPress={() => setTargetDate(null)}>
-          <Text style={styles.clearDate}>Clear date</Text>
-        </TouchableOpacity>
-      ) : null}
-
-      {showDatePicker && Platform.OS === 'ios' && (
-        <DateTimePicker
-          value={targetDate || new Date()}
-          mode="date"
-          display="spinner"
-          onChange={(_, d) => d && setTargetDate(d)}
-        />
-      )}
+      <DateTimePicker
+        mode="date"
+        value={targetDate}
+        onChange={setTargetDate}
+        placeholder="No target date"
+        clearLabel="No target date"
+        helperText="Use quick dates or choose a custom goal target."
+        showClear={Boolean(targetDate)}
+      />
 
       <TouchableOpacity style={styles.submit} onPress={submit} disabled={isLoading}>
         {isLoading ? <ActivityIndicator color={colors.background} /> : <Text style={styles.submitText}>Create goal</Text>}
@@ -146,8 +129,6 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { ...typography.caption, color: colors.textSecondary },
   chipTextActive: { color: colors.background, fontWeight: '600' },
-  dateText: { ...typography.body, color: colors.text },
-  clearDate: { ...typography.caption, color: colors.primary, marginTop: spacing.xs },
   submit: {
     marginTop: spacing.xl,
     backgroundColor: colors.primary,

@@ -28,6 +28,7 @@ interface TaskActions {
     projectId?: string;
     goalId?: string;
     assigneeId?: string;
+    skipAlarmSync?: boolean;
   }) => Promise<void>;
   fetchTask: (id: string) => Promise<void>;
   refreshTasks: () => Promise<void>;
@@ -91,13 +92,14 @@ export const useTaskStore = create<TaskStore>()(
         projectId?: string;
         goalId?: string;
         assigneeId?: string;
+        skipAlarmSync?: boolean;
       }) => {
         try {
           set({ isLoading: true, error: null });
 
           // When fetching all tasks (no specific filter), use a high limit to get all tasks
           // This ensures regular tasks aren't hidden by pagination
-          const fetchParams = { ...params };
+          const { skipAlarmSync, ...fetchParams } = params ?? {};
           if (!params?.goalId && !params?.projectId && !params?.assigneeId && !params?.limit) {
             // Fetching all tasks - use a high limit (1000 should be enough for most users)
             fetchParams.limit = 1000;
@@ -170,13 +172,15 @@ export const useTaskStore = create<TaskStore>()(
           get().applyFilters();
           
           // Fetch and schedule alarms after tasks are loaded (so task alarms are scheduled)
-          try {
-            const { useAlarmStore } = require('./alarmStore');
-            useAlarmStore.getState().fetchAlarms(1, 100, true).catch((error: any) => {
-              logger.error('Failed to fetch alarms after tasks loaded:', error);
-            });
-          } catch (error) {
-            // Ignore if alarmStore is not available
+          if (!skipAlarmSync) {
+            try {
+              const { useAlarmStore } = require('./alarmStore');
+              useAlarmStore.getState().fetchAlarms(1, 100, true).catch((error: any) => {
+                logger.error('Failed to fetch alarms after tasks loaded:', error);
+              });
+            } catch (error) {
+              // Ignore if alarmStore is not available
+            }
           }
         } catch (error: any) {
           logger.error('Fetch tasks error:', error);

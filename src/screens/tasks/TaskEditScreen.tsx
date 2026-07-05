@@ -30,6 +30,7 @@ export const TaskEditScreen: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const submittingRef = useRef(false);
   const due = useTaskDueDate({ dueDate: task?.dueDate, dueTime: task?.dueTime });
+  const { syncFromValues } = due;
 
   useEffect(() => {
     if (!task) fetchTask(taskId).catch(() => {});
@@ -45,7 +46,8 @@ export const TaskEditScreen: React.FC = () => {
       dueDate: task.dueDate,
       dueTime: task.dueTime,
     });
-  }, [task]);
+    syncFromValues({ dueDate: task.dueDate, dueTime: task.dueTime });
+  }, [syncFromValues, task]);
 
   const patch = (p: Partial<TaskFormValues>) => setValues((v) => ({ ...v, ...p }));
 
@@ -98,15 +100,9 @@ export const TaskEditScreen: React.FC = () => {
         values={values}
         errors={errors}
         onChange={patch}
-        showDatePicker={due.showDatePicker}
-        showTimePicker={due.showTimePicker}
-        selectedDate={due.selectedDate}
-        selectedTime={due.selectedTime}
         hasTime={due.hasTime}
-        onToggleDatePicker={() => due.setShowDatePicker(!due.showDatePicker)}
-        onToggleTimePicker={() => due.setShowTimePicker(!due.showTimePicker)}
-        onDateChange={(d) => d && patch(due.applyDate(d, values))}
-        onTimeChange={(t) => t && patch(due.applyTime(t, values))}
+        selectedDateTime={due.selectedDateTime}
+        onDueChange={(d) => patch(due.applyDueDateTime(d))}
         onToggleHasTime={(v) => patch(due.toggleHasTime(v, values))}
         onClearDue={() => patch(due.clearDue())}
       />

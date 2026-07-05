@@ -8,6 +8,7 @@
  */
 import React from 'react';
 import { config } from '@/config/env';
+import { logger } from '@/utils/logger';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let SentryRef: any = null;
@@ -68,7 +69,7 @@ export function initSentry(): void {
     });
     SentryRef = Sentry;
   } catch {
-    console.warn('[Planora] @sentry/react-native not installed — skip Sentry');
+    logger.warn('[Planora] @sentry/react-native not installed — skip Sentry');
   }
 }
 

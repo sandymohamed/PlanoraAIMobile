@@ -23,7 +23,13 @@ interface AlarmState {
   };
 
   // Actions
-  fetchAlarms: (page?: number, limit?: number, enabled?: boolean, retryCount?: number) => Promise<void>;
+  fetchAlarms: (
+    page?: number,
+    limit?: number,
+    enabled?: boolean,
+    retryCount?: number,
+    options?: { scheduleNative?: boolean }
+  ) => Promise<void>;
   fetchTimers: (page?: number, limit?: number) => Promise<void>;
   createAlarm: (data: CreateAlarmData) => Promise<Alarm>;
   updateAlarm: (id: string, data: UpdateAlarmData) => Promise<Alarm>;
@@ -106,9 +112,10 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
   },
 
   // Alarm actions
-  fetchAlarms: async (page = 1, limit = 20, enabled, retryCount = 0) => {
+  fetchAlarms: async (page = 1, limit = 20, enabled, retryCount = 0, options = {}) => {
     const maxRetries = 3;
     const retryDelay = 2000; // 2 seconds
+    const shouldScheduleNative = options.scheduleNative ?? true;
     
     try {
       set({ loading: true, error: null });
@@ -132,7 +139,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
           // If alarm exists locally and was locally disabled, preserve that state
           // This handles the case where backend update failed but we disabled it locally
           if (localAlarm.enabled === false && backendAlarm.enabled === true) {
-            console.log(`🔒 Preserving locally-disabled state for alarm: ${backendAlarm.title} (backend says enabled, but was disabled locally)`);
+            logger.info(`Preserving locally-disabled state for alarm: ${backendAlarm.title}`);
             return { ...backendAlarm, enabled: false };
           }
           
@@ -145,7 +152,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
           // If local time is in the future and more recent than backend time, it's likely a snooze
           // Only preserve if local time is within the next hour (to avoid preserving very old times)
           if (localTime > now && localTime > backendTime && localTime < now + 3600000) {
-            console.log(`⏰ Preserving snoozed time for alarm: ${backendAlarm.title} (local: ${localAlarm.time}, backend: ${backendAlarm.time})`);
+            logger.info(`Preserving snoozed time for alarm: ${backendAlarm.title}`);
             return { 
               ...backendAlarm, 
               time: localAlarm.time,
@@ -169,7 +176,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
       });
       
       if (activeSnoozeAlarms.length < localSnoozeAlarms.length) {
-        console.log(`🧹 Removed ${localSnoozeAlarms.length - activeSnoozeAlarms.length} expired/disabled snooze alarms`);
+        logger.info(`Removed ${localSnoozeAlarms.length - activeSnoozeAlarms.length} expired/disabled snooze alarms`);
       }
       
       const allAlarms = [...mergedAlarms, ...activeSnoozeAlarms];
@@ -180,12 +187,14 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
         loading: false,
       });
 
+      if (!shouldScheduleNative) return;
+
       // NOTE: DO NOT call notificationService.scheduleAllAlarms() - it's for legacy JS alarms only
       // All alarms are scheduled via reliableAlarmService below (native Android AlarmManager)
 
       // CRITICAL: Cancel alarms that are no longer enabled or no longer in the list
       // This prevents orphaned alarms from firing
-      console.log(`🗑️ Cleaning up alarms that should be cancelled...`);
+      logger.info('Cleaning up alarms that should be cancelled');
       const currentAlarmIds = new Set(allAlarms.map(a => a.id));
       const alarmsToCancel: string[] = [];
       
@@ -204,9 +213,9 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
         alarmsToCancel.map(async (alarmId) => {
           try {
             await reliableAlarmService.cancelAlarm(alarmId);
-            console.log(`  🗑️ Cancelled alarm: ${alarmId}`);
+            logger.info(`Cancelled alarm: ${alarmId}`);
           } catch (error) {
-            console.warn(`  ⚠️ Failed to cancel alarm ${alarmId}:`, error);
+            logger.warn(`Failed to cancel alarm ${alarmId}`, error);
           }
         })
       );
@@ -224,10 +233,10 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
         const stoppedAlarms = await AsyncStorage.getItem('stopped_alarms');
         if (stoppedAlarms) {
           stoppedAlarmsSet = new Set(JSON.parse(stoppedAlarms));
-          console.log(`🔍 Found ${stoppedAlarmsSet.size} stopped alarms in AsyncStorage`);
+          logger.info(`Found ${stoppedAlarmsSet.size} stopped alarms in AsyncStorage`);
         }
       } catch (error) {
-        console.warn('⚠️ Failed to read stopped alarms from AsyncStorage:', error);
+        logger.warn('Failed to read stopped alarms from AsyncStorage', error);
       }
       
       const enabledAlarms = allAlarms.filter(a => {
@@ -235,7 +244,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
         
         // CRITICAL: Skip alarms that are marked as stopped in AsyncStorage
         if (stoppedAlarmsSet.has(a.id)) {
-          console.log(`⏭️ Skipping stopped alarm: ${a.title} (marked as stopped in AsyncStorage)`);
+          logger.info(`Skipping stopped alarm: ${a.title}`);
           return false;
         }
         
@@ -253,7 +262,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
         });
         
         if (wasRecentlyStopped) {
-          console.log(`⏭️ Skipping recently-stopped alarm: ${a.title} (was disabled locally)`);
+          logger.info(`Skipping recently-stopped alarm: ${a.title}`);
           return false;
         }
         
@@ -267,7 +276,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
           const buffer = isSnoozeAlarm ? 10000 : 30000; // 10s for snooze, 30s for regular
           const isFuture = alarmTime > now + buffer;
           if (!isFuture) {
-            console.log(`⏭️ Skipping past one-time alarm: ${a.title} (time: ${new Date(a.time).toLocaleString()}, now: ${new Date(now).toLocaleString()})`);
+            logger.info(`Skipping past one-time alarm: ${a.title}`);
             return false;
           }
         }
@@ -275,7 +284,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
         return true;
       });
       
-      console.log(`📅 Scheduling ${enabledAlarms.length} enabled alarms natively...`);
+      logger.info(`Scheduling ${enabledAlarms.length} enabled alarms natively`);
       // Schedule alarms one at a time to avoid race conditions
       // Cancel each alarm before re-scheduling to prevent duplicates
       for (const alarm of enabledAlarms) {
@@ -286,11 +295,11 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
             // Ignore errors if alarm doesn't exist - that's fine
           });
           
-          console.log(`  📌 Scheduling alarm: ${alarm.title} at ${new Date(alarm.time).toLocaleString()}`);
+          logger.info(`Scheduling alarm: ${alarm.title}`);
           await reliableAlarmService.scheduleAlarm(alarm);
-          console.log(`  ✅ Successfully scheduled: ${alarm.title}`);
+          logger.info(`Successfully scheduled: ${alarm.title}`);
         } catch (error) {
-          console.error(`  ❌ Failed to schedule native alarm ${alarm.id} (${alarm.title}):`, error);
+          logger.error(`Failed to schedule native alarm ${alarm.id} (${alarm.title})`, error);
         }
       }
     } catch (error) {
@@ -303,7 +312,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
       if (isNetworkError && retryCount < maxRetries) {
         logger.warn(`Network error fetching alarms, retrying... (${retryCount + 1}/${maxRetries})`);
         await new Promise<void>(resolve => setTimeout(() => resolve(), retryDelay * (retryCount + 1)));
-        return get().fetchAlarms(page, limit, enabled, retryCount + 1);
+        return get().fetchAlarms(page, limit, enabled, retryCount + 1, options);
       }
       
       set({
@@ -417,15 +426,15 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
             const stoppedSet = new Set(JSON.parse(stoppedAlarms));
             stoppedSet.delete(id);
             await AsyncStorage.setItem('stopped_alarms', JSON.stringify(Array.from(stoppedSet)));
-            console.log('✅ Removed alarm from stopped list (re-enabled):', id);
+            logger.info('Removed alarm from stopped list (re-enabled)', id);
           }
         } catch (error) {
-          console.warn('⚠️ Failed to remove alarm from stopped list:', error);
+          logger.warn('Failed to remove alarm from stopped list', error);
         }
       }
 
       await reliableAlarmService.cancelAlarm(id).catch((error) => {
-        console.error('Failed to cancel native alarm:', error);
+        logger.error('Failed to cancel native alarm', error);
       });
       if (alarm.enabled) {
         await get().scheduleAlarmNative(alarm);
@@ -445,7 +454,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
     const { isAuthenticated } = useAuthStore.getState();
 
     if (inFlightAlarmDeletes.has(id)) {
-      console.log(`Delete already in progress for alarm ${id}, skipping duplicate request.`);
+        logger.info(`Delete already in progress for alarm ${id}, skipping duplicate request`);
       return;
     }
 
@@ -456,7 +465,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
         loading: false,
       }));
       reliableAlarmService.cancelAlarm(id).catch((error) => {
-        console.error('Failed to cancel native alarm:', error);
+        logger.error('Failed to cancel native alarm', error);
       });
       return;
     }
@@ -471,10 +480,10 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
         const stoppedSet = new Set(JSON.parse(stoppedAlarms));
         stoppedSet.delete(id);
         await AsyncStorage.setItem('stopped_alarms', JSON.stringify(Array.from(stoppedSet)));
-        console.log('✅ Removed alarm from stopped list (deleted):', id);
+        logger.info('Removed alarm from stopped list (deleted)', id);
       }
     } catch (error) {
-      console.warn('⚠️ Failed to remove alarm from stopped list:', error);
+      logger.warn('Failed to remove alarm from stopped list', error);
     }
 
     try {
@@ -487,7 +496,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
 
       // Cancel the scheduled alarm
       reliableAlarmService.cancelAlarm(id).catch((error) => {
-        console.error('Failed to cancel native alarm:', error);
+        logger.error('Failed to cancel native alarm', error);
       });
     } catch (error) {
       set({
@@ -521,20 +530,20 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
           // Re-enabling: Remove from stopped list
           stoppedSet.delete(id);
           await AsyncStorage.setItem('stopped_alarms', JSON.stringify(Array.from(stoppedSet)));
-          console.log('✅ Removed alarm from stopped list (toggled on):', id);
+          logger.info('Removed alarm from stopped list (toggled on)', id);
         } else {
           // Disabling: Add to stopped list
           stoppedSet.add(id);
           await AsyncStorage.setItem('stopped_alarms', JSON.stringify(Array.from(stoppedSet)));
-          console.log('✅ Added alarm to stopped list (toggled off):', id);
+          logger.info('Added alarm to stopped list (toggled off)', id);
         }
       } catch (error) {
-        console.warn('⚠️ Failed to update stopped alarms list:', error);
+        logger.warn('Failed to update stopped alarms list', error);
       }
 
       // Cancel or schedule alarm immediately based on new state
       reliableAlarmService.cancelAlarm(id).catch((error) => {
-        console.error('Failed to cancel native alarm:', error);
+        logger.error('Failed to cancel native alarm', error);
       });
       
       if (newEnabledState) {
@@ -554,7 +563,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
           alarms: state.alarms.map((a) => (a.id === id ? updatedAlarm : a)),
         }));
       } catch (error) {
-        console.error('Failed to sync toggle with backend:', error);
+        logger.error('Failed to sync toggle with backend', error);
         // Keep local state - user's action should be respected even if backend fails
       }
     } catch (error) {
@@ -568,11 +577,11 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
     try {
       const alarm = get().alarms.find((a) => a.id === id);
       if (!alarm) {
-        console.warn(`Alarm ${id} not found for snooze`);
+        logger.warn(`Alarm ${id} not found for snooze`);
         return;
       }
 
-      console.log(`😴 Snoozing alarm ${id} for ${duration} minutes`);
+      logger.info(`Snoozing alarm ${id} for ${duration} minutes`);
 
       // CRITICAL NEW ARCHITECTURE: Snooze = reschedule SAME alarm ID
       // This prevents sound channel conflicts and ID duplication
@@ -581,7 +590,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
       const now = Date.now();
       const snoozeTime = new Date(now + (duration * 60 * 1000));
       
-      console.log(`📅 Snooze alarm will ring at: ${snoozeTime.toISOString()}`);
+      logger.info(`Snooze alarm will ring at: ${snoozeTime.toISOString()}`);
       
       // Use native snooze method (reschedules same alarm ID)
       const { nativeAlarmBridge } = await import('@/services/NativeAlarmBridge');
@@ -596,11 +605,11 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
           if (stoppedSet.has(id)) {
             stoppedSet.delete(id);
             await AsyncStorage.setItem('stopped_alarms', JSON.stringify(Array.from(stoppedSet)));
-            console.log(`✅ Removed alarm ${id} from stopped list for snooze`);
+            logger.info(`Removed alarm ${id} from stopped list for snooze`);
           }
         }
       } catch (error) {
-        console.warn('⚠️ Failed to remove alarm from stopped list:', error);
+        logger.warn('Failed to remove alarm from stopped list', error);
       }
       
       // CRITICAL: Stop the currently playing alarm sound/vibration first
@@ -637,7 +646,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
         ),
       }));
       
-      console.log(`✅ Alarm ${id} snoozed successfully - same ID rescheduled to ${snoozeTime.toISOString()}`);
+      logger.info(`Alarm ${id} snoozed successfully`);
       
       // CRITICAL: The alarm is already scheduled natively via nativeAlarmBridge.snoozeAlarm() above
       // We don't need to re-fetch from backend because:
@@ -646,17 +655,17 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
       // 3. The store is already updated with the new time
       // 
       // The merge logic in fetchAlarms will preserve the snoozed time if it's more recent than backend
-      console.log(`✅ Alarm ${id} snoozed and rescheduled natively - will ring at ${snoozeTime.toISOString()}`);
+      logger.info(`Alarm ${id} snoozed and rescheduled natively`);
 
       // If authenticated, sync snooze to backend (non-blocking)
       const { isAuthenticated } = useAuthStore.getState();
       if (isAuthenticated) {
         alarmService.snoozeAlarm(id, duration).catch((error) => {
-          console.warn('⚠️ Failed to sync snooze to backend (non-critical):', error);
+          logger.warn('Failed to sync snooze to backend (non-critical)', error);
         });
       }
     } catch (error) {
-      console.error('❌ Failed to snooze alarm:', error);
+      logger.error('Failed to snooze alarm', error);
       set({
         error: error instanceof Error ? error.message : 'Failed to snooze alarm',
       });
@@ -669,7 +678,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
 
     if (!isAuthenticated) {
       reliableAlarmService.cancelAlarm(id).catch((error) => {
-        console.error('Failed to cancel native alarm:', error);
+        logger.error('Failed to cancel native alarm', error);
       });
       return;
     }
@@ -725,7 +734,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
       }));
 
       // Save to local storage (async)
-      get().saveTimersToStorage().catch(err => console.log('Failed to save timers:', err));
+      get().saveTimersToStorage().catch(err => logger.warn('Failed to save timers', err));
 
       // Try to sync with backend in background (don't wait for it)
       try {
@@ -736,7 +745,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
           ),
         }));
       } catch (syncError) {
-        console.log('Timer sync failed, using local version:', syncError);
+        logger.warn('Timer sync failed, using local version', syncError);
         // Keep using local timer
       }
 
@@ -773,7 +782,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
       }));
 
       // Save to local storage (async)
-      get().saveTimersToStorage().catch(err => console.log('Failed to save timers:', err));
+      get().saveTimersToStorage().catch(err => logger.warn('Failed to save timers', err));
 
       // Try to sync with backend in background
       if (!id.startsWith('local_')) {
@@ -784,7 +793,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
             activeTimer: state.activeTimer?.id === id ? { ...serverTimer, remainingTime: updatedTimer.remainingTime } : state.activeTimer,
           }));
         } catch (syncError) {
-          console.log('Timer update sync failed, using local version:', syncError);
+          logger.warn('Timer update sync failed, using local version', syncError);
         }
       }
 
@@ -810,14 +819,14 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
       }));
 
       // Save to local storage (async)
-      get().saveTimersToStorage().catch(err => console.log('Failed to save timers:', err));
+      get().saveTimersToStorage().catch(err => logger.warn('Failed to save timers', err));
 
       // Try to sync with backend in background
       if (!id.startsWith('local_')) {
         try {
           await alarmService.deleteTimer(id);
         } catch (syncError) {
-          console.log('Timer delete sync failed, already removed locally:', syncError);
+          logger.warn('Timer delete sync failed, already removed locally', syncError);
         }
       }
     } catch (error) {
@@ -865,7 +874,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
       get().startCountdown();
 
       // Save to local storage (async)
-      get().saveTimersToStorage().catch(err => console.log('Failed to save timers:', err));
+      get().saveTimersToStorage().catch(err => logger.warn('Failed to save timers', err));
 
       // Try to sync with backend in background
       if (!id.startsWith('local_')) {
@@ -876,7 +885,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
             activeTimer: { ...serverTimer, remainingTime: updatedTimer.remainingTime },
           }));
         } catch (syncError) {
-          console.log('Timer start sync failed, using local version:', syncError);
+          logger.warn('Timer start sync failed, using local version', syncError);
         }
       }
     } catch (error) {
@@ -913,7 +922,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
       get().stopCountdown();
 
       // Save to local storage (async)
-      get().saveTimersToStorage().catch(err => console.log('Failed to save timers:', err));
+      get().saveTimersToStorage().catch(err => logger.warn('Failed to save timers', err));
 
       // Try to sync with backend in background
       if (!id.startsWith('local_')) {
@@ -924,7 +933,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
             activeTimer: state.activeTimer?.id === id ? { ...serverTimer, remainingTime: updatedTimer.remainingTime } : state.activeTimer,
           }));
         } catch (syncError) {
-          console.log('Timer pause sync failed, using local version:', syncError);
+          logger.warn('Timer pause sync failed, using local version', syncError);
         }
       }
     } catch (error) {
@@ -963,7 +972,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
       get().stopCountdown();
 
       // Save to local storage (async)
-      get().saveTimersToStorage().catch(err => console.log('Failed to save timers:', err));
+      get().saveTimersToStorage().catch(err => logger.warn('Failed to save timers', err));
 
       // Try to sync with backend in background
       if (!id.startsWith('local_')) {
@@ -973,7 +982,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
             timers: state.timers.map((t) => (t.id === id ? { ...serverTimer, remainingTime: updatedTimer.remainingTime } : t)),
           }));
         } catch (syncError) {
-          console.log('Timer stop sync failed, using local version:', syncError);
+          logger.warn('Timer stop sync failed, using local version', syncError);
         }
       }
     } catch (error) {
@@ -1009,7 +1018,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
       get().stopCountdown();
 
       // Save to local storage (async)
-      get().saveTimersToStorage().catch(err => console.log('Failed to save timers:', err));
+      get().saveTimersToStorage().catch(err => logger.warn('Failed to save timers', err));
 
       // Try to sync with backend in background
       if (!id.startsWith('local_')) {
@@ -1020,7 +1029,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
             activeTimer: state.activeTimer?.id === id ? { ...serverTimer, remainingTime: updatedTimer.remainingTime } : state.activeTimer,
           }));
         } catch (syncError) {
-          console.log('Timer reset sync failed, using local version:', syncError);
+          logger.warn('Timer reset sync failed, using local version', syncError);
         }
       }
     } catch (error) {
@@ -1099,7 +1108,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
     const { activeTimer } = get();
     if (activeTimer && activeTimer.remainingTime <= 0) {
       // Timer completed - trigger completion notification
-      console.log('⏱️ Timer completed in store:', activeTimer.id);
+      logger.info('Timer completed in store', activeTimer.id);
       
       // Trigger immediate notification with sound/vibration
       const { notificationService } = require('@/services/notificationService');
@@ -1126,7 +1135,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
       }));
       await AsyncStorage.setItem('offline_timers', JSON.stringify(timersWithStartTime));
     } catch (error) {
-      console.log('Failed to save timers to storage:', error);
+      logger.warn('Failed to save timers to storage', error);
     }
   },
 
@@ -1157,7 +1166,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
         return recalculatedTimers;
       }
     } catch (error) {
-      console.log('Failed to load timers from storage:', error);
+      logger.warn('Failed to load timers from storage', error);
     }
     return [];
   },

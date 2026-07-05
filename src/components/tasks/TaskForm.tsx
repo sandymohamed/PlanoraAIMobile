@@ -1,10 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform, ScrollView } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { openAndroidPicker } from '@/utils/dateTimePicker';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { TaskPriority, TaskStatus } from '@/types/task';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { priorityColor } from '@/utils/taskUi';
+import { DateTimePicker } from '@/components/ui/DateTimePicker';
 
 export interface TaskFormValues {
   title: string;
@@ -19,15 +18,9 @@ interface TaskFormProps {
   values: TaskFormValues;
   errors: Record<string, string>;
   onChange: (patch: Partial<TaskFormValues>) => void;
-  showDatePicker: boolean;
-  showTimePicker: boolean;
-  selectedDate: Date;
-  selectedTime: Date;
   hasTime: boolean;
-  onToggleDatePicker: () => void;
-  onToggleTimePicker: () => void;
-  onDateChange: (date?: Date) => void;
-  onTimeChange: (time?: Date) => void;
+  selectedDateTime: Date | null;
+  onDueChange: (date: Date | null) => void;
   onToggleHasTime: (v: boolean) => void;
   onClearDue: () => void;
 }
@@ -39,15 +32,9 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   values,
   errors,
   onChange,
-  showDatePicker,
-  showTimePicker,
-  selectedDate,
-  selectedTime,
   hasTime,
-  onToggleDatePicker,
-  onToggleTimePicker,
-  onDateChange,
-  onTimeChange,
+  selectedDateTime,
+  onDueChange,
   onToggleHasTime,
   onClearDue,
 }) => (
@@ -99,62 +86,19 @@ export const TaskForm: React.FC<TaskFormProps> = ({
     </View>
 
     <Text style={styles.label}>Due date & time</Text>
-    <View style={styles.dueRow}>
-      <TouchableOpacity
-        style={styles.dueBtn}
-        onPress={() => {
-          if (openAndroidPicker(selectedDate, 'date', onDateChange)) return;
-          onToggleDatePicker();
-        }}
-      >
-        <Text style={styles.dueBtnText}>
-          {values.dueDate ? selectedDate.toLocaleDateString() : 'Set date'}
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.dueBtn, !values.dueDate && styles.dueBtnDisabled]}
-        onPress={() => values.dueDate && onToggleHasTime(!hasTime)}
-        disabled={!values.dueDate}
-      >
-        <Text style={styles.dueBtnText}>{hasTime ? 'Time on' : 'Time off'}</Text>
-      </TouchableOpacity>
-      {hasTime && values.dueDate ? (
-        <TouchableOpacity
-          style={styles.dueBtn}
-          onPress={() => {
-            if (openAndroidPicker(selectedTime, 'time', onTimeChange)) return;
-            onToggleTimePicker();
-          }}
-        >
-          <Text style={styles.dueBtnText}>
-            {values.dueTime || selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </Text>
-        </TouchableOpacity>
-      ) : null}
-      {values.dueDate ? (
-        <TouchableOpacity onPress={onClearDue}>
-          <Text style={styles.clearDue}>Clear</Text>
-        </TouchableOpacity>
-      ) : null}
-    </View>
+    <DateTimePicker
+      mode="datetime"
+      value={selectedDateTime}
+      onChange={onDueChange}
+      optionalTime
+      hasTime={hasTime}
+      onHasTimeChange={onToggleHasTime}
+      placeholder="No due date"
+      helperText="Pick a quick due date. Add time only when you want a reminder."
+      clearLabel="No due date"
+      showClear={Boolean(values.dueDate)}
+    />
     {errors.dueDate ? <Text style={styles.err}>{errors.dueDate}</Text> : null}
-
-    {showDatePicker && Platform.OS === 'ios' && (
-      <DateTimePicker
-        value={selectedDate}
-        mode="date"
-        display="spinner"
-        onChange={(_, d) => onDateChange(d)}
-      />
-    )}
-    {showTimePicker && hasTime && Platform.OS === 'ios' && (
-      <DateTimePicker
-        value={selectedTime}
-        mode="time"
-        display="spinner"
-        onChange={(_, t) => onTimeChange(t)}
-      />
-    )}
   </ScrollView>
 );
 
@@ -185,16 +129,4 @@ const styles = StyleSheet.create({
   chipActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
   chipText: { ...typography.caption, color: colors.textSecondary },
   chipTextActive: { color: colors.primary, fontWeight: '600' },
-  dueRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, alignItems: 'center' },
-  dueBtn: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  dueBtnDisabled: { opacity: 0.4 },
-  dueBtnText: { color: colors.text, ...typography.caption },
-  clearDue: { color: colors.error, ...typography.caption },
 });

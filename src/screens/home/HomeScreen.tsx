@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { isSameDay } from 'date-fns';
 import {
   View,
@@ -30,7 +30,10 @@ import { PremiumLabel } from '@/components/premium/PremiumBadge';
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const user = useAuthStore((s) => s.user);
-  const { tasks, fetchTasks, completeTask, uncompleteTask } = useTaskStore();
+  const tasks = useTaskStore((s) => s.tasks);
+  const fetchTasks = useTaskStore((s) => s.fetchTasks);
+  const completeTask = useTaskStore((s) => s.completeTask);
+  const uncompleteTask = useTaskStore((s) => s.uncompleteTask);
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -50,27 +53,44 @@ export const HomeScreen: React.FC = () => {
     load();
   }, [load]);
 
-  const greeting = () => {
+  const greeting = useMemo(() => {
     const h = new Date().getHours();
     if (h < 12) return 'Good morning';
     if (h < 17) return 'Good afternoon';
     return 'Good evening';
-  };
+  }, []);
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await load();
     setRefreshing(false);
-  };
+  }, [load]);
 
-  const todayTasks = tasks
-    .filter((t) => t.dueDate && isSameDay(new Date(t.dueDate), new Date()) && !t.metadata?.isRoutineTask)
-    .slice(0, 5);
+  const todayTasks = useMemo(() => {
+    const today = new Date();
+    return tasks
+      .filter((t) => t.dueDate && isSameDay(new Date(t.dueDate), today) && !t.metadata?.isRoutineTask)
+      .slice(0, 5);
+  }, [tasks]);
 
-  const toggleTaskComplete = async (task: Task) => {
+  const toggleTaskComplete = useCallback(async (task: Task) => {
     if (task.status === TaskStatus.DONE) await uncompleteTask(task.id);
     else await completeTask(task.id);
-  };
+  }, [completeTask, uncompleteTask]);
+
+  const navigateToGoals = useCallback(() => {
+    track(AnalyticsEvents.AI_PLAN_GENERATED, { source: 'home' });
+    navigation.navigate('Goals');
+  }, [navigation]);
+
+  const navigateToFocus = useCallback(() => navigation.navigate('Focus'), [navigation]);
+  const navigateToAlarms = useCallback(() => navigation.navigate('Alarms'), [navigation]);
+  const navigateToRoutines = useCallback(() => navigation.navigate('Routines'), [navigation]);
+  const navigateToWeeklyReview = useCallback(() => navigation.navigate('WeeklyReview'), [navigation]);
+  const navigateToTasks = useCallback(() => navigation.navigate('Tasks', { screen: 'TasksList' }), [navigation]);
+  const navigateToTaskDetail = useCallback((taskId: string) => {
+    navigation.navigate('Tasks', { screen: 'TaskDetail', params: { taskId } });
+  }, [navigation]);
 
   return (
     <ScrollView
@@ -79,7 +99,7 @@ export const HomeScreen: React.FC = () => {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
     >
       <Text style={styles.greeting}>
-        {greeting()}
+        {greeting}
         {user?.name ? `, ${user.name.split(' ')[0]}` : ''}
       </Text>
       <Text style={styles.sub}>Your plan for today is ready.</Text>
@@ -93,10 +113,7 @@ export const HomeScreen: React.FC = () => {
 
       {/* AI suggestion */}
       <TouchableOpacity
-        onPress={() => {
-          track(AnalyticsEvents.AI_PLAN_GENERATED, { source: 'home' });
-          navigation.navigate('Goals');
-        }}
+        onPress={navigateToGoals}
       >
         <LinearGradient
           colors={[colors.gradientStart, colors.gradientEnd]}
@@ -117,17 +134,17 @@ export const HomeScreen: React.FC = () => {
 
       {/* Quick actions row */}
       <View style={styles.quickRow}>
-        <QuickAction icon="timer-outline" label="Focus" onPress={() => navigation.navigate('Focus')} />
-        <QuickAction icon="alarm" label="Alarms" onPress={() => navigation.navigate('Alarms')} />
-        <QuickAction icon="repeat" label="Routines" onPress={() => navigation.navigate('Routines')} />
-        <QuickAction icon="chart-timeline-variant" label="Weekly" onPress={() => navigation.navigate('WeeklyReview')} />
+        <QuickAction icon="timer-outline" label="Focus" onPress={navigateToFocus} />
+        <QuickAction icon="alarm" label="Alarms" onPress={navigateToAlarms} />
+        <QuickAction icon="repeat" label="Routines" onPress={navigateToRoutines} />
+        <QuickAction icon="chart-timeline-variant" label="Weekly" onPress={navigateToWeeklyReview} />
       </View>
 
       {/* Today's tasks preview */}
       <SectionHeader
         title="Today's tasks"
         action="See all"
-        onAction={() => navigation.navigate('Tasks', { screen: 'TasksList' })}
+        onAction={navigateToTasks}
       />
       <Card>
         {todayTasks.length === 0 ? (
@@ -139,9 +156,7 @@ export const HomeScreen: React.FC = () => {
               task={t}
               compact
               dismissOnComplete={false}
-              onPress={() =>
-                navigation.navigate('Tasks', { screen: 'TaskDetail', params: { taskId: t.id } })
-              }
+              onPress={() => navigateToTaskDetail(t.id)}
               onToggleComplete={async () => {
                 try {
                   await toggleTaskComplete(t);
@@ -156,7 +171,7 @@ export const HomeScreen: React.FC = () => {
       </Card>
 
       {/* Active routines */}
-      <SectionHeader title="Active routines" action="Manage" onAction={() => navigation.navigate('Routines')} />
+      <SectionHeader title="Active routines" action="Manage" onAction={navigateToRoutines} />
       <Card>
         {routines.length === 0 ? (
           <Text style={styles.focusMeta}>No active routines</Text>
@@ -168,7 +183,7 @@ export const HomeScreen: React.FC = () => {
       </Card>
 
       {/* Goal progress */}
-      <SectionHeader title="Goal progress" action="Goals" onAction={() => navigation.navigate('Goals')} />
+      <SectionHeader title="Goal progress" action="Goals" onAction={navigateToGoals} />
       <Card>
         {goals.length === 0 ? (
           <Text style={styles.focusMeta}>No goals — tap AI on Goals tab</Text>
@@ -193,33 +208,33 @@ export const HomeScreen: React.FC = () => {
   );
 };
 
-const QuickAction: React.FC<{ icon: string; label: string; onPress: () => void }> = ({ icon, label, onPress }) => (
+const QuickAction: React.FC<{ icon: string; label: string; onPress: () => void }> = React.memo(({ icon, label, onPress }) => (
   <TouchableOpacity style={styles.quickItem} onPress={onPress}>
     <View style={styles.quickIcon}>
       <Icon name={icon} size={22} color={colors.primary} />
     </View>
     <Text style={styles.quickLabel}>{label}</Text>
   </TouchableOpacity>
-);
+));
 
-const SectionHeader: React.FC<{ title: string; action: string; onAction: () => void }> = ({ title, action, onAction }) => (
+const SectionHeader: React.FC<{ title: string; action: string; onAction: () => void }> = React.memo(({ title, action, onAction }) => (
   <View style={styles.sectionHeader}>
     <Text style={styles.sectionTitle}>{title}</Text>
     <TouchableOpacity onPress={onAction}>
       <Text style={styles.sectionAction}>{action}</Text>
     </TouchableOpacity>
   </View>
-);
+));
 
-const RoutineRow: React.FC<{ name: string; streak: number }> = ({ name, streak }) => (
+const RoutineRow: React.FC<{ name: string; streak: number }> = React.memo(({ name, streak }) => (
   <View style={styles.taskRow}>
     <Icon name="repeat" size={20} color={colors.accent} />
     <Text style={styles.taskTitle}>{name}</Text>
     <Text style={styles.streakBadge}>{streak}d</Text>
   </View>
-);
+));
 
-const ProgressBar: React.FC<{ label: string; progress: number }> = ({ label, progress }) => (
+const ProgressBar: React.FC<{ label: string; progress: number }> = React.memo(({ label, progress }) => (
   <View style={styles.progressWrap}>
     <View style={styles.progressHeader}>
       <Text style={styles.taskTitle}>{label}</Text>
@@ -229,7 +244,7 @@ const ProgressBar: React.FC<{ label: string; progress: number }> = ({ label, pro
       <View style={[styles.progressFill, { width: `${progress}%` }]} />
     </View>
   </View>
-);
+));
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },

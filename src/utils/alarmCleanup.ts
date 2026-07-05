@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from '@/utils/logger';
 
 export async function clearAllAlarmTimerState(): Promise<void> {
   try {
@@ -14,7 +15,7 @@ export async function clearAllAlarmTimerState(): Promise<void> {
       await AsyncStorage.multiRemove(keysToRemove);
     }
   } catch (error) {
-    console.error('clearAllAlarmTimerState failed', error);
+    logger.error('clearAllAlarmTimerState failed', error);
   }
 }
 
@@ -28,7 +29,7 @@ export async function clearAlarmState(alarmId: string): Promise<void> {
       `alarm_timer_${alarmId}`,
     ]);
   } catch (error) {
-    console.error('clearAlarmState failed', error);
+    logger.error('clearAlarmState failed', error);
   }
 }
 
@@ -46,6 +47,6 @@ export async function validateAndCleanPendingState(
       await AsyncStorage.removeItem('pending_timer_id');
     }
   } catch (error) {
-    console.error('validateAndCleanPendingState failed', error);
+    logger.error('validateAndCleanPendingState failed', error);
   }
 }

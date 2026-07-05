@@ -1,72 +1,58 @@
 import { useState, useCallback } from 'react';
 import type { TaskFormValues } from '@/components/tasks/TaskForm';
 
+function toDueTime(date: Date) {
+  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+}
+
 export function useTaskDueDate(initial?: { dueDate?: string; dueTime?: string }) {
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date(initial?.dueDate || Date.now()));
-  const [selectedTime, setSelectedTime] = useState(() => {
-    if (initial?.dueTime) {
-      const [h, m] = initial.dueTime.split(':').map(Number);
-      const d = new Date();
-      d.setHours(h, m, 0, 0);
-      return d;
-    }
-    return new Date();
-  });
+  const [selectedDateTime, setSelectedDateTime] = useState<Date | null>(
+    initial?.dueDate ? new Date(initial.dueDate) : null
+  );
   const [hasTime, setHasTime] = useState(!!initial?.dueTime);
 
-  const applyDate = useCallback((date: Date | undefined, values: TaskFormValues): Partial<TaskFormValues> => {
-    if (!date) return {};
-    setSelectedDate(date);
-    let combined = new Date(date);
-    if (hasTime && values.dueTime) {
-      const [h, m] = values.dueTime.split(':').map(Number);
-      combined = new Date(date.getFullYear(), date.getMonth(), date.getDate(), h, m);
-    } else {
-      combined = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const applyDueDateTime = useCallback((date: Date | null, withTime = hasTime): Partial<TaskFormValues> => {
+    setSelectedDateTime(date);
+    if (!date) {
+      setHasTime(false);
+      return { dueDate: undefined, dueTime: undefined };
     }
-    return { dueDate: combined.toISOString() };
+    return {
+      dueDate: date.toISOString(),
+      dueTime: withTime ? toDueTime(date) : undefined,
+    };
   }, [hasTime]);
-
-  const applyTime = useCallback((time: Date | undefined, values: TaskFormValues): Partial<TaskFormValues> => {
-    if (!time) return {};
-    setSelectedTime(time);
-    const dueTime = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`;
-    let dueDate = values.dueDate;
-    if (values.dueDate) {
-      const base = new Date(values.dueDate);
-      const combined = new Date(base.getFullYear(), base.getMonth(), base.getDate(), time.getHours(), time.getMinutes());
-      dueDate = combined.toISOString();
-    }
-    return { dueTime, dueDate };
-  }, []);
 
   const clearDue = useCallback((): Partial<TaskFormValues> => {
     setHasTime(false);
+    setSelectedDateTime(null);
     return { dueDate: undefined, dueTime: undefined };
   }, []);
 
   const toggleHasTime = useCallback((v: boolean, values: TaskFormValues): Partial<TaskFormValues> => {
     setHasTime(v);
     if (!v) return { dueTime: undefined };
-    if (!values.dueDate) return {};
-    return applyTime(selectedTime, values);
-  }, [applyTime, selectedTime]);
+    const date = selectedDateTime || (values.dueDate ? new Date(values.dueDate) : null);
+    if (!date) return {};
+    return {
+      dueDate: date.toISOString(),
+      dueTime: toDueTime(date),
+    };
+  }, [selectedDateTime]);
+
+  const syncFromValues = useCallback((values: Pick<TaskFormValues, 'dueDate' | 'dueTime'>) => {
+    setSelectedDateTime(values.dueDate ? new Date(values.dueDate) : null);
+    setHasTime(!!values.dueTime);
+  }, []);
 
   return {
-    showDatePicker,
-    showTimePicker,
-    selectedDate,
-    selectedTime,
+    selectedDateTime,
     hasTime,
-    setShowDatePicker,
-    setShowTimePicker,
     setHasTime,
-    applyDate,
-    applyTime,
+    applyDueDateTime,
     clearDue,
     toggleHasTime,
+    syncFromValues,
   };
 }
 

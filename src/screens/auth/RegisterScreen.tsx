@@ -49,15 +49,12 @@ export const RegisterScreen: React.FC<{ navigation: { navigate: (screen: string)
     }
 
     setLoading(true);
-    console.log('[Planora] Create account pressed', { email: trimmedEmail });
     try {
       await register(trimmedEmail, password, trimmedName);
       track(AnalyticsEvents.SIGNUP_COMPLETED, { method: 'email' });
-      console.log('[Planora] Create account success');
     } catch (e) {
       const msg = getApiErrorMessage(e);
       const taken = isEmailExistsError(e);
-      console.warn('[Planora] Create account failed:', msg);
       setError(msg);
       setEmailTaken(taken);
       if (taken) {

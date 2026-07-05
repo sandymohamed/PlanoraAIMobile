@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { InteractionManager } from 'react-native';
 import {
   format,
   differenceInHours,
@@ -28,17 +29,27 @@ import {
 
 export type { CalendarViewMode };
 
+type CalendarRefreshOptions = {
+  blocking?: boolean;
+  includeAlarms?: boolean;
+};
+
 export function useCalendarData() {
-  const { tasks, fetchTasks, updateTask } = useTaskStore();
-  const { goals, fetchGoals } = useGoalStore();
-  const { alarms, fetchAlarms } = useAlarmStore();
+  const tasks = useTaskStore((s) => s.tasks);
+  const fetchTasks = useTaskStore((s) => s.fetchTasks);
+  const updateTask = useTaskStore((s) => s.updateTask);
+  const goals = useGoalStore((s) => s.goals);
+  const fetchGoals = useGoalStore((s) => s.fetchGoals);
+  const alarms = useAlarmStore((s) => s.alarms);
+  const fetchAlarms = useAlarmStore((s) => s.fetchAlarms);
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<CalendarViewMode>('month');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [routineReminders, setRoutineReminders] = useState<Reminder[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const loadRoutines = useCallback(async () => {
     try {
@@ -60,24 +71,35 @@ export function useCalendarData() {
     }
   }, []);
 
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
+  const refresh = useCallback(async (options: CalendarRefreshOptions = {}) => {
+    const { blocking = true, includeAlarms = false } = options;
+    if (blocking) setIsLoading(true);
+    else setIsSyncing(true);
+
     try {
       await Promise.all([
-        fetchTasks(),
+        fetchTasks({ skipAlarmSync: true }),
         fetchGoals(1, 100),
-        fetchAlarms(1, 500, true),
         loadRoutines(),
+        loadRoutineReminders(),
       ]);
-      await loadRoutineReminders();
+
+      if (includeAlarms) {
+        await fetchAlarms(1, 500, true, 0, { scheduleNative: false });
+      }
     } finally {
-      setIsLoading(false);
+      if (blocking) setIsLoading(false);
+      else setIsSyncing(false);
     }
   }, [fetchTasks, fetchGoals, fetchAlarms, loadRoutines, loadRoutineReminders]);
 
   useEffect(() => {
-    refresh();
-  }, []);
+    const task = InteractionManager.runAfterInteractions(() => {
+      refresh({ blocking: false, includeAlarms: false }).catch(() => {});
+      fetchAlarms(1, 500, true, 0, { scheduleNative: false }).catch(() => {});
+    });
+    return () => task.cancel();
+  }, [fetchAlarms, refresh]);
 
   const dateRange = useMemo(
     () => getCalendarDateRange(viewMode, currentDate, selectedDate),
@@ -169,11 +191,23 @@ export function useCalendarData() {
   const completeCalendarTask = useCallback(
     async (task: Task) => {
       if (task.metadata?.isRoutineTask && task.metadata.routineTaskId) {
-        await routineService.toggleTaskCompletion(
+        const updatedRoutineTask = await routineService.toggleTaskCompletion(
           task.metadata.routineTaskId,
           task.status !== TaskStatus.DONE
         );
-        await loadRoutines();
+        setRoutines((current) =>
+          current.map((routine) =>
+            routine.id === updatedRoutineTask.routineId
+              ? {
+                  ...routine,
+                  routineTasks: routine.routineTasks.map((routineTask) =>
+                    routineTask.id === updatedRoutineTask.id ? updatedRoutineTask : routineTask
+                  ),
+                  updatedAt: new Date().toISOString(),
+                }
+              : routine
+          )
+        );
         return;
       }
       if (task.metadata?.isGoalMilestone || task.metadata?.isGoalTarget) {
@@ -185,9 +219,8 @@ export function useCalendarData() {
       const realId = task.metadata?.recurrenceParentId || task.id;
       const newStatus = task.status === TaskStatus.DONE ? TaskStatus.TODO : TaskStatus.DONE;
       await updateTask(realId, { status: newStatus });
-      await fetchTasks();
     },
-    [updateTask, fetchTasks, loadRoutines]
+    [updateTask]
   );
 
   const getRemindersOnDay = useCallback(
@@ -209,7 +242,7 @@ export function useCalendarData() {
     return format(taskDate, 'MMM d');
   }, []);
 
-  return {
+  return useMemo(() => ({
     currentDate,
     setCurrentDate,
     viewMode,
@@ -217,6 +250,7 @@ export function useCalendarData() {
     selectedDate,
     setSelectedDate,
     isLoading,
+    isSyncing,
     monthData,
     weekData,
     dayTasks,
@@ -229,5 +263,22 @@ export function useCalendarData() {
     getTaskHour,
     getTimeUntil,
     refresh,
-  };
+  }), [
+    currentDate,
+    viewMode,
+    selectedDate,
+    isLoading,
+    isSyncing,
+    monthData,
+    weekData,
+    dayTasks,
+    dayReminders,
+    agendaItems,
+    upcomingTasks,
+    allCalendarItems,
+    completeCalendarTask,
+    getRemindersOnDay,
+    getTimeUntil,
+    refresh,
+  ]);
 }

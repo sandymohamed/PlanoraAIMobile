@@ -20,6 +20,7 @@ export interface Task {
   priority: TaskPriority;
   dueDate?: string;
   dueTime?: string;
+  recurrenceRule?: string;
   completedAt?: string;
   projectId?: string;
   goalId?: string;
@@ -62,6 +63,7 @@ export interface TaskMetadata {
   linkedTaskId?: string;
   recurrenceInstance?: boolean;
   recurrenceParentId?: string;
+  recurrenceRule?: string;
 }
 
 export interface TaskComment {

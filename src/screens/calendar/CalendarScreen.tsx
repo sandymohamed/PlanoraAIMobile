@@ -53,11 +53,11 @@ export const CalendarScreen: React.FC = () => {
 
   const rootNav = navigation.getParent();
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await cal.refresh();
+    await cal.refresh({ includeAlarms: true });
     setRefreshing(false);
-  };
+  }, [cal.refresh]);
 
   const navigateCreateTask = useCallback(
     (dueDate?: Date, dueTime?: string) => {
@@ -107,8 +107,45 @@ export const CalendarScreen: React.FC = () => {
     return w;
   }, [cal.monthData.days]);
 
+  const monthWeeks = useMemo(() => (
+    weeks.map((week) =>
+      week.map((day) => {
+        const key = format(day, 'yyyy-MM-dd');
+        const dayTasks = cal.monthData.monthTasks[key] || [];
+        const colorsSeen = new Set<string>();
+        dayTasks.forEach((task) => colorsSeen.add(eventAccent(task)));
+
+        return {
+          key,
+          day,
+          dayNumber: format(day, 'd'),
+          dotColors: Array.from(colorsSeen).slice(0, 4),
+          reminderCount: cal.getRemindersOnDay(day).length,
+          isToday: isSameDay(day, nowRef.current),
+          isSelected: isSameDay(day, cal.selectedDate),
+          inMonth: isSameMonth(day, cal.currentDate),
+        };
+      })
+    )
+  ), [cal.currentDate, cal.getRemindersOnDay, cal.monthData.monthTasks, cal.selectedDate, weeks]);
+
   const currentHour = nowRef.current.getHours();
   const showNowLine = isSameDay(cal.selectedDate, new Date());
+  const dayTimelineSlots = useMemo(() => (
+    HOUR_SLOTS.map((hour) => ({
+      hour,
+      label:
+        hour === 0
+          ? '12 AM'
+          : hour < 12
+            ? `${hour} AM`
+            : hour === 12
+              ? '12 PM'
+              : `${hour - 12} PM`,
+      tasks: cal.dayTasks.filter((t) => cal.getTaskHour(t) === hour),
+      reminders: cal.dayReminders.filter((r) => r.date.getHours() === hour),
+    }))
+  ), [cal.dayTasks, cal.dayReminders, cal.getTaskHour]);
 
   const renderMonth = () => (
     <View>
@@ -119,41 +156,31 @@ export const CalendarScreen: React.FC = () => {
           </Text>
         ))}
       </View>
-      {weeks.map((week, wi) => (
+      {monthWeeks.map((week, wi) => (
         <View key={wi} style={styles.weekRow}>
-          {week.map((day) => {
-            const key = format(day, 'yyyy-MM-dd');
-            const dayTasks = cal.monthData.monthTasks[key] || [];
-            const reminders = cal.getRemindersOnDay(day);
-            const isToday = isSameDay(day, new Date());
-            const isSelected = isSameDay(day, cal.selectedDate);
-            const inMonth = isSameMonth(day, cal.currentDate);
-            const colorsSeen = new Set<string>();
-            dayTasks.forEach((t) => colorsSeen.add(eventAccent(t)));
-            const dotColors = Array.from(colorsSeen).slice(0, 4);
-
+          {week.map((cell) => {
             return (
               <TouchableOpacity
-                key={key}
+                key={cell.key}
                 style={[
                   styles.dayCell,
-                  !inMonth && styles.dayMuted,
-                  isToday && styles.dayToday,
-                  isSelected && styles.daySelected,
+                  !cell.inMonth && styles.dayMuted,
+                  cell.isToday && styles.dayToday,
+                  cell.isSelected && styles.daySelected,
                 ]}
-                onPress={() => cal.setSelectedDate(day)}
+                onPress={() => cal.setSelectedDate(cell.day)}
                 onLongPress={() => {
-                  cal.setSelectedDate(day);
+                  cal.setSelectedDate(cell.day);
                   setQuickAddOpen(true);
                 }}
               >
-                <Text style={[styles.dayNum, isSelected && styles.dayNumSelected]}>{format(day, 'd')}</Text>
+                <Text style={[styles.dayNum, cell.isSelected && styles.dayNumSelected]}>{cell.dayNumber}</Text>
                 <View style={styles.dots}>
-                  {dotColors.map((c) => (
+                  {cell.dotColors.map((c) => (
                     <View key={c} style={[styles.dot, { backgroundColor: c }]} />
                   ))}
                 </View>
-                {reminders.length > 0 ? <Text style={styles.reminderBell}>🔔</Text> : null}
+                {cell.reminderCount > 0 ? <Text style={styles.reminderBell}>🔔</Text> : null}
               </TouchableOpacity>
             );
           })}
@@ -185,25 +212,11 @@ export const CalendarScreen: React.FC = () => {
   );
 
   const renderDayTimeline = () => {
-    const slots = HOUR_SLOTS.map((hour) => ({
-      hour,
-      label:
-        hour === 0
-          ? '12 AM'
-          : hour < 12
-            ? `${hour} AM`
-            : hour === 12
-              ? '12 PM'
-              : `${hour - 12} PM`,
-      tasks: cal.dayTasks.filter((t) => cal.getTaskHour(t) === hour),
-      reminders: cal.dayReminders.filter((r) => r.date.getHours() === hour),
-    }));
-
     return (
       <View>
         <Text style={styles.dayTitle}>{format(cal.selectedDate, 'EEEE, MMMM d, yyyy')}</Text>
         <ScrollView style={styles.timelineScroll} nestedScrollEnabled>
-          {slots.map((slot) => (
+          {dayTimelineSlots.map((slot) => (
             <View key={slot.hour} style={styles.timeSlot}>
               <View style={styles.timeSlotHeader}>
                 <Text style={styles.timeLabel}>{slot.label}</Text>
@@ -412,6 +425,13 @@ export const CalendarScreen: React.FC = () => {
     </View>
       </ScrollView >
 
+      {cal.isSyncing ? (
+        <View style={styles.syncing}>
+          <ActivityIndicator color={colors.primary} size="small" />
+          <Text style={styles.syncingText}>Syncing calendar...</Text>
+        </View>
+      ) : null}
+
 {
   cal.isLoading ? (
     <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
@@ -574,6 +594,14 @@ const styles = StyleSheet.create({
   modeChipActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
   modeText: { ...typography.label, color: colors.textMuted, minHeight: 25, fontSize: 10, lineHeight: 6.8 },
   modeTextActive: { color: colors.primary,  },
+  syncing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  syncingText: { ...typography.caption, color: colors.textMuted },
   scroll: { padding: spacing.lg, paddingBottom: 120 },
   weekHeader: { flexDirection: 'row', marginBottom: spacing.sm },
   weekLabel: { flex: 1, textAlign: 'center', ...typography.label, color: colors.textMuted, fontSize: 10 },

@@ -34,6 +34,7 @@ export const GoalsScreen: React.FC = () => {
     loadMoreGoals,
     hasNextPage,
     setSearchQuery,
+    clearFilters,
     applyFilters,
     setStatusFilter,
     deleteGoal,
@@ -47,7 +48,12 @@ export const GoalsScreen: React.FC = () => {
   useFocusEffect(
     useCallback(() => {
       fetchGoals();
-    }, [fetchGoals])
+      return () => {
+        setLocalSearch('');
+        setViewMode('all');
+        clearFilters();
+      };
+    }, [clearFilters, fetchGoals])
   );
 
   const onRefresh = async () => {
@@ -67,6 +73,13 @@ export const GoalsScreen: React.FC = () => {
   const onSearchSubmit = () => {
     setSearchQuery(localSearch);
     fetchGoals();
+  };
+
+  const onSearchChange = (text: string) => {
+    setLocalSearch(text);
+    if (!text.trim() && searchQuery) {
+      setSearchQuery('');
+    }
   };
 
   const onGoalPress = (goal: Goal) => {
@@ -162,7 +175,7 @@ export const GoalsScreen: React.FC = () => {
         placeholder="Search goals..."
         placeholderTextColor={colors.textMuted}
         value={localSearch}
-        onChangeText={setLocalSearch}
+        onChangeText={onSearchChange}
         onSubmitEditing={onSearchSubmit}
         returnKeyType="search"
       />

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,13 +8,13 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAlarmStore } from '@/store/alarmStore';
 import { nativeAlarmBridge } from '@/services/NativeAlarmBridge';
-import { openAndroidPicker } from '@/utils/dateTimePicker';
 import { showAlert, showError } from '@/components/ConfirmationDialog';
 import { colors, spacing, typography } from '@/theme/tokens';
+import { DateTimePicker, formatTimeValue, getNextAlarmDateForTime } from '@/components/ui/DateTimePicker';
+import { format, isToday, isTomorrow } from 'date-fns';
 
 const RECURRENCE_OPTIONS = [
   { value: 'none', label: 'Once' },
@@ -31,21 +31,31 @@ export const AlarmEditScreen: React.FC = () => {
   const { alarms, updateAlarm } = useAlarmStore();
   const alarm = alarms.find((a) => a.id === alarmId);
 
-  const timeRef = useRef(new Date());
   const [title, setTitle] = useState('');
-  const [when, setWhen] = useState(new Date());
+  const [alarmTime, setAlarmTime] = useState(new Date());
+  const [customDate, setCustomDate] = useState<Date | null>(null);
+  const [showCustomDate, setShowCustomDate] = useState(false);
   const [recurrence, setRecurrence] = useState('none');
   const [ringtoneUri, setRingtoneUri] = useState<string | null>(null);
   const [ringtoneName, setRingtoneName] = useState('Default alarm');
-  const [showPicker, setShowPicker] = useState(false);
   const saving = useRef(false);
+
+  const when = useMemo(() => getNextAlarmDateForTime(alarmTime, customDate), [alarmTime, customDate]);
+  const dateLabel = customDate
+    ? format(when, 'EEE, MMM d')
+    : isToday(when)
+      ? 'Today'
+      : isTomorrow(when)
+        ? 'Tomorrow'
+        : format(when, 'EEE, MMM d');
 
   useEffect(() => {
     if (!alarm) return;
     setTitle(alarm.title);
     const t = new Date(alarm.time);
-    timeRef.current = t;
-    setWhen(t);
+    setAlarmTime(t);
+    setCustomDate(null);
+    setShowCustomDate(false);
     setRecurrence(alarm.recurrenceRule || 'none');
     if (alarm.toneUrl) {
       setRingtoneUri(alarm.toneUrl);
@@ -54,16 +64,6 @@ export const AlarmEditScreen: React.FC = () => {
       }
     }
   }, [alarm]);
-
-  const openPicker = () => {
-    if (openAndroidPicker(when, 'time', (d) => {
-      timeRef.current = d;
-      setWhen(d);
-    })) {
-      return;
-    }
-    setShowPicker(true);
-  };
 
   const pickRingtone = async () => {
     if (Platform.OS !== 'android') {
@@ -93,7 +93,7 @@ export const AlarmEditScreen: React.FC = () => {
     try {
       await updateAlarm(alarm.id, {
         title: title.trim(),
-        time: timeRef.current.toISOString(),
+        time: when.toISOString(),
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         recurrenceRule: recurrence === 'none' ? undefined : recurrence,
         toneUrl: ringtoneUri || undefined,
@@ -122,25 +122,41 @@ export const AlarmEditScreen: React.FC = () => {
       <Text style={styles.label}>Title</Text>
       <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholderTextColor={colors.textMuted} />
 
-      <Text style={styles.label}>Time</Text>
-      <TouchableOpacity style={styles.input} onPress={openPicker}>
-        <Text style={{ color: colors.text }}>
-          {when.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </Text>
+      <View style={styles.timeHero}>
+        <Text style={styles.heroLabel}>Alarm time</Text>
+        <Text style={styles.heroTime}>{formatTimeValue(alarmTime)}</Text>
+        <Text style={styles.heroDate}>Scheduled for {dateLabel} · {format(when, 'MMM d, yyyy')}</Text>
+      </View>
+
+      <DateTimePicker
+        mode="time"
+        value={alarmTime}
+        onChange={(date) => date && setAlarmTime(date)}
+        label="Select time"
+        quickActions={false}
+        showClear={false}
+      />
+
+      <TouchableOpacity
+        style={styles.customDateButton}
+        onPress={() => setShowCustomDate((v) => !v)}
+        activeOpacity={0.85}
+      >
+        <Text style={styles.customDateText}>{showCustomDate ? 'Hide custom date' : 'Custom Date'}</Text>
       </TouchableOpacity>
-      {showPicker && Platform.OS === 'ios' && (
+
+      {showCustomDate ? (
         <DateTimePicker
-          mode="time"
-          value={when}
-          onChange={(_, d) => {
-            if (d) {
-              timeRef.current = d;
-              setWhen(d);
-            }
-            setShowPicker(false);
-          }}
+          mode="date"
+          value={customDate}
+          onChange={setCustomDate}
+          label="Custom alarm date"
+          placeholder="Automatic today/tomorrow"
+          helperText="Clear it to automatically use today or tomorrow based on the selected time."
+          clearLabel="Use automatic date"
+          showClear={Boolean(customDate)}
         />
-      )}
+      ) : null}
 
       {Platform.OS === 'android' && (
         <>
@@ -183,6 +199,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderSubtle,
   },
+  timeHero: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.primarySoft,
+    borderRadius: 20,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  heroLabel: { ...typography.label, color: colors.primary, textTransform: 'uppercase' },
+  heroTime: { fontSize: 44, fontWeight: '700', color: colors.text, letterSpacing: -1, marginTop: spacing.xs },
+  heroDate: { ...typography.body, color: colors.textSecondary, marginTop: spacing.xs },
+  customDateButton: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 999,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+  },
+  customDateText: { ...typography.caption, color: colors.primary, fontWeight: '600' },
   recurrenceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   chip: {
     paddingHorizontal: spacing.md,

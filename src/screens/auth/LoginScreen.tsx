@@ -4,7 +4,7 @@ import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { colors, spacing, typography } from '@/theme/tokens';
-import { getApiErrorMessage, isInvalidCredentialsError } from '@/utils/apiError';
+import { getApiErrorMessage } from '@/utils/apiError';
 
 const logoImage = require('@/assets/logo.jpg');
 
@@ -23,9 +23,6 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     } catch (e) {
       const msg = getApiErrorMessage(e);
       setError(msg);
-      if (isInvalidCredentialsError(e)) {
-        console.warn('[Planora Auth] invalid credentials');
-      }
     } finally {
       setLoading(false);
     }

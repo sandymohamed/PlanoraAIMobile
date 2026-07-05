@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Keychain from 'react-native-keychain';
 import { apiClient } from '@/services/apiClient';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { logger } from '@/utils/logger';
 
 interface User {
   id: string;
@@ -59,7 +60,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       login: async (email, password) => {
-        console.log('[Planora Auth] login', email);
+        logger.info('[Planora Auth] login');
         const res = await apiClient.post<ApiEnvelope<{ user: User; tokens: AuthTokens }>>('/auth/login', {
           email,
           password,
@@ -69,12 +70,12 @@ export const useAuthStore = create<AuthState>()(
           token: tokens.accessToken,
           refreshToken: tokens.refreshToken,
         }));
-        console.log('[Planora Auth] login OK', user.id);
+        logger.info('[Planora Auth] login OK');
         set({ user, isAuthenticated: true });
       },
 
       register: async (email, password, name) => {
-        console.log('[Planora Auth] signup', email, name);
+        logger.info('[Planora Auth] signup');
         const res = await apiClient.post<ApiEnvelope<{ user: User; tokens: AuthTokens }>>('/auth/signup', {
           email: email.trim().toLowerCase(),
           password,
@@ -86,7 +87,7 @@ export const useAuthStore = create<AuthState>()(
           token: tokens.accessToken,
           refreshToken: tokens.refreshToken,
         }));
-        console.log('[Planora Auth] signup OK', user.id);
+        logger.info('[Planora Auth] signup OK');
         set({ user, isAuthenticated: true });
       },
 
@@ -103,6 +104,9 @@ export const useAuthStore = create<AuthState>()(
           /* ignore */
         }
         await Keychain.resetGenericPassword();
+        import('./goalStore')
+          .then(({ useGoalStore }) => useGoalStore.getState().clearFilters())
+          .catch(() => {});
         set({ user: null, isAuthenticated: false });
       },
 
@@ -134,7 +138,7 @@ export const useAuthStore = create<AuthState>()(
       initializeAuth: async () => {
         try {
           const health = await apiClient.pingHealth();
-          console.log('[Planora] backend health:', health.ok ? 'OK' : 'FAIL', health.detail);
+          logger.info('[Planora] backend health', { ok: health.ok });
 
           const token = await get().getToken();
           if (!token) {
@@ -145,10 +149,10 @@ export const useAuthStore = create<AuthState>()(
           try {
             const res = await apiClient.get<ApiEnvelope<User>>('/me', { skipAuthRetry: true });
             set({ user: res.data, isAuthenticated: true });
-            console.log('[Planora Auth] session restored', res.data.id);
+            logger.info('[Planora Auth] session restored');
             return;
           } catch {
-            console.log('[Planora Auth] access token expired, trying refresh…');
+            logger.info('[Planora Auth] access token expired, trying refresh');
           }
 
           const refreshed = await get().refreshAuthToken();
@@ -156,16 +160,19 @@ export const useAuthStore = create<AuthState>()(
             try {
               const res = await apiClient.get<ApiEnvelope<User>>('/me', { skipAuthRetry: true });
               set({ user: res.data, isAuthenticated: true });
-              console.log('[Planora Auth] session restored after refresh', res.data.id);
+              logger.info('[Planora Auth] session restored after refresh');
               return;
             } catch (e) {
-              console.warn('[Planora Auth] /me failed after refresh', getApiErrorMessage(e));
+              logger.warn('[Planora Auth] /me failed after refresh', getApiErrorMessage(e));
             }
           } else {
-            console.warn('[Planora Auth] refresh token invalid or expired — sign in again');
+            logger.warn('[Planora Auth] refresh token invalid or expired — sign in again');
           }
 
           await Keychain.resetGenericPassword();
+          import('./goalStore')
+            .then(({ useGoalStore }) => useGoalStore.getState().clearFilters())
+            .catch(() => {});
           set({ user: null, isAuthenticated: false });
         } finally {
           set({ isInitialized: true });

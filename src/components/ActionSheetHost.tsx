@@ -5,7 +5,11 @@ import { useActionSheetStore } from '@/store/actionSheetStore';
 import { colors, spacing, typography, radius, shadows } from '@/theme/tokens';
 
 export const ActionSheetHost: React.FC = () => {
-  const { visible, title, message, options, hide } = useActionSheetStore();
+  const visible = useActionSheetStore((s) => s.visible);
+  const title = useActionSheetStore((s) => s.title);
+  const message = useActionSheetStore((s) => s.message);
+  const options = useActionSheetStore((s) => s.options);
+  const hide = useActionSheetStore((s) => s.hide);
 
   const handlePress = async (onPress?: () => void | Promise<void>) => {
     hide();

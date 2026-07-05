@@ -7,6 +7,36 @@ import { CreateGoalMilestoneData, MilestoneStatus, UpdateGoalMilestoneData } fro
 import { logger } from '@/utils/logger';
 import { format } from 'date-fns';
 import { useAuthStore } from './authStore';
+import { useTaskStore } from './taskStore';
+
+function calculateProgressFromMilestones(goal: Goal, milestones: Goal['milestones']): number {
+  if (milestones.length === 0) return goal.progress;
+  const completedMilestones = milestones.filter((m) => m.status === MilestoneStatus.DONE).length;
+  return Math.round((completedMilestones / milestones.length) * 100);
+}
+
+function withMilestones(goal: Goal, milestones: Goal['milestones']): Goal {
+  return {
+    ...goal,
+    milestones,
+    progress: calculateProgressFromMilestones(goal, milestones),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function syncTasksIntoTaskStore(tasks: Goal['tasks']): void {
+  if (tasks.length === 0) return;
+  const taskStore = useTaskStore.getState();
+  const existingTasks = taskStore.tasks;
+  const incomingById = new Map(tasks.map((task) => [task.id, task]));
+  useTaskStore.setState({
+    tasks: [
+      ...tasks.filter((task) => !existingTasks.some((existing) => existing.id === task.id)),
+      ...existingTasks.map((task) => incomingById.get(task.id) ?? task),
+    ],
+  });
+  taskStore.applyFilters();
+}
 
 interface GoalState {
   goals: Goal[];
@@ -128,7 +158,12 @@ export const useGoalStore = create<GoalStore>()(
           });
 
           const goals = response.data || [];
-          const pagination = response.pagination;
+          const pagination = response.pagination ?? {
+            page,
+            limit,
+            total: goals.length,
+            totalPages: page,
+          };
 
           set({
             goals: page === 1 ? goals : [...get().goals, ...goals],
@@ -339,12 +374,10 @@ export const useGoalStore = create<GoalStore>()(
 
           set((state) => ({
             goals: state.goals.map(g =>
-              g.id === goalId
-                ? { ...g, milestones: [...g.milestones, milestone] }
-                : g
+              g.id === goalId ? withMilestones(g, [...g.milestones, milestone]) : g
             ),
             currentGoal: state.currentGoal?.id === goalId
-              ? { ...state.currentGoal, milestones: [...state.currentGoal.milestones, milestone] }
+              ? withMilestones(state.currentGoal, [...state.currentGoal.milestones, milestone])
               : state.currentGoal,
           }));
 
@@ -362,11 +395,14 @@ export const useGoalStore = create<GoalStore>()(
           set((state) => ({
             goals: state.goals.map(g =>
               g.id === goalId
-                ? { ...g, milestones: g.milestones.map(m => m.id === milestoneId ? milestone : m) }
+                ? withMilestones(g, g.milestones.map(m => m.id === milestoneId ? milestone : m))
                 : g
             ),
             currentGoal: state.currentGoal?.id === goalId
-              ? { ...state.currentGoal, milestones: state.currentGoal.milestones.map(m => m.id === milestoneId ? milestone : m) }
+              ? withMilestones(
+                  state.currentGoal,
+                  state.currentGoal.milestones.map(m => m.id === milestoneId ? milestone : m)
+                )
               : state.currentGoal,
           }));
 
@@ -383,12 +419,10 @@ export const useGoalStore = create<GoalStore>()(
 
           set((state) => ({
             goals: state.goals.map(g =>
-              g.id === goalId
-                ? { ...g, milestones: g.milestones.filter(m => m.id !== milestoneId) }
-                : g
+              g.id === goalId ? withMilestones(g, g.milestones.filter(m => m.id !== milestoneId)) : g
             ),
             currentGoal: state.currentGoal?.id === goalId
-              ? { ...state.currentGoal, milestones: state.currentGoal.milestones.filter(m => m.id !== milestoneId) }
+              ? withMilestones(state.currentGoal, state.currentGoal.milestones.filter(m => m.id !== milestoneId))
               : state.currentGoal,
           }));
 
@@ -406,21 +440,16 @@ export const useGoalStore = create<GoalStore>()(
           set((state) => ({
             goals: state.goals.map(g =>
               g.id === goalId
-                ? { ...g, milestones: g.milestones.map(m => m.id === milestoneId ? milestone : m) }
+                ? withMilestones(g, g.milestones.map(m => m.id === milestoneId ? milestone : m))
                 : g
             ),
             currentGoal: state.currentGoal?.id === goalId
-              ? { ...state.currentGoal, milestones: state.currentGoal.milestones.map(m => m.id === milestoneId ? milestone : m) }
+              ? withMilestones(
+                  state.currentGoal,
+                  state.currentGoal.milestones.map(m => m.id === milestoneId ? milestone : m)
+                )
               : state.currentGoal,
           }));
-
-          // Calculate and update goal progress based on completed milestones
-          const goal = get().goals.find(g => g.id === goalId);
-          if (goal) {
-            const completedMilestones = goal.milestones.filter(m => m.status === MilestoneStatus.DONE).length;
-            const newProgress = goal.milestones.length > 0 ? Math.round((completedMilestones / goal.milestones.length) * 100) : goal.progress;
-            get().updateGoalProgress(goalId, newProgress);
-          }
 
           get().applyFilters();
         } catch (error: any) {
@@ -591,9 +620,24 @@ export const useGoalStore = create<GoalStore>()(
         try {
           set({ isLoading: true, error: null });
 
-          await goalService.generateAIPlan({ goalId, promptOptions });
+          const result = await goalService.generateAIPlan({ goalId, promptOptions });
+          const baseGoal = get().currentGoal?.id === goalId
+            ? get().currentGoal
+            : get().goals.find((goal) => goal.id === goalId);
 
-          const updatedGoal = await goalService.getGoal(goalId);
+          if (!baseGoal) {
+            throw new Error('Goal not loaded');
+          }
+
+          const updatedGoal = withMilestones(
+            {
+              ...baseGoal,
+              tasks: result.tasks,
+            },
+            result.milestones
+          );
+
+          syncTasksIntoTaskStore(result.tasks);
 
           const updateGoalInList = (goals: Goal[]) =>
             goals.map(g => (g.id === goalId ? updatedGoal : g));
@@ -806,12 +850,16 @@ export const useGoalStore = create<GoalStore>()(
     {
       name: 'goal-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      version: 2,
+      migrate: (persistedState: any) => ({
+        ...persistedState,
+        searchQuery: '',
+        statusFilter: [],
+        priorityFilter: [],
+        categoryFilter: [],
+      }),
       partialize: (state) => ({
         goals: state.goals,
-        searchQuery: state.searchQuery,
-        statusFilter: state.statusFilter,
-        priorityFilter: state.priorityFilter,
-        categoryFilter: state.categoryFilter,
         sortBy: state.sortBy,
         sortOrder: state.sortOrder,
       }),

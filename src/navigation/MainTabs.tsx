@@ -13,7 +13,10 @@ const logoImage = require('@/assets/logo.jpg');
 
 export const MainTabs: React.FC = () => (
   <Tab.Navigator
+    detachInactiveScreens
     screenOptions={({ navigation }) => ({
+      lazy: true,
+      freezeOnBlur: true,
       headerShown: true,
       headerStyle: { backgroundColor: colors.background },
       headerShadowVisible: false,

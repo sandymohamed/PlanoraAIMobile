@@ -57,10 +57,24 @@ export const RoutinesScreen: React.FC = () => {
   };
 
   const toggleTask = async (taskId: string, completed: boolean) => {
+    const previous = routines;
     try {
-      await routineService.toggleTaskCompletion(taskId, !completed);
-      await loadRoutines();
+      const updatedTask = await routineService.toggleTaskCompletion(taskId, !completed);
+      setRoutines((current) =>
+        current.map((routine) =>
+          routine.id === updatedTask.routineId
+            ? {
+                ...routine,
+                routineTasks: routine.routineTasks.map((task) =>
+                  task.id === updatedTask.id ? updatedTask : task
+                ),
+                updatedAt: new Date().toISOString(),
+              }
+            : routine
+        )
+      );
     } catch (e) {
+      setRoutines(previous);
       showError('Error', getApiErrorMessage(e));
     }
   };
@@ -71,10 +85,28 @@ export const RoutinesScreen: React.FC = () => {
       message: 'Reset all sub-task completion for this period?',
       confirmLabel: 'Reset',
       onConfirm: async () => {
+        const previous = routines;
         try {
           await routineService.resetRoutine(id);
-          await loadRoutines();
+          setRoutines((current) =>
+            current.map((routine) =>
+              routine.id === id
+                ? {
+                    ...routine,
+                    routineTasks: routine.routineTasks.map((task) => ({
+                      ...task,
+                      completed: false,
+                      completedAt: undefined,
+                      updatedAt: new Date().toISOString(),
+                    })),
+                    lastResetAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                  }
+                : routine
+            )
+          );
         } catch (e) {
+          setRoutines(previous);
           showError('Error', getApiErrorMessage(e));
         }
       },
@@ -88,11 +120,13 @@ export const RoutinesScreen: React.FC = () => {
       confirmLabel: 'Delete',
       destructive: true,
       onConfirm: async () => {
+        const previous = routines;
         try {
           await routineService.deleteRoutine(routine.id);
-          await fetchAlarms(1, 1000, true);
-          await loadRoutines();
+          setRoutines((current) => current.filter((item) => item.id !== routine.id));
+          fetchAlarms(1, 1000, true).catch(() => {});
         } catch (e) {
+          setRoutines(previous);
           showError('Error', getApiErrorMessage(e));
         }
       },

@@ -3,6 +3,7 @@
  *   npm run install:analytics
  */
 import { config } from '@/config/env';
+import { logger } from '@/utils/logger';
 
 let posthog: { capture?: (e: string, p?: object) => void; identify?: (id: string, t?: object) => void } | null = null;
 
@@ -12,7 +13,7 @@ export async function initPostHog(): Promise<void> {
     const PostHog = require('posthog-react-native').default;
     posthog = await PostHog.initAsync(config.POSTHOG_API_KEY, { host: config.POSTHOG_HOST });
   } catch {
-    console.warn('[Planora] posthog-react-native not installed — analytics off');
+    logger.warn('[Planora] posthog-react-native not installed — analytics off');
   }
 }
 

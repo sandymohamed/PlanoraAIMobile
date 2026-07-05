@@ -24,21 +24,19 @@ const VARIANT_STYLE: Record<
 };
 
 export const ConfirmDialogHost: React.FC = () => {
-  const {
-    visible,
-    title,
-    message,
-    itemName,
-    confirmLabel,
-    cancelLabel,
-    destructive,
-    variant,
-    alert,
-    loading,
-    onConfirm,
-    hide,
-    setLoading,
-  } = useConfirmationDialogStore();
+  const visible = useConfirmationDialogStore((s) => s.visible);
+  const title = useConfirmationDialogStore((s) => s.title);
+  const message = useConfirmationDialogStore((s) => s.message);
+  const itemName = useConfirmationDialogStore((s) => s.itemName);
+  const confirmLabel = useConfirmationDialogStore((s) => s.confirmLabel);
+  const cancelLabel = useConfirmationDialogStore((s) => s.cancelLabel);
+  const destructive = useConfirmationDialogStore((s) => s.destructive);
+  const variant = useConfirmationDialogStore((s) => s.variant);
+  const alert = useConfirmationDialogStore((s) => s.alert);
+  const loading = useConfirmationDialogStore((s) => s.loading);
+  const onConfirm = useConfirmationDialogStore((s) => s.onConfirm);
+  const hide = useConfirmationDialogStore((s) => s.hide);
+  const setLoading = useConfirmationDialogStore((s) => s.setLoading);
 
   const handleConfirm = async () => {
     if (loading) return;

@@ -9,14 +9,11 @@ import {
   TextInput,
   ActivityIndicator,
   Modal,
-  Platform,
   Animated,
   Easing,
 } from 'react-native';
 import { AppIcon as Icon } from '@/components/ui/AppIcon';
 import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { openAndroidPicker } from '@/utils/dateTimePicker';
 import { useGoalStore } from '@/store/goalStore';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { Milestone, MilestoneStatus } from '@/types/goal';
@@ -24,6 +21,7 @@ import { colors, spacing, typography } from '@/theme/tokens';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { track, AnalyticsEvents } from '@/analytics/posthog';
 import { showAlert, showError, showSuccess, showConfirmDialog } from '@/components/ConfirmationDialog';
+import { DateTimePicker } from '@/components/ui/DateTimePicker';
 import { format } from 'date-fns';
 
 export const GoalDetailScreen: React.FC = () => {
@@ -51,7 +49,6 @@ export const GoalDetailScreen: React.FC = () => {
   const [mTitle, setMTitle] = useState('');
   const [mDesc, setMDesc] = useState('');
   const [mDate, setMDate] = useState<Date | null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
 
   useFocusEffect(
@@ -96,7 +93,6 @@ export const GoalDetailScreen: React.FC = () => {
       } else {
         await completeMilestone(goalId, m.id);
       }
-      await fetchGoal(goalId);
     } catch (e) {
       showError('Error', getApiErrorMessage(e));
       throw e;
@@ -120,7 +116,6 @@ export const GoalDetailScreen: React.FC = () => {
         await updateMilestone(goalId, selectedMilestone.id, payload);
       }
       setMilestoneModal(null);
-      await fetchGoal(goalId);
     } catch (e) {
       showError('Error', getApiErrorMessage(e));
     }
@@ -141,7 +136,6 @@ export const GoalDetailScreen: React.FC = () => {
               aiPlansRemaining === 1 ? '' : 's'
             } remaining this month.`;
       showSuccess('Plan generated', remainingNote);
-      await fetchGoal(goalId);
     } catch (e) {
       const status = (e as { response?: { status?: number } })?.response?.status;
       if (status === 403) {
@@ -254,7 +248,7 @@ export const GoalDetailScreen: React.FC = () => {
                       itemName: m.title,
                       confirmLabel: 'Delete',
                       destructive: true,
-                      onConfirm: () => deleteMilestone(goalId, m.id).then(() => fetchGoal(goalId)),
+                      onConfirm: () => deleteMilestone(goalId, m.id),
                     })
                   }
                 >
@@ -304,23 +298,15 @@ export const GoalDetailScreen: React.FC = () => {
               onChangeText={setMDesc}
               multiline
             />
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => {
-                if (openAndroidPicker(mDate || new Date(), 'date', setMDate)) return;
-                setShowDatePicker(true);
-              }}
-            >
-              <Text style={styles.dateText}>{mDate ? format(mDate, 'PPP') : 'No date'}</Text>
-            </TouchableOpacity>
-            {showDatePicker && Platform.OS === 'ios' && (
-              <DateTimePicker
-                value={mDate || new Date()}
-                mode="date"
-                display="spinner"
-                onChange={(_, d) => d && setMDate(d)}
-              />
-            )}
+            <DateTimePicker
+              mode="date"
+              value={mDate}
+              onChange={setMDate}
+              placeholder="No milestone date"
+              clearLabel="No date"
+              helperText="Choose a quick date or custom milestone target."
+              showClear={Boolean(mDate)}
+            />
             <View style={styles.modalActions}>
               <TouchableOpacity onPress={() => setMilestoneModal(null)}>
                 <Text style={styles.link}>Cancel</Text>
@@ -540,6 +526,5 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSubtle,
   },
   multiline: { minHeight: 72 },
-  dateText: { color: colors.text },
   modalActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.md },
 });
