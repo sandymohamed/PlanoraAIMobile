@@ -24,7 +24,7 @@ import { colors, spacing, typography } from '@/theme/tokens';
 import { sortTasksByDueDate } from '@/utils/taskUi';
 import { TaskListRow } from '@/components/tasks/TaskListRow';
 import { getApiErrorMessage } from '@/utils/apiError';
-import { BannerAdPlaceholder } from '@/features/ads';
+import { AdBanner } from '@/features/ads';
 
 type Nav = NativeStackNavigationProp<TasksStackParamList, 'TasksList'>;
 
@@ -198,7 +198,7 @@ export const TasksScreen: React.FC = () => {
           <Text style={styles.errorText}>{error}</Text>
         </TouchableOpacity>
       ) : null}
-      <BannerAdPlaceholder placement="tasks" />
+      <AdBanner placement="tasks" />
     </>
   ), [applyStatusFilter, clearError, error, searchQuery, setSearchQuery, statusTab]);
 

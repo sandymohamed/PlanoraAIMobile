@@ -10,7 +10,7 @@ import {
   Modal,
   Dimensions,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import {
   format,
   addMonths,
@@ -28,7 +28,7 @@ import { Task, TaskStatus } from '@/types/task';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { priorityColor } from '@/utils/taskUi';
 import { Button } from '@/components/ui/Button';
-import { BannerAdPlaceholder } from '@/features/ads';
+import { AdBanner } from '@/features/ads';
 import { showError } from '@/components/ConfirmationDialog';
 
 const WEEK_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -52,6 +52,12 @@ export const CalendarScreen: React.FC = () => {
   const nowRef = useRef(new Date());
 
   const rootNav = navigation.getParent();
+
+  useFocusEffect(
+    useCallback(() => {
+      cal.refresh({ blocking: false, includeAlarms: false }).catch(() => {});
+    }, [cal.refresh])
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -448,7 +454,7 @@ export const CalendarScreen: React.FC = () => {
       {cal.viewMode === 'day' && renderDayTimeline()}
       {cal.viewMode === 'agenda' && renderAgenda()}
       {renderSelectedList()}
-      <BannerAdPlaceholder placement="calendar" />
+      <AdBanner placement="calendar" />
     </ScrollView>
   )
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { isSameDay } from 'date-fns';
+import { format, isSameDay, startOfDay, subDays } from 'date-fns';
 import {
   View,
   Text,
@@ -24,7 +24,7 @@ import { Routine } from '@/types/routine';
 import { Card } from '@/components/ui/Card';
 import { colors, spacing, typography, radius } from '@/theme/tokens';
 import { track, AnalyticsEvents } from '@/analytics/posthog';
-import { BannerAdPlaceholder } from '@/features/ads';
+import { AdBanner } from '@/features/ads';
 import { PremiumLabel } from '@/components/premium/PremiumBadge';
 
 export const HomeScreen: React.FC = () => {
@@ -72,6 +72,8 @@ export const HomeScreen: React.FC = () => {
       .filter((t) => t.dueDate && isSameDay(new Date(t.dueDate), today) && !t.metadata?.isRoutineTask)
       .slice(0, 5);
   }, [tasks]);
+
+  const streakStats = useMemo(() => calculateCompletionStreak(tasks), [tasks]);
 
   const toggleTaskComplete = useCallback(async (task: Task) => {
     if (task.status === TaskStatus.DONE) await uncompleteTask(task.id);
@@ -198,15 +200,63 @@ export const HomeScreen: React.FC = () => {
       <Card style={styles.streakCard}>
         <Icon name="fire" size={32} color={colors.warning} />
         <View>
-          <Text style={styles.streakNum}>7 day streak</Text>
-          <Text style={styles.streakMeta}>Weekly consistency — keep going</Text>
+          <Text style={styles.streakNum}>{streakStats.currentStreak} day streak</Text>
+          <Text style={styles.streakMeta}>{streakStats.message}</Text>
         </View>
       </Card>
 
-      <BannerAdPlaceholder placement="home" />
+      <AdBanner placement="home" />
     </ScrollView>
   );
 };
+
+function dayKey(date: Date) {
+  return format(startOfDay(date), 'yyyy-MM-dd');
+}
+
+function getTaskCompletionDate(task: Task): Date | null {
+  if (task.status !== TaskStatus.DONE || task.isDeleted) {
+    return null;
+  }
+  const rawDate = task.completedAt || task.updatedAt;
+  if (!rawDate) return null;
+
+  const date = new Date(rawDate);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function calculateCompletionStreak(tasks: Task[]) {
+  const completedDayKeys = new Set<string>();
+
+  tasks.forEach((task) => {
+    if (task.metadata?.isRoutineTask) return;
+    const completedAt = getTaskCompletionDate(task);
+    if (completedAt) {
+      completedDayKeys.add(dayKey(completedAt));
+    }
+  });
+
+  const today = startOfDay(new Date());
+  const startDay = completedDayKeys.has(dayKey(today)) ? today : startOfDay(subDays(today, 1));
+  let currentStreak = 0;
+  let cursor = startDay;
+
+  while (completedDayKeys.has(dayKey(cursor))) {
+    currentStreak += 1;
+    cursor = startOfDay(subDays(cursor, 1));
+  }
+
+  const weeklyCompletedDays = Array.from({ length: 7 }, (_, index) => dayKey(subDays(today, index)))
+    .filter((key) => completedDayKeys.has(key))
+    .length;
+
+  const message =
+    currentStreak > 0
+      ? `${weeklyCompletedDays}/7 active days this week — keep going`
+      : 'Complete a task today to start your streak';
+
+  return { currentStreak, weeklyCompletedDays, message };
+}
 
 const QuickAction: React.FC<{ icon: string; label: string; onPress: () => void }> = React.memo(({ icon, label, onPress }) => (
   <TouchableOpacity style={styles.quickItem} onPress={onPress}>
@@ -299,5 +349,5 @@ const styles = StyleSheet.create({
   progressFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 3 },
   streakCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md },
   streakNum: { ...typography.h3, color: colors.text },
-  streakMeta: { ...typography.caption, color: colors.textSecondary },
+  streakMeta: { ...typography.caption, color: colors.textSecondary,  },
 });

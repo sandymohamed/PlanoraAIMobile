@@ -9,6 +9,7 @@ import {
 } from '@/types/routine';
 import { ApiResponse } from '@/types/api';
 import { logger } from '@/utils/logger';
+import { routineEvents } from './routineEvents';
 
 class RoutineServiceClass {
   // Get all routines for the current user
@@ -83,6 +84,8 @@ class RoutineServiceClass {
       if (!response.success) {
         throw new Error(response.error || 'Failed to delete routine');
       }
+
+      routineEvents.emitDeleted(routineId);
     } catch (error) {
       logger.error('Delete routine error:', error);
       throw error;

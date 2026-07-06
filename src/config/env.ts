@@ -7,6 +7,8 @@ declare const process: {
     SENTRY_DSN?: string;
     POSTHOG_API_KEY?: string;
     POSTHOG_HOST?: string;
+    APP_RELEASE_CHANNEL?: string;
+    ADS_ENABLED?: string;
   };
 };
 
@@ -29,6 +31,8 @@ function getDevApiHost(): string {
 const devBase = `http://${getDevApiHost()}:${API_PORT}`;
 // const devBase = `https://${getDevApiHost()}`;
 
+const releaseChannel = __DEV__ ? 'development' : process.env.APP_RELEASE_CHANNEL || 'production';
+
 export const config = {
   API_BASE_URL: __DEV__
     ? `${devBase}/api/v1`
@@ -37,5 +41,7 @@ export const config = {
   SENTRY_DSN: process.env.SENTRY_DSN || '',
   POSTHOG_API_KEY: process.env.POSTHOG_API_KEY || '',
   POSTHOG_HOST: process.env.POSTHOG_HOST || 'https://us.i.posthog.com',
+  APP_RELEASE_CHANNEL: releaseChannel,
+  ADS_ENABLED: process.env.ADS_ENABLED === 'true',
   APP_NAME: 'Planora AI',
 };

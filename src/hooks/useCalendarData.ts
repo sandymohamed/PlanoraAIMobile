@@ -11,6 +11,7 @@ import { useTaskStore } from '@/store/taskStore';
 import { useGoalStore } from '@/store/goalStore';
 import { useAlarmStore } from '@/store/alarmStore';
 import { routineService } from '@/services/routineService';
+import { routineEvents } from '@/services/routineEvents';
 import { reminderService, Reminder } from '@/services/reminderService';
 import { Routine } from '@/types/routine';
 import { Task, TaskStatus } from '@/types/task';
@@ -100,6 +101,21 @@ export function useCalendarData() {
     });
     return () => task.cancel();
   }, [fetchAlarms, refresh]);
+
+  useEffect(() => {
+    const unsubscribe = routineEvents.onDeleted((routineId) => {
+      setRoutines((current) => current.filter((routine) => routine.id !== routineId));
+      setRoutineReminders((current) =>
+        current.filter((reminder) => reminder.schedule?.routineId !== routineId)
+      );
+      fetchAlarms(1, 500, true, 0, { scheduleNative: false }).catch(() => {});
+      loadRoutineReminders().catch(() => {});
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [fetchAlarms, loadRoutineReminders]);
 
   const dateRange = useMemo(
     () => getCalendarDateRange(viewMode, currentDate, selectedDate),
