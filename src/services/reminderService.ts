@@ -95,13 +95,15 @@ class ReminderServiceClass {
     
     // Subtract reminderBefore to get reminder time
     if (schedule.reminderBefore) {
-      const match = schedule.reminderBefore.match(/^(\d+)([hdw])$/);
+      const match = schedule.reminderBefore.match(/^(\d+)([mhdw])$/);
       if (match) {
         const [, valueStr, unit] = match;
         const value = parseInt(valueStr, 10);
         const reminderTime = new Date(routineOccurrence);
         
-        if (unit === 'h') {
+        if (unit === 'm') {
+          reminderTime.setMinutes(reminderTime.getMinutes() - value);
+        } else if (unit === 'h') {
           reminderTime.setHours(reminderTime.getHours() - value);
         } else if (unit === 'd') {
           reminderTime.setDate(reminderTime.getDate() - value);

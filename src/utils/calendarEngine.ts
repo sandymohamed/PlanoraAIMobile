@@ -378,11 +378,12 @@ export function buildMonthRemindersMap(
       if (routineOccurrence) {
         let reminderDate = new Date(routineOccurrence);
         if (schedule.reminderBefore) {
-          const match = schedule.reminderBefore.match(/^(\d+)([hdw])$/);
+          const match = schedule.reminderBefore.match(/^(\d+)([mhdw])$/);
           if (match) {
             const value = parseInt(match[1], 10);
             const unit = match[2];
-            if (unit === 'h') reminderDate.setHours(reminderDate.getHours() - value);
+            if (unit === 'm') reminderDate.setMinutes(reminderDate.getMinutes() - value);
+            else if (unit === 'h') reminderDate.setHours(reminderDate.getHours() - value);
             else if (unit === 'd') reminderDate.setDate(reminderDate.getDate() - value);
             else if (unit === 'w') reminderDate.setDate(reminderDate.getDate() - value * 7);
           }

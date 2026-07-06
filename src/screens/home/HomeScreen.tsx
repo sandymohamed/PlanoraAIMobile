@@ -121,10 +121,10 @@ export const HomeScreen: React.FC = () => {
           end={{ x: 1, y: 1 }}
           style={styles.aiCard}
         >
-          <Icon name="sparkles" size={28} color="#fff" />
+          <Icon name="star-shooting-outline" size={28} color="#fff" />
           <View style={styles.aiText}>
             <PremiumLabel requiredPlan="pro">
-              <Text style={styles.aiTitle}>AI suggestion</Text>
+              <Text style={styles.aiTitle}>AI Planner</Text>
             </PremiumLabel>
             <Text style={styles.aiBody}>Review your active goal and let AI refine this week's plan.</Text>
           </View>

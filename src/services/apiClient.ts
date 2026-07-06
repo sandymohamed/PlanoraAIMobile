@@ -33,6 +33,14 @@ class ApiClient {
   private isRefreshing = false;
   private queue: Array<{ resolve: (t?: string) => void; reject: (e: unknown) => void }> = [];
 
+  private flushQueue(error?: unknown, token?: string) {
+    this.queue.forEach((pending) => {
+      if (error) pending.reject(error);
+      else pending.resolve(token);
+    });
+    this.queue = [];
+  }
+
   constructor() {
     this.client = axios.create({
       baseURL: config.API_BASE_URL,
@@ -130,6 +138,8 @@ class ApiClient {
           return new Promise((resolve, reject) => {
             this.queue.push({ resolve, reject });
           }).then((token) => {
+            if (!token) throw error;
+            original.headers = original.headers ?? {};
             original.headers.Authorization = `Bearer ${token}`;
             return this.client(original);
           });
@@ -137,18 +147,28 @@ class ApiClient {
 
         cfg._retry = true;
         this.isRefreshing = true;
-        const ok = await useAuthStore.getState().refreshAuthToken();
-        this.isRefreshing = false;
+        let ok = false;
+        try {
+          ok = await useAuthStore.getState().refreshAuthToken();
+        } finally {
+          this.isRefreshing = false;
+        }
 
         if (ok) {
           const token = await useAuthStore.getState().getToken();
-          this.queue.forEach((p) => p.resolve(token!));
-          this.queue = [];
+          if (!token) {
+            const missingTokenError = new Error('Token refresh succeeded without an access token');
+            this.flushQueue(missingTokenError);
+            await useAuthStore.getState().clearSession();
+            throw missingTokenError;
+          }
+          this.flushQueue(undefined, token);
           cfg.headers = cfg.headers ?? {};
           cfg.headers.Authorization = `Bearer ${token}`;
           return this.client(cfg);
         }
-        await useAuthStore.getState().logout();
+        this.flushQueue(error);
+        await useAuthStore.getState().clearSession();
         throw error;
       }
     );

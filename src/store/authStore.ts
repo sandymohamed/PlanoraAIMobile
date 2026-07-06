@@ -17,6 +17,12 @@ interface AuthTokens {
   refreshToken: string;
 }
 
+interface StoredAuthTokens {
+  token?: string;
+  accessToken?: string;
+  refreshToken?: string;
+}
+
 interface ApiEnvelope<T> {
   success: boolean;
   data: T;
@@ -30,6 +36,45 @@ function parseAuthPayload(res: ApiEnvelope<{ user: User; tokens: AuthTokens }>) 
   return res.data;
 }
 
+function parseRefreshPayload(res: ApiEnvelope<AuthTokens | { tokens: AuthTokens }>): AuthTokens {
+  const data = res?.data;
+  if (!data) {
+    throw new Error('Invalid refresh response from server');
+  }
+  const tokens = 'tokens' in data ? data.tokens : data;
+  if (!tokens?.accessToken || !tokens.refreshToken) {
+    throw new Error('Invalid refresh response from server');
+  }
+  return tokens;
+}
+
+async function readStoredTokens(): Promise<StoredAuthTokens | null> {
+  try {
+    const creds = await Keychain.getGenericPassword();
+    if (!creds) return null;
+    return JSON.parse(creds.password) as StoredAuthTokens;
+  } catch (error) {
+    logger.warn('[Planora Auth] failed to read stored tokens', getApiErrorMessage(error));
+    return null;
+  }
+}
+
+async function storeTokens(tokens: AuthTokens): Promise<void> {
+  if (!tokens.accessToken || !tokens.refreshToken) {
+    throw new Error('Cannot store incomplete auth tokens');
+  }
+  await Keychain.setGenericPassword(
+    'planora_tokens',
+    JSON.stringify({
+      token: tokens.accessToken,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    })
+  );
+}
+
+let refreshPromise: Promise<boolean> | null = null;
+
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
@@ -38,6 +83,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
+  clearSession: () => Promise<void>;
   refreshAuthToken: () => Promise<boolean>;
   initializeAuth: () => Promise<void>;
   completeOnboarding: () => void;
@@ -54,9 +100,8 @@ export const useAuthStore = create<AuthState>()(
       hasCompletedOnboarding: false,
 
       getToken: async () => {
-        const creds = await Keychain.getGenericPassword();
-        if (!creds) return null;
-        return JSON.parse(creds.password).token ?? null;
+        const tokens = await readStoredTokens();
+        return tokens?.token ?? tokens?.accessToken ?? null;
       },
 
       login: async (email, password) => {
@@ -66,10 +111,7 @@ export const useAuthStore = create<AuthState>()(
           password,
         });
         const { user, tokens } = parseAuthPayload(res);
-        await Keychain.setGenericPassword('planora_tokens', JSON.stringify({
-          token: tokens.accessToken,
-          refreshToken: tokens.refreshToken,
-        }));
+        await storeTokens(tokens);
         logger.info('[Planora Auth] login OK');
         set({ user, isAuthenticated: true });
       },
@@ -83,10 +125,7 @@ export const useAuthStore = create<AuthState>()(
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
         });
         const { user, tokens } = parseAuthPayload(res);
-        await Keychain.setGenericPassword('planora_tokens', JSON.stringify({
-          token: tokens.accessToken,
-          refreshToken: tokens.refreshToken,
-        }));
+        await storeTokens(tokens);
         logger.info('[Planora Auth] signup OK');
         set({ user, isAuthenticated: true });
       },
@@ -103,6 +142,10 @@ export const useAuthStore = create<AuthState>()(
         } catch {
           /* ignore */
         }
+        await get().clearSession();
+      },
+
+      clearSession: async () => {
         await Keychain.resetGenericPassword();
         import('./goalStore')
           .then(({ useGoalStore }) => useGoalStore.getState().clearFilters())
@@ -111,28 +154,32 @@ export const useAuthStore = create<AuthState>()(
       },
 
       refreshAuthToken: async () => {
-        const creds = await Keychain.getGenericPassword();
-        if (!creds) return false;
-        const { refreshToken } = JSON.parse(creds.password);
-        if (!refreshToken) return false;
-        try {
-          const res = await apiClient.post<ApiEnvelope<{ tokens: AuthTokens }>>(
-            '/auth/refresh',
-            { refreshToken },
-            { skipAuthHeader: true, skipAuthRetry: true }
-          );
-          const tokens = res.data.tokens;
-          await Keychain.setGenericPassword(
-            'planora_tokens',
-            JSON.stringify({
-              token: tokens.accessToken,
-              refreshToken: tokens.refreshToken,
-            })
-          );
-          return true;
-        } catch {
-          return false;
-        }
+        if (refreshPromise) return refreshPromise;
+
+        refreshPromise = (async () => {
+          const storedTokens = await readStoredTokens();
+          const refreshToken = storedTokens?.refreshToken;
+          if (!refreshToken) return false;
+
+          try {
+            const res = await apiClient.post<ApiEnvelope<AuthTokens | { tokens: AuthTokens }>>(
+              '/auth/refresh',
+              { refreshToken },
+              { skipAuthHeader: true, skipAuthRetry: true }
+            );
+            const tokens = parseRefreshPayload(res);
+            await storeTokens(tokens);
+            logger.info('[Planora Auth] token refresh OK');
+            return true;
+          } catch (error) {
+            logger.warn('[Planora Auth] token refresh failed', getApiErrorMessage(error));
+            return false;
+          } finally {
+            refreshPromise = null;
+          }
+        })();
+
+        return refreshPromise;
       },
 
       initializeAuth: async () => {
@@ -140,19 +187,21 @@ export const useAuthStore = create<AuthState>()(
           const health = await apiClient.pingHealth();
           logger.info('[Planora] backend health', { ok: health.ok });
 
-          const token = await get().getToken();
-          if (!token) {
+          const storedTokens = await readStoredTokens();
+          if (!storedTokens?.token && !storedTokens?.accessToken && !storedTokens?.refreshToken) {
             return;
           }
 
           // Bootstrap without interceptor refresh/logout loops
-          try {
-            const res = await apiClient.get<ApiEnvelope<User>>('/me', { skipAuthRetry: true });
-            set({ user: res.data, isAuthenticated: true });
-            logger.info('[Planora Auth] session restored');
-            return;
-          } catch {
-            logger.info('[Planora Auth] access token expired, trying refresh');
+          if (storedTokens.token || storedTokens.accessToken) {
+            try {
+              const res = await apiClient.get<ApiEnvelope<User>>('/me', { skipAuthRetry: true });
+              set({ user: res.data, isAuthenticated: true });
+              logger.info('[Planora Auth] session restored');
+              return;
+            } catch {
+              logger.info('[Planora Auth] access token expired, trying refresh');
+            }
           }
 
           const refreshed = await get().refreshAuthToken();
@@ -169,11 +218,7 @@ export const useAuthStore = create<AuthState>()(
             logger.warn('[Planora Auth] refresh token invalid or expired — sign in again');
           }
 
-          await Keychain.resetGenericPassword();
-          import('./goalStore')
-            .then(({ useGoalStore }) => useGoalStore.getState().clearFilters())
-            .catch(() => {});
-          set({ user: null, isAuthenticated: false });
+          await get().clearSession();
         } finally {
           set({ isInitialized: true });
         }
