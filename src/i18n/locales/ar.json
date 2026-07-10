@@ -1,0 +1,555 @@
+{
+  "common": {
+    "ok": "حسناً",
+    "cancel": "إلغاء",
+    "confirm": "تأكيد",
+    "dismiss": "إغلاق",
+    "save": "حفظ",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "close": "إغلاق",
+    "done": "تم",
+    "loading": "جارٍ التحميل...",
+    "syncing": "جارٍ المزامنة...",
+    "error": "خطأ",
+    "success": "تم بنجاح",
+    "retry": "إعادة المحاولة",
+    "search": "بحث",
+    "clear": "مسح",
+    "none": "لا يوجد",
+    "today": "اليوم",
+    "tomorrow": "غداً",
+    "thisWeekend": "نهاية هذا الأسبوع",
+    "nextWeek": "الأسبوع القادم",
+    "noDueDate": "بدون تاريخ",
+    "customDate": "تاريخ مخصص",
+    "chooseDate": "اختر التاريخ",
+    "selectCustomDate": "اختر تاريخاً مخصصاً",
+    "time": "الوقت",
+    "selectTime": "اختر الوقت",
+    "selectReminderTime": "اختر وقت التذكير",
+    "enableReminderTime": "تفعيل وقت التذكير",
+    "reminderTimeOn": "وقت التذكير مفعل",
+    "addReminderTime": "إضافة وقت للتذكير",
+    "setQuickDate": "تعيين {{date}}",
+    "quickActions": {
+      "today": "اليوم",
+      "tomorrow": "غداً",
+      "weekend": "نهاية هذا الأسبوع",
+      "nextWeek": "الأسبوع القادم"
+    },
+    "minute_one": "{{count}} دقيقة",
+    "minute_other": "{{count}} دقيقة",
+    "hour_one": "{{count}} ساعة",
+    "hour_other": "{{count}} ساعة",
+    "day_one": "{{count}} يوم",
+    "day_other": "{{count}} يوم",
+    "event_one": "{{count}} حدث",
+    "event_other": "{{count}} حدث",
+    "reminder_one": "{{count}} تذكير",
+    "reminder_other": "{{count}} تذكير"
+  },
+  "navigation": {
+    "home": "الرئيسية",
+    "tasks": "المهام",
+    "calendar": "التقويم",
+    "profile": "الملف الشخصي",
+    "goals": "الأهداف",
+    "routines": "العادات",
+    "alarms": "المنبهات",
+    "settings": "الإعدادات",
+    "editProfile": "تعديل الملف الشخصي",
+    "changePassword": "تغيير كلمة المرور",
+    "notifications": "الإشعارات",
+    "privacy": "الخصوصية",
+    "dataExport": "البيانات والتصدير",
+    "helpSupport": "المساعدة والدعم",
+    "about": "حول التطبيق",
+    "newTask": "مهمة جديدة",
+    "editTask": "تعديل المهمة",
+    "task": "مهمة",
+    "newGoal": "هدف جديد",
+    "editGoal": "تعديل الهدف",
+    "goal": "هدف",
+    "newRoutine": "عادة جديد",
+    "editRoutine": "تعديل العادة",
+    "newAlarm": "منبه جديد",
+    "editAlarm": "تعديل المنبه",
+    "alarm": "منبه",
+    "comparePlans": "مقارنة الخطط",
+    "weeklyReview": "المراجعة الأسبوعية",
+    "focus": "التركيز",
+    "language": "اللغة",
+    "goToHome": "الانتقال إلى الرئيسية"
+  },
+  "tasks": {
+    "priority": {
+      "LOW": "منخفضة",
+      "MEDIUM": "متوسطة",
+      "HIGH": "عالية",
+      "URGENT": "عاجلة"
+    },
+    "status": {
+      "TODO": " للتنفيذ لاحقا",
+      "IN_PROGRESS": "قيد التنفيذ",
+      "DONE": "مكتملة",
+      "ARCHIVED": "مؤرشفة"
+    },
+    "filter": {
+      "All": "الكل",
+      "TODO": " للتنفيذ لاحقا",
+      "IN_PROGRESS": "قيد التنفيذ",
+      "DONE": "مكتملة"
+    },
+    "dueDate": {
+      "overdue": "متأخرة · {{date}}"
+    },
+    "form": {
+      "titleLabel": "العنوان *",
+      "titlePlaceholder": "ما الذي يجب إنجازه؟",
+      "descriptionLabel": "الوصف",
+      "descriptionPlaceholder": "تفاصيل اختيارية",
+      "priorityLabel": "الأولوية",
+      "statusLabel": "الحالة",
+      "dueDateLabel": "تاريخ ووقت الاستحقاق",
+      "noDueDate": "بدون تاريخ استحقاق",
+      "dueDateHelper": "اختر تاريخ استحقاق سريعاً. أضف الوقت فقط عند الحاجة لتذكير.",
+      "createTask": "إنشاء المهمة",
+      "errors": {
+        "titleRequired": "العنوان مطلوب",
+        "dueDatePast": "لا يمكن أن يكون تاريخ الاستحقاق في الماضي"
+      }
+    },
+    "details": {
+      "editTask": "تعديل المهمة",
+      "deleteTask": "حذف المهمة",
+      "markIncomplete": "تحديد كغير مكتملة",
+      "markComplete": "تحديد كمكتملة",
+      "completeTitle": "تم إنجاز المهمة!",
+      "completeMessage": "أحسنت — \"{{title}}\" مكتملة. واصل التقدم!"
+    }
+  },
+  "profile": {
+    "title": "الملف الشخصي",
+    "defaultName": "مستخدم Planora",
+    "premium": "بريميوم",
+    "freePlan": "الخطة المجانية",
+    "settingsAccount": "الإعدادات والحساب",
+    "upgradePremium": "الترقية إلى بريميوم",
+    "aiWeeklyReview": "مراجعة الذكاء الأسبوعية",
+    "focusTimers": "التركيز والمؤقتات",
+    "remindersAlarms": "التذكيرات والمنبهات",
+    "signOut": "تسجيل الخروج"
+  },
+  "auth": {
+    "createAccount": "إنشاء حساب",
+    "resetPassword": "إعادة تعيين كلمة المرور",
+    "newPassword": "كلمة مرور جديدة",
+    "welcomeBack": "مرحباً بعودتك",
+    "tagline": "أهدافك تستحق خطة حقيقية.",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "passwordMin": "كلمة المرور (6 أحرف على الأقل)",
+    "name": "الاسم",
+    "signIn": "تسجيل الدخول",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "startPlan": "ابدأ خطتك",
+    "signInInstead": "تسجيل الدخول بدلاً من ذلك",
+    "emailAlreadyRegistered": "البريد الإلكتروني مسجل بالفعل",
+    "useDifferentEmail": "استخدام بريد إلكتروني آخر",
+    "couldNotCreateAccount": "تعذر إنشاء الحساب",
+    "enterName": "أدخل اسمك (حرفان على الأقل)",
+    "enterValidEmail": "أدخل بريداً إلكترونياً صحيحاً",
+    "passwordMinError": "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
+    "enterCode": "أدخل الرمز",
+    "emailCodeMessage": "سنرسل لك رمز تحقق مكوناً من 6 أرقام عبر البريد الإلكتروني.",
+    "codeSentTo": "تم إرسال الرمز إلى {{email}}",
+    "enterSixDigitCode": "أدخل الرمز المكون من 6 أرقام",
+    "invalidResponse": "استجابة غير صالحة",
+    "sendCode": "إرسال الرمز",
+    "verifyCode": "تحقق من الرمز",
+    "backToSignIn": "العودة لتسجيل الدخول",
+    "resendCode": "إعادة إرسال الرمز",
+    "newPasswordSubtitle": "اختر كلمة مرور قوية لحسابك.",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "passwordsDoNotMatch": "كلمتا المرور غير متطابقتين"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "accountSection": "الحساب",
+    "preferencesSection": "التفضيلات",
+    "supportSection": "الدعم",
+    "editProfile": "تعديل الملف الشخصي",
+    "changePassword": "تغيير كلمة المرور",
+    "notifications": "الإشعارات",
+    "privacy": "الخصوصية",
+    "language": "اللغة",
+    "languageSubtitle": "اختر لغة التطبيق",
+    "helpSupport": "المساعدة والدعم",
+    "about": "حول التطبيق"
+  },
+  "notificationSettings": {
+    "pushNotifications": "الإشعارات الفورية",
+    "pushNotificationsDesc": "تنبيهات على هاتفك للمهام والأهداف والتذكيرات",
+    "taskReminders": "تذكيرات المهام",
+    "taskRemindersDesc": "تذكيرك قبل موعد استحقاق المهمة",
+    "goalReminders": "تذكيرات الأهداف",
+    "goalRemindersDesc": "تحديثات عن مواعيد أهدافك ومعالمك",
+    "dueDateReminders": "تذكيرات مواعيد الاستحقاق",
+    "dueDateRemindersDesc": "تنبيه عندما يحين موعد مهمة أو يتأخر"
+  },
+  "alarms": {
+    "savedTitle": "تم حفظ المنبه",
+    "openPermissions": "إصلاح الأذونات",
+    "verifyPermissions": "السماح بالمنبهات على هذا الهاتف",
+    "verifyPermissionsDesc": "يحتاج Planora إلى الإشعارات ومنبهات دقيقة ليعمل المنبه في الوقت المحدد",
+    "screen": {
+      "title": "المنبهات والمؤقتات",
+      "subtitle": "غفوة من إشعار المنبه عند الرنين (+5 د)",
+      "empty": "لا توجد منبهات قادمة",
+      "soon": "قريباً",
+      "past": "فات"
+    },
+    "recurrence": {
+      "none": "مرة واحدة",
+      "daily": "يومياً",
+      "weekdays": "أيام الأسبوع",
+      "weekends": "عطلة نهاية الأسبوع",
+      "weekly": "أسبوعياً",
+      "group": {
+        "none": "مرة واحدة",
+        "daily": "يومياً",
+        "weekdays": "أيام الأسبوع",
+        "weekends": "عطلة نهاية الأسبوع",
+        "weekly": "أسبوعياً"
+      }
+    },
+    "form": {
+      "title": "العنوان",
+      "defaultTitle": "منبه",
+      "alarmTime": "وقت المنبه",
+      "scheduledFor": "مجدول لـ {{date}} · {{fullDate}}",
+      "selectTime": "اختر الوقت",
+      "customDate": "تاريخ مخصص",
+      "hideCustomDate": "إخفاء التاريخ المخصص",
+      "customAlarmDate": "تاريخ المنبه المخصص",
+      "autoDatePlaceholder": "اليوم/غداً تلقائياً",
+      "autoDateHelper": "اتركه فارغاً لاستخدام اليوم أو غداً تلقائياً حسب الوقت المحدد.",
+      "autoDateHelperEdit": "امسحه لاستخدام اليوم أو غداً تلقائياً حسب الوقت المحدد.",
+      "useAutoDate": "استخدام التاريخ التلقائي",
+      "alarmSound": "صوت المنبه",
+      "defaultRingtone": "منبه افتراضي",
+      "customRingtone": "نغمة مخصصة",
+      "repeat": "التكرار",
+      "snoozeHint": "غفوة: 5 د من الإشعار (حتى 3 مرات)",
+      "createAlarm": "إنشاء منبه",
+      "saveChanges": "حفظ التغييرات",
+      "notFound": "المنبه غير موجود",
+      "goBack": "رجوع",
+      "titleRequired": "العنوان مطلوب",
+      "titleRequiredMessage": "يرجى إدخال عنوان للمنبه.",
+      "soundTitle": "صوت المنبه",
+      "soundAndroidOnly": "النغمات المخصصة متاحة على أندرويد.",
+      "pickRingtoneError": "تعذر اختيار النغمة"
+    },
+    "errors": {
+      "exactAlarmTitle": "السماح بالمنبهات الدقيقة",
+      "exactAlarmMessage": "تم حفظ المنبه، لكن أندرويد يمنع المنبهات الدقيقة. افتح الإعدادات وفعّل \"المنبهات والتذكيرات\" لـ Planora.",
+      "notificationsTitle": "السماح بالإشعارات",
+      "notificationsMessage": "تم حفظ المنبه، لكن الإشعارات معطلة. فعّل الإشعارات لـ Planora حتى يعمل المنبه.",
+      "connectionTitle": "تعذر الاتصال بالتطبيق",
+      "connectionMessage": "تم حفظ المنبه، لكن فشل الجدولة. أغلق Planora وأعد فتحه، ثم حاول مرة أخرى.",
+      "genericTitle": "قد لا يرن المنبه",
+      "genericMessage": "تم حفظ المنبه، لكن لم نتمكن من جدولته على هذا الجهاز. تحقق من أذونات المنبهات في الإعدادات → المنبهات."
+    }
+  },
+  "focusScreen": {
+    "title": "التركيز",
+    "subtitle": "يرن حتى عند إيقاف الشاشة أو إغلاق التطبيق.",
+    "sessionsToday": "جلسات اليوم",
+    "focusedToday": "تركيز اليوم",
+    "modes": {
+      "pomodoro": { "label": "بومودورو", "tagline": "كتلة تركيز كلاسيكية 25 دقيقة" },
+      "deep": { "label": "عمل عميق", "tagline": "جلسة عميقة طويلة دون انقطاع" }
+    },
+    "inFocus": "في التركيز",
+    "paused": "متوقف مؤقتاً",
+    "min": "د",
+    "pause": "إيقاف مؤقت",
+    "resume": "استئناف",
+    "startSession": "بدء الجلسة",
+    "reset": "إعادة تعيين",
+    "sessionComplete": "اكتملت الجلسة",
+    "sessionCompleteMessage": "انتهت جلسة {{mode}} — أحسنت في الحفاظ على التركيز.",
+    "stopAlarm": "إيقاف المنبه",
+    "backgroundAlarmTitle": "منبه الخلفية غير متاح",
+    "backgroundAlarmMessage": "امنح أذونات المنبه الدقيق والإشعارات ليرن المؤقت عند إيقاف الشاشة."
+  },
+  "goals": {
+    "priority": {
+      "LOW": "منخفضة",
+      "MEDIUM": "متوسطة",
+      "HIGH": "عالية",
+      "URGENT": "عاجلة"
+    },
+    "status": {
+      "DRAFT": "مسودة",
+      "ACTIVE": "نشط",
+      "PAUSED": "متوقف",
+      "DONE": "مكتمل",
+      "CANCELLED": "ملغى"
+    },
+    "milestoneStatus": {
+      "TODO": "للتنفيذ",
+      "IN_PROGRESS": "قيد التنفيذ",
+      "DONE": "مكتمل",
+      "CANCELLED": "ملغى"
+    },
+    "categories": {
+      "Personal": "شخصي",
+      "Work": "عمل",
+      "Health": "صحة",
+      "Learning": "تعلم",
+      "Finance": "مالية",
+      "Other": "أخرى"
+    },
+    "filter": {
+      "all": "الكل",
+      "active": "نشط",
+      "completed": "مكتمل"
+    },
+    "screen": {
+      "searchPlaceholder": "البحث في الأهداف...",
+      "empty": "لا توجد أهداف بعد. أنشئ واحداً للبدء.",
+      "overdue": "متأخر",
+      "daysLeft": "متبقي {{count}} ي",
+      "percentComplete": "{{percent}}% مكتمل",
+      "target": "الهدف: {{date}}",
+      "notFound": "الهدف غير موجود"
+    },
+    "form": {
+      "title": "العنوان",
+      "titlePlaceholder": "ماذا تريد أن تحقق؟",
+      "description": "الوصف",
+      "descriptionOptional": "تفاصيل اختيارية",
+      "priority": "الأولوية",
+      "category": "الفئة",
+      "targetDate": "تاريخ الهدف",
+      "noTargetDate": "بدون تاريخ هدف",
+      "targetDateHelper": "استخدم تواريخ سريعة أو اختر هدفاً مخصصاً.",
+      "createGoal": "إنشاء هدف",
+      "saveChanges": "حفظ التغييرات",
+      "titleRequired": "العنوان مطلوب",
+      "titleRequiredMessage": "أدخل عنوان الهدف."
+    },
+    "detail": {
+      "edit": "تعديل",
+      "complete": "إكمال",
+      "resume": "استئناف",
+      "pause": "إيقاف مؤقت",
+      "generateAiPlan": "إنشاء خطة بالذكاء",
+      "milestones": "المعالم",
+      "add": "+ إضافة",
+      "noMilestones": "لا توجد معالم بعد.",
+      "editMilestone": "تعديل",
+      "deleteMilestone": "حذف",
+      "cancelGoal": "إلغاء الهدف",
+      "newMilestone": "معلم جديد",
+      "editMilestoneTitle": "تعديل المعلم",
+      "milestoneTitle": "العنوان",
+      "milestoneDescription": "الوصف",
+      "noMilestoneDate": "بدون تاريخ للمعلم",
+      "noDate": "بدون تاريخ",
+      "milestoneDateHelper": "اختر تاريخاً سريعاً أو هدف معلم مخصص.",
+      "save": "حفظ",
+      "deleteMilestoneTitle": "حذف المعلم؟",
+      "cancelGoalTitle": "إلغاء الهدف؟",
+      "yes": "نعم",
+      "no": "لا",
+      "planGenerated": "تم إنشاء الخطة",
+      "planGeneratedPremium": "تم تحديث المعالم والمهام من خطتك بالذكاء.",
+      "planGeneratedRemaining": "تم تحديث المعالم والمهام. لديك {{count}} خطة ذكاء متبقية هذا الشهر.",
+      "planGeneratedRemaining_other": "تم تحديث المعالم والمهام. لديك {{count}} خطط ذكاء متبقية هذا الشهر.",
+      "aiLimitTitle": "تم الوصول لحد الذكاء الشهري",
+      "seePremium": "عرض Premium",
+      "notNow": "ليس الآن",
+      "milestoneTitleRequired": "العنوان مطلوب",
+      "milestoneTitleRequiredMessage": "أدخل عنوان المعلم."
+    },
+    "actions": {
+      "complete": "إكمال",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "deleteTitle": "حذف الهدف؟"
+    }
+  },
+  "routines": {
+    "frequency": {
+      "DAILY": "يومي",
+      "WEEKLY": "أسبوعي",
+      "MONTHLY": "شهري"
+    },
+    "days": {
+      "0": "أحد",
+      "1": "إثن",
+      "2": "ثلا",
+      "3": "أرب",
+      "4": "خم",
+      "5": "جم",
+      "6": "سب"
+    },
+    "remindBefore": {
+      "30m": "30 د",
+      "1h": "1 س",
+      "2h": "2 س",
+      "1d": "1 ي"
+    },
+    "screen": {
+      "title": "العادات",
+      "subtitle": "عادات متكررة مع إعادة تعيين وتذكيرات",
+      "emptyTitle": "لا توجد عادات",
+      "emptyMessage": "ابنِ حلقة عادة يومية أو أسبوعية.",
+      "createRoutine": "إنشاء عادة",
+      "off": "متوقف",
+      "schedule": "{{time}} · {{frequency}}{{days}}",
+      "daysSuffix": " · أيام {{days}}",
+      "reset": "إعادة تعيين",
+      "delete": "حذف",
+      "resetTitle": "إعادة تعيين العادة",
+      "resetMessage": "إعادة تعيين إكمال جميع المهام الفرعية لهذه الفترة؟",
+      "deleteTitle": "حذف العادة"
+    },
+    "form": {
+      "title": "العنوان",
+      "description": "الوصف",
+      "frequency": "التكرار",
+      "time": "الوقت",
+      "days": "الأيام",
+      "dayOfMonth": "يوم الشهر (1-31)",
+      "remindBefore": "تذكير قبل",
+      "titleRequired": "العنوان مطلوب",
+      "createRoutine": "إنشاء عادة",
+      "saveRoutine": "حفظ العادة"
+    }
+  },
+  "paywall": {
+    "badge": "بريميوم",
+    "heroTitle": "بريميوم قريباً",
+    "heroSub": "نبني أقوى نسخة من Planora. انضم لقائمة الانتظار وكن أول من يعرف.",
+    "usage": {
+      "unlimited": "خطط ذكاء غير محدودة",
+      "remainingWithLimit": "{{remaining}} من {{limit}} خطط ذكاء متبقية هذا الشهر",
+      "remaining": "{{remaining}} خطط ذكاء متبقية هذا الشهر"
+    },
+    "sectionTitle": "ما الذي ستحصل عليه",
+    "features": {
+      "unlimitedAi": {
+        "title": "خطط ذكاء غير محدودة",
+        "subtitle": "أنشئ عدداً غير محدود من خطط الأهداف بالذكاء — بدون حد شهري."
+      },
+      "analytics": {
+        "title": "تحليلات متقدمة",
+        "subtitle": "رؤى أعمق للأهداف والعادات وكيفية استخدام وقتك."
+      },
+      "reports": {
+        "title": "تقارير إنتاجية ذكية",
+        "subtitle": "مراجعات أسبوعية مخصصة مع توصيات قابلة للتنفيذ."
+      },
+      "future": {
+        "title": "ميزات بريميوم قادمة",
+        "subtitle": "وصول مبكر للتعاون والسمات وكل ما نطلقه لاحقاً."
+      }
+    },
+    "waitlist": {
+      "title": "انضم لقائمة انتظار بريميوم",
+      "subtitle": "لا دفع الآن — فقط وصول مبكر عند الإطلاق.",
+      "emailPlaceholder": "you@example.com",
+      "notifyMe": "أبلغني عند الإطلاق",
+      "joining": "جارٍ الانضمام…",
+      "joinedTitle": "أنت على القائمة!",
+      "joinedSub": "سنراسلك فور إطلاق بريميوم. شكراً لدعمك المبكر."
+    },
+    "legal": "تسعير بريميوم والفوترة غير مفعّلين بعد. الخطة المجانية تشمل {{limit}} خطط ذكاء شهرياً.",
+    "errors": {
+      "invalidEmailTitle": "بريد إلكتروني غير صالح",
+      "invalidEmailMessage": "يرجى إدخال بريد إلكتروني صالح.",
+      "waitlistTitle": "حدث خطأ ما",
+      "waitlistMessage": "تعذر إضافتك لقائمة الانتظار. حاول مرة أخرى."
+    }
+  },
+  "home": {
+    "goodMorning": "صباح الخير",
+    "goodAfternoon": "مساء الخير",
+    "goodEvening": "مساء الخير",
+    "todayReady": " إليك خطة اليوم.",
+    "todaysFocusLabel": "هدف اليوم",
+    "focusTitle": "أكمل أهم 3 مهام لديك",
+    "focusMeta": "اضغط على المهام لمعرفة المستحق اليوم",
+    "aiPlanner": "مخطط الذكاء",
+    "aiPlannerBody": "راجع هدفك النشط ودع الذكاء الاصطناعي يحسن خطة هذا الأسبوع.",
+    "focus": "وضع التركيز",
+    "weekly": "أسبوعي",
+    "todaysTasks": "مهام اليوم",
+    "seeAll": "عرض المزيد",
+    "noTasksToday": "لا توجد مهام مستحقة اليوم",
+    "activeRoutines": "العادات النشطة",
+    "manage": "إدارة",
+    "noActiveRoutines": "لا توجد عادات نشطة",
+    "goalProgress": "تقدم الأهداف",
+    "noGoals": "لا توجد أهداف — اضغط على الذكاء في تبويب الأهداف",
+    "dayStreak": "سلسلة {{count}} يوم",
+    "activeDaysThisWeek": "{{completed}}/7 أيام نشطة هذا الأسبوع — استمر",
+    "startStreak": "أكمل مهمة اليوم لبدء سلسلتك"
+  },
+  "language": {
+    "title": "اللغة",
+    "subtitle": "اختر لغتك المفضلة. سيتم تحديث التطبيق فوراً.",
+    "english": "English",
+    "arabic": "العربية",
+    "current": "اللغة الحالية",
+    "restartNote": "قد تكتمل بعض اتجاهات الشاشات الأصلية بعد إعادة فتح التطبيق.",
+    "changedTitle": "تم تحديث اللغة",
+    "changedMessage": "يستخدم Planora الآن {{language}}."
+  },
+  "dialogs": {
+    "deleteTitle": "حذف {{entity}}؟",
+    "deleteMessage": "لا يمكن التراجع عن هذا الإجراء. ستتم إزالة كل البيانات المرتبطة."
+  },
+  "calendar": {
+    "viewModes": {
+      "month": "الشهر",
+      "week": "الأسبوع",
+      "day": "اليوم",
+      "agenda": "الأجندة"
+    },
+    "tapForToday": "اضغط للعودة إلى اليوم",
+    "syncing": "جارٍ مزامنة التقويم...",
+    "next24Hours": "خلال 24 ساعة القادمة",
+    "noEventsPeriod": "لا توجد أحداث في هذه الفترة",
+    "add": "إضافة",
+    "addTask": "إضافة مهمة",
+    "addTaskThisDay": "إضافة مهمة لهذا اليوم",
+    "addGoal": "إضافة هدف",
+    "newTask": "مهمة جديدة",
+    "newGoal": "هدف جديد",
+    "newRoutine": "عادة جديد",
+    "newAlarm": "منبه جديد",
+    "routine": "عادة",
+    "goal": "هدف",
+    "alarm": "منبه",
+    "reminderBefore": "تذكير قبل {{duration}}",
+    "allDay": "طوال اليوم",
+    "markIncomplete": "تحديد كغير مكتملة",
+    "markComplete": "تحديد كمكتملة",
+    "openDetails": "فتح التفاصيل",
+    "editTask": "تعديل المهمة",
+    "overdue": "متأخرة",
+    "minutesLeft": "متبقي {{count}} د",
+    "hoursLeft": "متبقي {{count}} س",
+    "daysLeft": "متبقي {{count}} ي"
+  },
+  "errors": {
+    "connection": "خطأ في الاتصال",
+    "generic": "حدث خطأ ما. حاول مرة أخرى."
+  }
+}

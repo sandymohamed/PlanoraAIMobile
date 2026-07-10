@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { AppIcon as Icon } from '@/components/ui/AppIcon';
 import { useAlarmStore } from '@/store/alarmStore';
 import { alarmFixService } from '@/services/AlarmFixService';
@@ -22,6 +23,8 @@ import { getApiErrorMessage } from '@/utils/apiError';
 
 export const AlarmsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language.startsWith('ar');
   const { alarms, timers, loading, fetchAlarms, fetchTimers, toggleAlarm, deleteAlarm, cleanupExpiredAlarms } =
     useAlarmStore();
 
@@ -48,7 +51,7 @@ export const AlarmsScreen: React.FC = () => {
     try {
       await toggleAlarm(id);
     } catch (e: any) {
-      showError('Error', e.message);
+      showError(t('common.error'), e.message);
     }
   };
 
@@ -57,9 +60,9 @@ export const AlarmsScreen: React.FC = () => {
       try {
         await deleteAlarm(id);
       } catch (e) {
-        showError('Error', getApiErrorMessage(e));
+        showError(t('common.error'), getApiErrorMessage(e));
       }
-    }, 'alarm');
+    }, t('navigation.alarm'));
   };
 
   return (
@@ -73,38 +76,51 @@ export const AlarmsScreen: React.FC = () => {
           showsVerticalScrollIndicator
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.title}>Alarms & timers</Text>
-          <Text style={styles.sub}>Snooze from the alarm notification when it rings (+5 min)</Text>
+          <Text style={[styles.title, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+            {t('alarms.screen.title')}
+          </Text>
+          <Text style={[styles.sub, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+            {t('alarms.screen.subtitle')}
+          </Text>
 
           <TouchableOpacity
-            style={styles.permBanner}
+            style={[styles.permBanner, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}
             onPress={() => alarmPermissionService.requestAllPermissions()}
           >
             <Icon name="shield-check-outline" size={18} color={colors.primary} />
-            <Text style={styles.permText}>Tap to verify alarm permissions</Text>
+            <View style={styles.permBody}>
+              <Text style={[styles.permText, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+                {t('alarms.verifyPermissions')}
+              </Text>
+              <Text style={[styles.permSub, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+                {t('alarms.verifyPermissionsDesc')}
+              </Text>
+            </View>
           </TouchableOpacity>
 
           {groupAlarmsByRecurrence(visibleAlarms).map((group) => (
             <View key={group.key}>
-              <Text style={styles.section}>
-                {group.label} ({group.items.length})
+              <Text style={[styles.section, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+                {t(`alarms.recurrence.group.${group.key}`)} ({group.items.length})
               </Text>
               {group.items.map((item) => {
                 const status = getAlarmStatus(item);
                 return (
                   <TouchableOpacity
                     key={item.id}
-                    style={[styles.row, !item.enabled && styles.rowDisabled]}
+                    style={[styles.row, { flexDirection: isArabic ? 'row-reverse' : 'row' }, !item.enabled && styles.rowDisabled]}
                     onPress={() => navigation.navigate('AlarmEdit', { alarmId: item.id })}
                     activeOpacity={0.85}
                   >
                     <View style={[styles.statusDot, { backgroundColor: statusColor(status) }]} />
                     <View style={styles.rowBody}>
-                      <Text style={[styles.rowTitle, !item.enabled && styles.textMuted]}>{item.title}</Text>
-                      <Text style={styles.rowMeta}>
+                      <Text style={[styles.rowTitle, !item.enabled && styles.textMuted, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+                        {item.title}
+                      </Text>
+                      <Text style={[styles.rowMeta, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
                         {format(new Date(item.time), 'EEE MMM d · h:mm a')}
-                        {status === 'soon' ? ' · Soon' : ''}
-                        {status === 'past' ? ' · Past' : ''}
+                        {status === 'soon' ? ` · ${t('alarms.screen.soon')}` : ''}
+                        {status === 'past' ? ` · ${t('alarms.screen.past')}` : ''}
                       </Text>
                     </View>
                     <Switch value={item.enabled} onValueChange={() => onToggle(item.id)} />
@@ -119,7 +135,11 @@ export const AlarmsScreen: React.FC = () => {
               })}
             </View>
           ))}
-          {visibleAlarms.length === 0 && <Text style={styles.empty}>No upcoming alarms</Text>}
+          {visibleAlarms.length === 0 && (
+            <Text style={[styles.empty, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+              {t('alarms.screen.empty')}
+            </Text>
+          )}
 
         </ScrollView>
       )}
@@ -138,18 +158,18 @@ const styles = StyleSheet.create({
   title: { ...typography.h1, color: colors.text },
   sub: { ...typography.caption, color: colors.textSecondary, marginBottom: spacing.sm },
   permBanner: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    padding: spacing.sm,
+    padding: spacing.md,
     backgroundColor: colors.primarySoft,
     borderRadius: 8,
     marginBottom: spacing.md,
   },
-  permText: { ...typography.caption, color: colors.primary },
+  permBody: { flex: 1 },
+  permText: { ...typography.body, color: colors.primary, fontWeight: '600' },
+  permSub: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
   section: { ...typography.label, color: colors.textMuted, marginTop: spacing.md, marginBottom: spacing.sm },
   row: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     padding: spacing.md,
@@ -168,7 +188,7 @@ const styles = StyleSheet.create({
   empty: { ...typography.body, color: colors.textMuted, marginBottom: spacing.lg },
   fab: {
     position: 'absolute',
-    right: spacing.lg,
+    end: spacing.lg,
     bottom: spacing.lg,
     width: 56,
     height: 56,

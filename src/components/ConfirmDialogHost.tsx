@@ -8,9 +8,11 @@ import {
   Pressable,
   ActivityIndicator,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { AppIcon as Icon } from '@/components/ui/AppIcon';
 import { useConfirmationDialogStore } from '@/store/confirmationDialogStore';
 import { colors, spacing, typography, radius, shadows } from '@/theme/tokens';
+import { directionalTextStyle } from '@/utils/rtl';
 
 const VARIANT_STYLE: Record<
   string,
@@ -24,6 +26,7 @@ const VARIANT_STYLE: Record<
 };
 
 export const ConfirmDialogHost: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const visible = useConfirmationDialogStore((s) => s.visible);
   const title = useConfirmationDialogStore((s) => s.title);
   const message = useConfirmationDialogStore((s) => s.message);
@@ -58,23 +61,23 @@ export const ConfirmDialogHost: React.FC = () => {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={hide} statusBarTranslucent>
       <View style={styles.backdrop}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={hide} accessibilityRole="button" accessibilityLabel="Dismiss" />
-        <View style={styles.card}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={hide} accessibilityRole="button" accessibilityLabel={t('common.dismiss')} />
+        <View style={[styles.card, { display: "flex", flexDirection: "column", alignItems: i18n.language === 'ar' ? 'flex-end' : 'flex-start' }]}>
           <View style={[styles.iconWrap, { backgroundColor: v.soft }]}>
             <Icon name={v.icon} size={28} color={v.color} />
           </View>
 
-          <Text style={styles.title}>{title}</Text>
+          <Text style={[styles.title, directionalTextStyle()]}>{title}</Text>
 
           {itemName ? (
             <View style={styles.itemBox}>
-              <Text style={styles.itemName} numberOfLines={2}>
+              <Text style={[styles.itemName, directionalTextStyle()]} numberOfLines={2}>
                 {itemName}
               </Text>
             </View>
           ) : null}
 
-          {message ? <Text style={styles.message}>{message}</Text> : null}
+          {message ? <Text style={[styles.message, directionalTextStyle()]}>{message}</Text> : null}
 
           <View style={styles.actions}>
             {!alert && (

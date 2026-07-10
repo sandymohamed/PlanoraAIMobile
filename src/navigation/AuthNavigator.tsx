@@ -1,24 +1,29 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { LoginScreen } from '@/screens/auth/LoginScreen';
 import { RegisterScreen } from '@/screens/auth/RegisterScreen';
 import { ForgotPasswordScreen } from '@/screens/auth/ForgotPasswordScreen';
 import { ResetPasswordScreen } from '@/screens/auth/ResetPasswordScreen';
 import { colors } from '@/theme/tokens';
+import { stackHeaderOptions } from '@/navigation/headerOptions';
 
 const Stack = createNativeStackNavigator();
 
-export const AuthNavigator: React.FC = () => (
-  <Stack.Navigator
-    screenOptions={{
-      headerStyle: { backgroundColor: colors.surface },
-      headerTintColor: colors.text,
-      contentStyle: { backgroundColor: colors.background },
-    }}
-  >
-    <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-    <Stack.Screen name="Register" component={RegisterScreen} options={{ title: 'Create account' }} />
-    <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ title: 'Reset password' }} />
-    <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} options={{ title: 'New password' }} />
-  </Stack.Navigator>
-);
+export const AuthNavigator: React.FC = () => {
+  const { t } = useTranslation();
+
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        ...stackHeaderOptions,
+        contentStyle: { backgroundColor: colors.background },
+      }}
+    >
+      <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Register" component={RegisterScreen} options={{ title: t('auth.createAccount') }} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ title: t('auth.resetPassword') }} />
+      <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} options={{ title: t('auth.newPassword') }} />
+    </Stack.Navigator>
+  );
+};

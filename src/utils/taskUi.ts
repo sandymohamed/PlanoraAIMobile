@@ -1,5 +1,6 @@
 import { colors } from '@/theme/tokens';
-import { Task, TaskPriority, TaskStatus } from '@/types/task';
+import { Task, TaskPriority, TaskStatus, TaskStatusFilter } from '@/types/task';
+import i18n, { formatDate } from '@/i18n';
 
 /** Start of local calendar day */
 function startOfDay(d: Date): Date {
@@ -69,6 +70,17 @@ export function statusColor(status: TaskStatus): string {
   }
 }
 
+export function translateTaskPriority(priority: TaskPriority): string {
+  return i18n.t(`tasks.priority.${priority}`, { defaultValue: priority });
+}
+
+export function translateTaskStatus(status: TaskStatus): string {
+  return i18n.t(`tasks.status.${status}`, { defaultValue: status });
+}
+export function translateTaskFilters(filters: TaskStatusFilter): string {
+  return i18n.t(`tasks.filter.${filters}`, { defaultValue: filters });
+}
+
 export function formatDueLabel(
   dueDate?: string,
   dueTime?: string,
@@ -80,15 +92,21 @@ export function formatDueLabel(
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
+  const formattedDate = formatDate(date, {
+    month: 'short',
+    day: 'numeric',
+    ...(date.getFullYear() !== today.getFullYear() ? { year: 'numeric' as const } : {}),
+  });
+
   let label: string;
   if (options?.overdue) {
-    label = `Overdue · ${date.toLocaleDateString()}`;
+    label = i18n.t('tasks.dueDate.overdue', { date: formattedDate });
   } else if (date.toDateString() === today.toDateString()) {
-    label = 'Today';
+    label = i18n.t('common.today');
   } else if (date.toDateString() === tomorrow.toDateString()) {
-    label = 'Tomorrow';
+    label = i18n.t('common.tomorrow');
   } else {
-    label = date.toLocaleDateString();
+    label = formattedDate;
   }
 
   if (dueTime) label += ` · ${dueTime}`;

@@ -6,21 +6,23 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTaskStore } from '@/store/taskStore';
 import { TaskStatus } from '@/types/task';
 import { Button } from '@/components/ui/Button';
-import { showDeleteConfirmation, showError } from '@/components/ConfirmationDialog';
+import { showDeleteConfirmation, showError, showSuccess } from '@/components/ConfirmationDialog';
 import { TasksStackParamList } from '@/navigation/TasksStack';
 import { colors, spacing, typography } from '@/theme/tokens';
-import { formatDueLabel, priorityColor, statusColor } from '@/utils/taskUi';
+import { formatDueLabel, priorityColor, statusColor, translateTaskPriority, translateTaskStatus } from '@/utils/taskUi';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { useTranslation } from 'react-i18next';
 
 type Route = RouteProp<TasksStackParamList, 'TaskDetail'>;
 type Nav = NativeStackNavigationProp<TasksStackParamList, 'TaskDetail'>;
 
 export const TaskDetailScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
+  const { t } = useTranslation();
+  
   const { taskId } = useRoute<Route>().params;
   const { tasks, fetchTask, completeTask, uncompleteTask, deleteTask, isLoading } = useTaskStore();
   const task = tasks.find((t) => t.id === taskId);
-
   useEffect(() => {
     if (!task) fetchTask(taskId).catch(() => {});
   }, [task, taskId, fetchTask]);
@@ -44,10 +46,17 @@ export const TaskDetailScreen: React.FC = () => {
 
   const toggleComplete = async () => {
     try {
-      if (task.status === TaskStatus.DONE) await uncompleteTask(task.id);
-      else await completeTask(task.id);
+      if (task.status === TaskStatus.DONE) {
+        await uncompleteTask(task.id);
+      } else {
+        await completeTask(task.id);
+        showSuccess(
+          t('tasks.details.completeTitle'),
+          t('tasks.details.completeMessage', { title: task.title })
+        );
+      }
     } catch (e) {
-      showError('Error', getApiErrorMessage(e));
+      showError(t('common.error'), getApiErrorMessage(e));
     }
   };
 
@@ -69,10 +78,10 @@ export const TaskDetailScreen: React.FC = () => {
 
       <View style={styles.metaRow}>
         <View style={[styles.pill, { borderColor: priorityColor(task.priority) }]}>
-          <Text style={{ color: priorityColor(task.priority), fontWeight: '700', fontSize: 12 }}>{task.priority}</Text>
+          <Text style={{ color: priorityColor(task.priority), fontWeight: '700', fontSize: 12 }}>{translateTaskPriority(task.priority)}</Text>
         </View>
         <View style={[styles.pill, { borderColor: statusColor(task.status) }]}>
-          <Text style={{ color: statusColor(task.status), fontWeight: '700', fontSize: 12 }}>{task.status}</Text>
+          <Text style={{ color: statusColor(task.status), fontWeight: '700', fontSize: 12 }}>{translateTaskStatus(task.status)}</Text>
         </View>
       </View>
 
@@ -84,11 +93,11 @@ export const TaskDetailScreen: React.FC = () => {
       ) : null}
 
       <Button
-        label={task.status === TaskStatus.DONE ? 'Mark incomplete' : 'Mark complete'}
+        label={task.status === TaskStatus.DONE ? t(`tasks.details.markIncomplete`): t(`tasks.details.markComplete`)}
         onPress={toggleComplete}
       />
-      <Button label="Edit task" variant="secondary" onPress={() => navigation.navigate('TaskEdit', { taskId })} />
-      <Button label="Delete task" variant="ghost" onPress={handleDelete} />
+      <Button label={t(`tasks.details.editTask`)} variant="secondary" onPress={() => navigation.navigate('TaskEdit', { taskId })} />
+      <Button label={t(`tasks.details.deleteTask`)} variant="ghost" onPress={handleDelete} />
     </ScrollView>
   );
 };

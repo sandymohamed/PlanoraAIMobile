@@ -9,9 +9,12 @@ import {
   View,
 } from 'react-native';
 import NativeDateTimePicker from '@react-native-community/datetimepicker';
-import { addDays, format, isSameDay, nextSaturday, startOfDay } from 'date-fns';
+import { addDays, isSameDay, nextSaturday, startOfDay } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { openAndroidPicker } from '@/utils/dateTimePicker';
+import { formatDate } from '@/i18n';
 import { colors, radius, spacing, typography } from '@/theme/tokens';
+import { directionalTextStyle } from '@/utils/rtl';
 
 type PickerMode = 'date' | 'time' | 'datetime';
 type QuickAction = 'today' | 'tomorrow' | 'weekend' | 'nextWeek';
@@ -31,12 +34,7 @@ interface DateTimePickerProps {
   clearLabel?: string;
 }
 
-const QUICK_ACTIONS: { key: QuickAction; label: string }[] = [
-  { key: 'today', label: 'Today' },
-  { key: 'tomorrow', label: 'Tomorrow' },
-  { key: 'weekend', label: 'This Weekend' },
-  { key: 'nextWeek', label: 'Next Week' },
-];
+const QUICK_ACTIONS: QuickAction[] = ['today', 'tomorrow', 'weekend', 'nextWeek'];
 
 function dateForQuickAction(action: QuickAction) {
   const now = new Date();
@@ -68,9 +66,11 @@ function mergeDateAndTime(date: Date, time: Date) {
 
 function formatValue(value: Date | null | undefined, mode: PickerMode, hasTime?: boolean) {
   if (!value) return null;
-  if (mode === 'time') return format(value, 'h:mm a');
-  if (mode === 'date' || !hasTime) return format(value, 'EEE, MMM d');
-  return format(value, 'EEE, MMM d · h:mm a');
+  if (mode === 'time') return formatDate(value, { hour: 'numeric', minute: '2-digit' });
+  if (mode === 'date' || !hasTime) {
+    return formatDate(value, { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+  return `${formatDate(value, { weekday: 'short', month: 'short', day: 'numeric' })} · ${formatDate(value, { hour: 'numeric', minute: '2-digit' })}`;
 }
 
 function PressableRow({
@@ -84,16 +84,18 @@ function PressableRow({
   onPress: () => void;
   accessibilityLabel?: string;
 }) {
+  const { i18n } = useTranslation();
+  const isArabic = i18n.language.startsWith('ar');
   return (
     <TouchableOpacity
-      style={styles.selector}
+      style={[styles.selector, { alignItems: isArabic ? 'flex-end' : 'flex-start' }]}
       onPress={onPress}
       activeOpacity={0.85}
       accessibilityRole={'button' as AccessibilityRole}
       accessibilityLabel={accessibilityLabel || label}
     >
-      <Text style={styles.selectorLabel}>{label}</Text>
-      <Text style={styles.selectorValue}>{value}</Text>
+      <Text style={[styles.selectorLabel, directionalTextStyle()]}>{label}</Text>
+      <Text style={[styles.selectorValue, directionalTextStyle()]}>{value}</Text>
     </TouchableOpacity>
   );
 }
@@ -103,15 +105,18 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
   value,
   mode,
   onChange,
-  placeholder = 'Choose date',
+  placeholder,
   helperText,
   quickActions = mode !== 'time',
   optionalTime = false,
   hasTime = mode === 'datetime',
   onHasTimeChange,
   showClear = true,
-  clearLabel = 'Clear',
+  clearLabel,
 }) => {
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language.startsWith('ar');
+
   const [iosPickerMode, setIosPickerMode] = useState<'date' | 'time' | null>(null);
   const pickerAnim = useRef(new Animated.Value(0)).current;
 
@@ -188,44 +193,47 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
   const showTimeControl = mode === 'time' || ((mode === 'datetime' || optionalTime) && hasTime);
 
   return (
-    <View style={styles.card}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+    <View style={[styles.card]}>
+      {label ? <Text style={[styles.label, directionalTextStyle()]}>{label}</Text> : null}
 
       {quickActions && showDateControl ? (
-        <View style={styles.quickRow}>
-          {QUICK_ACTIONS.map((action) => (
-            <TouchableOpacity
-              key={action.key}
-              style={styles.quickChip}
-              onPress={() => handleQuickAction(action.key)}
-              activeOpacity={0.85}
-              accessibilityRole="button"
-              accessibilityLabel={`Set ${action.label}`}
-            >
-              <Text style={styles.quickText}>{action.label}</Text>
-            </TouchableOpacity>
-          ))}
+        <View style={[styles.quickRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
+          {QUICK_ACTIONS.map((action) => {
+            const actionLabel = t(`common.quickActions.${action}`);
+            return (
+              <TouchableOpacity
+                key={action}
+                style={[styles.quickChip,]}
+                onPress={() => handleQuickAction(action)}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={t('common.setQuickDate', { date: actionLabel })}
+              >
+                <Text style={[styles.quickText, directionalTextStyle()]}>{actionLabel}</Text>
+              </TouchableOpacity>
+            );
+          })}
           {showClear ? (
             <TouchableOpacity
               style={styles.quickChip}
               onPress={() => onChange(null)}
               activeOpacity={0.85}
               accessibilityRole="button"
-              accessibilityLabel={clearLabel}
+              accessibilityLabel={clearLabel || t('common.clear')}
             >
-              <Text style={styles.quickText}>{clearLabel}</Text>
+              <Text style={[styles.quickText, directionalTextStyle()]}> {clearLabel || t('common.clear')}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
       ) : null}
 
-      <PressableRow
-        label={mode === 'time' ? 'Time' : 'Custom Date'}
-        value={mode === 'time' ? displayValue || 'Select time' : displayValue || placeholder}
-        onPress={openDateTimePicker}
-        accessibilityLabel={mode === 'time' ? 'Select time' : 'Select custom date'}
-      />
 
+      <PressableRow
+        label={mode === 'time' ? t('common.time') : t('common.customDate')}
+        value={mode === 'time' ? displayValue || t('common.selectTime') : displayValue || placeholder || t('common.chooseDate')}
+        onPress={openDateTimePicker}
+        accessibilityLabel={mode === 'time' ? t('common.selectTime') : t('common.selectCustomDate')}
+      />
       {optionalTime && showDateControl && value ? (
         <TouchableOpacity
           style={[styles.timeToggle, hasTime && styles.timeToggleActive]}
@@ -233,28 +241,28 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
           activeOpacity={0.85}
           accessibilityRole="switch"
           accessibilityState={{ checked: hasTime }}
-          accessibilityLabel="Enable reminder time"
+          accessibilityLabel={t('common.enableReminderTime')}
         >
-          <Text style={[styles.timeToggleText, hasTime && styles.timeToggleTextActive]}>
-            {hasTime ? 'Reminder time on' : 'Add reminder time'}
+          <Text style={[styles.timeToggleText, hasTime && styles.timeToggleTextActive, directionalTextStyle()]}>
+            {hasTime ? t('common.reminderTimeOn') : t('common.addReminderTime')}
           </Text>
         </TouchableOpacity>
       ) : null}
 
       {showTimeControl && mode !== 'time' ? (
         <PressableRow
-          label="Time"
-          value={value ? format(value, 'h:mm a') : 'Select time'}
+          label={t('common.time')}
+          value={value ? formatDate(value, { hour: 'numeric', minute: '2-digit' }) : t('common.selectTime')}
           onPress={openTimePicker}
-          accessibilityLabel="Select reminder time"
+          accessibilityLabel={t('common.selectReminderTime')}
         />
       ) : null}
 
       <View style={styles.footerRow}>
-        {helperText ? <Text style={styles.helper}>{helperText}</Text> : <View />}
+        {helperText ? <Text style={[styles.helper, directionalTextStyle()]}>{helperText}</Text> : <View />}
         {showClear && value ? (
           <TouchableOpacity onPress={() => onChange(null)} accessibilityRole="button">
-            <Text style={styles.clear}>{clearLabel}</Text>
+            <Text style={[styles.clear, directionalTextStyle()]}>{clearLabel || t('common.clear')}</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -303,7 +311,7 @@ export function getNextAlarmDateForTime(time: Date, customDate?: Date | null) {
 }
 
 export function formatTimeValue(value: Date) {
-  return format(value, 'h:mm a');
+  return formatDate(value, { hour: 'numeric', minute: '2-digit' });
 }
 
 const styles = StyleSheet.create({

@@ -7,21 +7,19 @@ import {
   differenceInDays,
   isSameDay,
 } from 'date-fns';
+import i18n, { formatDate } from '@/i18n';
 import { useTaskStore } from '@/store/taskStore';
 import { useGoalStore } from '@/store/goalStore';
 import { useAlarmStore } from '@/store/alarmStore';
 import { routineService } from '@/services/routineService';
 import { routineEvents } from '@/services/routineEvents';
-import { reminderService, Reminder } from '@/services/reminderService';
 import { Routine } from '@/types/routine';
 import { Task, TaskStatus } from '@/types/task';
 import {
   CalendarViewMode,
   buildCalendarItems,
-  buildMonthRemindersMap,
   getCalendarDateRange,
   getMonthGridDays,
-  getRemindersForDate,
   getWeekDays,
   groupTasksByDayKey,
   sortTasksByDueTime,
@@ -48,7 +46,6 @@ export function useCalendarData() {
   const [viewMode, setViewMode] = useState<CalendarViewMode>('month');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [routines, setRoutines] = useState<Routine[]>([]);
-  const [routineReminders, setRoutineReminders] = useState<Reminder[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -58,17 +55,6 @@ export function useCalendarData() {
       setRoutines(data.filter((r) => r.enabled));
     } catch {
       setRoutines([]);
-    }
-  }, []);
-
-  const loadRoutineReminders = useCallback(async () => {
-    try {
-      const reminders = await reminderService.getUpcomingReminders();
-      setRoutineReminders(
-        reminders.filter((r) => r.schedule?.routineId && r.title?.includes('Routine'))
-      );
-    } catch {
-      setRoutineReminders([]);
     }
   }, []);
 
@@ -82,7 +68,6 @@ export function useCalendarData() {
         fetchTasks({ skipAlarmSync: true }),
         fetchGoals(1, 100),
         loadRoutines(),
-        loadRoutineReminders(),
       ]);
 
       if (includeAlarms) {
@@ -92,7 +77,7 @@ export function useCalendarData() {
       if (blocking) setIsLoading(false);
       else setIsSyncing(false);
     }
-  }, [fetchTasks, fetchGoals, fetchAlarms, loadRoutines, loadRoutineReminders]);
+  }, [fetchTasks, fetchGoals, fetchAlarms, loadRoutines]);
 
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
@@ -105,24 +90,18 @@ export function useCalendarData() {
   useEffect(() => {
     const unsubscribe = routineEvents.onDeleted((routineId) => {
       setRoutines((current) => current.filter((routine) => routine.id !== routineId));
-      setRoutineReminders((current) =>
-        current.filter((reminder) => reminder.schedule?.routineId !== routineId)
-      );
       fetchAlarms(1, 500, true, 0, { scheduleNative: false }).catch(() => {});
-      loadRoutineReminders().catch(() => {});
     });
 
     return () => {
       unsubscribe();
     };
-  }, [fetchAlarms, loadRoutineReminders]);
+  }, [fetchAlarms]);
 
   const dateRange = useMemo(
     () => getCalendarDateRange(viewMode, currentDate, selectedDate),
     [viewMode, currentDate, selectedDate]
   );
-
-  const enabledRoutines = useMemo(() => routines.filter((r) => r.enabled), [routines]);
 
   const allCalendarItems = useMemo(
     () =>
@@ -136,16 +115,6 @@ export function useCalendarData() {
       }),
     [tasks, goals, routines, alarms, dateRange.start, dateRange.end]
   );
-
-  const monthRemindersMap = useMemo(() => {
-    if (viewMode !== 'month' && viewMode !== 'agenda') return new Map();
-    return buildMonthRemindersMap(
-      routineReminders,
-      enabledRoutines,
-      dateRange.start,
-      dateRange.end
-    );
-  }, [viewMode, routineReminders, enabledRoutines, dateRange]);
 
   const getTasksForDate = useCallback(
     (date: Date) =>
@@ -167,17 +136,7 @@ export function useCalendarData() {
 
   const dayTasks = useMemo(() => getTasksForDate(selectedDate), [selectedDate, getTasksForDate]);
 
-  const dayReminders = useMemo(
-    () =>
-      getRemindersForDate(
-        selectedDate,
-        viewMode,
-        monthRemindersMap,
-        routineReminders,
-        enabledRoutines
-      ),
-    [selectedDate, viewMode, monthRemindersMap, routineReminders, enabledRoutines]
-  );
+  const dayReminders = useMemo(() => [], []);
 
   const agendaItems = useMemo(() => {
     const items = [...allCalendarItems].sort(sortTasksByDueTime);
@@ -206,6 +165,9 @@ export function useCalendarData() {
 
   const completeCalendarTask = useCallback(
     async (task: Task) => {
+      if (task.metadata?.isRoutineEvent) {
+        return;
+      }
       if (task.metadata?.isRoutineTask && task.metadata.routineTaskId) {
         const updatedRoutineTask = await routineService.toggleTaskCompletion(
           task.metadata.routineTaskId,
@@ -239,11 +201,7 @@ export function useCalendarData() {
     [updateTask]
   );
 
-  const getRemindersOnDay = useCallback(
-    (date: Date) =>
-      getRemindersForDate(date, viewMode, monthRemindersMap, routineReminders, enabledRoutines),
-    [viewMode, monthRemindersMap, routineReminders, enabledRoutines]
-  );
+  const getRemindersOnDay = useCallback((_date: Date) => [], []);
 
   const getTimeUntil = useCallback((dueDate: string) => {
     const now = new Date();
@@ -251,11 +209,11 @@ export function useCalendarData() {
     const mins = differenceInMinutes(taskDate, now);
     const hrs = differenceInHours(taskDate, now);
     const days = differenceInDays(taskDate, now);
-    if (mins < 0) return 'Overdue';
-    if (mins < 60) return `${mins}m left`;
-    if (hrs < 24) return `${hrs}h left`;
-    if (days < 7) return `${days}d left`;
-    return format(taskDate, 'MMM d');
+    if (mins < 0) return i18n.t('calendar.overdue');
+    if (mins < 60) return i18n.t('calendar.minutesLeft', { count: mins });
+    if (hrs < 24) return i18n.t('calendar.hoursLeft', { count: hrs });
+    if (days < 7) return i18n.t('calendar.daysLeft', { count: days });
+    return formatDate(taskDate, { month: 'short', day: 'numeric' });
   }, []);
 
   return useMemo(() => ({

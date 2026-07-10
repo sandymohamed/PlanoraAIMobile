@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Button } from '@/components/ui/Button';
@@ -19,33 +20,26 @@ import { waitlistService } from '@/services/waitlistService';
 import { track, AnalyticsEvents } from '@/analytics/posthog';
 import { showError } from '@/components/ConfirmationDialog';
 
-const PREMIUM_FEATURES: { icon: string; title: string; subtitle: string }[] = [
-  {
-    icon: 'infinity',
-    title: 'Unlimited AI Plans',
-    subtitle: 'Generate as many AI goal plans as you need — no monthly cap.',
-  },
-  {
-    icon: 'chart-line',
-    title: 'Advanced Analytics',
-    subtitle: 'Deeper insight into goals, routines, and where your time goes.',
-  },
-  {
-    icon: 'lightbulb-on',
-    title: 'Smart Productivity Reports',
-    subtitle: 'Personalized weekly reviews with actionable recommendations.',
-  },
-  {
-    icon: 'rocket-launch',
-    title: 'Future Premium Features',
-    subtitle: 'Early access to collaboration, themes, and everything we ship next.',
-  },
-];
+const PREMIUM_FEATURE_KEYS = ['unlimitedAi', 'analytics', 'reports', 'future'] as const;
+const FEATURE_ICONS: Record<(typeof PREMIUM_FEATURE_KEYS)[number], string> = {
+  unlimitedAi: 'infinity',
+  analytics: 'chart-line',
+  reports: 'lightbulb-on',
+  future: 'rocket-launch',
+};
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const PaywallScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language.startsWith('ar');
+  const textDir = {
+    textAlign: isArabic ? ('right' as const) : ('left' as const),
+    writingDirection: isArabic ? ('rtl' as const) : ('ltr' as const),
+  };
+  const rowDir = { flexDirection: isArabic ? ('row-reverse' as const) : ('row' as const) };
+
   const aiPlansRemaining = useSubscriptionStore((s) => s.aiPlansRemaining);
   const aiPlansLimit = useSubscriptionStore((s) => s.aiPlansLimit);
   const isPremium = useSubscriptionStore((s) => s.isPremium);
@@ -60,16 +54,17 @@ export const PaywallScreen: React.FC = () => {
     fetchAIUsage();
   }, [fetchAIUsage]);
 
+  const remaining = aiPlansRemaining ?? 0;
   const remainingLabel = isPremium
-    ? 'Unlimited AI plans'
+    ? t('paywall.usage.unlimited')
     : aiPlansLimit != null
-    ? `${aiPlansRemaining ?? 0} of ${aiPlansLimit} AI plans remaining this month`
-    : `${aiPlansRemaining ?? 0} AI plans remaining this month`;
+      ? t('paywall.usage.remainingWithLimit', { remaining, limit: aiPlansLimit })
+      : t('paywall.usage.remaining', { remaining });
 
   const handleJoin = async () => {
     const trimmed = email.trim();
     if (!EMAIL_RE.test(trimmed)) {
-      showError('Invalid email', 'Please enter a valid email address.');
+      showError(t('paywall.errors.invalidEmailTitle'), t('paywall.errors.invalidEmailMessage'));
       return;
     }
     setSubmitting(true);
@@ -79,7 +74,7 @@ export const PaywallScreen: React.FC = () => {
       track(AnalyticsEvents.WAITLIST_JOINED, { source: 'paywall' });
       setJoined(true);
     } catch {
-      showError('Something went wrong', 'We could not add you to the waitlist. Please try again.');
+      showError(t('paywall.errors.waitlistTitle'), t('paywall.errors.waitlistMessage'));
     } finally {
       setSubmitting(false);
     }
@@ -87,36 +82,37 @@ export const PaywallScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <TouchableOpacity style={styles.close} onPress={() => navigation.goBack()}>
+      <TouchableOpacity
+        style={[styles.close, { alignSelf: isArabic ? 'flex-start' : 'flex-end' }]}
+        onPress={() => navigation.goBack()}
+      >
         <Icon name="close" size={24} color={colors.text} />
       </TouchableOpacity>
 
       <LinearGradient colors={[colors.gradientStart, colors.gradientEnd]} style={styles.hero}>
-        <View style={styles.badge}>
+        <View style={[styles.badge, rowDir]}>
           <Icon name="crown" size={16} color="#fff" />
-          <Text style={styles.badgeText}>PREMIUM</Text>
+          <Text style={styles.badgeText}>{t('paywall.badge')}</Text>
         </View>
-        <Text style={styles.heroTitle}>Premium is coming soon</Text>
-        <Text style={styles.heroSub}>
-          We're building the most powerful version of Planora. Join the waitlist and be first to know.
-        </Text>
+        <Text style={[styles.heroTitle, textDir]}>{t('paywall.heroTitle')}</Text>
+        <Text style={[styles.heroSub, textDir]}>{t('paywall.heroSub')}</Text>
       </LinearGradient>
 
-      <View style={styles.usagePill}>
+      <View style={[styles.usagePill, rowDir]}>
         <Icon name="robot-happy-outline" size={16} color={colors.accent} />
-        <Text style={styles.usageText}>{remainingLabel}</Text>
+        <Text style={[styles.usageText, textDir]}>{remainingLabel}</Text>
       </View>
 
-      <Text style={styles.sectionTitle}>What you'll unlock</Text>
-      {PREMIUM_FEATURES.map((f) => (
-        <Card key={f.title} style={styles.featureCard}>
-          <View style={styles.featureRow}>
+      <Text style={[styles.sectionTitle, textDir]}>{t('paywall.sectionTitle')}</Text>
+      {PREMIUM_FEATURE_KEYS.map((key) => (
+        <Card key={key} style={styles.featureCard}>
+          <View style={[styles.featureRow, rowDir]}>
             <View style={styles.featureIcon}>
-              <Icon name={f.icon} size={22} color={colors.primary} />
+              <Icon name={FEATURE_ICONS[key]} size={22} color={colors.primary} />
             </View>
             <View style={styles.featureTextWrap}>
-              <Text style={styles.featureTitle}>{f.title}</Text>
-              <Text style={styles.featureSubtitle}>{f.subtitle}</Text>
+              <Text style={[styles.featureTitle, textDir]}>{t(`paywall.features.${key}.title`)}</Text>
+              <Text style={[styles.featureSubtitle, textDir]}>{t(`paywall.features.${key}.subtitle`)}</Text>
             </View>
           </View>
         </Card>
@@ -126,18 +122,16 @@ export const PaywallScreen: React.FC = () => {
         {joined ? (
           <View style={styles.joinedWrap}>
             <Icon name="check-circle" size={40} color={colors.success} />
-            <Text style={styles.joinedTitle}>You're on the list!</Text>
-            <Text style={styles.joinedSub}>
-              We'll email you the moment Premium launches. Thanks for being an early supporter.
-            </Text>
+            <Text style={[styles.joinedTitle, textDir]}>{t('paywall.waitlist.joinedTitle')}</Text>
+            <Text style={styles.joinedSub}>{t('paywall.waitlist.joinedSub')}</Text>
           </View>
         ) : (
           <>
-            <Text style={styles.waitlistTitle}>Join the Premium waitlist</Text>
-            <Text style={styles.waitlistSub}>No payment now — just early access when we launch.</Text>
+            <Text style={[styles.waitlistTitle, textDir]}>{t('paywall.waitlist.title')}</Text>
+            <Text style={[styles.waitlistSub, textDir]}>{t('paywall.waitlist.subtitle')}</Text>
             <TextInput
-              style={styles.input}
-              placeholder="you@example.com"
+              style={[styles.input, textDir]}
+              placeholder={t('paywall.waitlist.emailPlaceholder')}
               placeholderTextColor={colors.textMuted}
               value={email}
               onChangeText={setEmail}
@@ -147,7 +141,7 @@ export const PaywallScreen: React.FC = () => {
               editable={!submitting}
             />
             <Button
-              label={submitting ? 'Joining…' : 'Notify me at launch'}
+              label={submitting ? t('paywall.waitlist.joining') : t('paywall.waitlist.notifyMe')}
               onPress={handleJoin}
               disabled={submitting}
             />
@@ -157,7 +151,7 @@ export const PaywallScreen: React.FC = () => {
       </Card>
 
       <Text style={styles.legal}>
-        Premium pricing and billing are not active yet. The free plan includes {aiPlansLimit ?? 3} AI plans per month.
+        {t('paywall.legal', { limit: aiPlansLimit ?? 3 })}
       </Text>
     </ScrollView>
   );
@@ -166,10 +160,9 @@ export const PaywallScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
-  close: { alignSelf: 'flex-end', padding: spacing.sm },
+  close: { padding: spacing.sm },
   hero: { borderRadius: radius.lg, padding: spacing.xl, marginBottom: spacing.lg },
   badge: {
-    flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
     gap: spacing.xs,
@@ -183,7 +176,6 @@ const styles = StyleSheet.create({
   heroTitle: { ...typography.h1, color: '#fff' },
   heroSub: { ...typography.body, color: 'rgba(255,255,255,0.92)', marginTop: spacing.sm },
   usagePill: {
-    flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'center',
     gap: spacing.xs,
@@ -196,7 +188,7 @@ const styles = StyleSheet.create({
   usageText: { ...typography.caption, color: colors.accent, fontWeight: '600' },
   sectionTitle: { ...typography.h2, color: colors.text, marginBottom: spacing.md },
   featureCard: { marginBottom: spacing.md },
-  featureRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  featureRow: { alignItems: 'center', gap: spacing.md },
   featureIcon: {
     width: 44,
     height: 44,

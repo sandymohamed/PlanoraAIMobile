@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '@/services/apiClient';
 import { Button } from '@/components/ui/Button';
 import { PasswordInput } from '@/components/ui/PasswordInput';
@@ -10,6 +11,7 @@ import { getApiErrorMessage } from '@/utils/apiError';
 export const ResetPasswordScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const { t } = useTranslation();
   const token = route.params?.token as string;
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -19,11 +21,11 @@ export const ResetPasswordScreen: React.FC = () => {
   const submit = async () => {
     setError('');
     if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError(t('auth.passwordMinError'));
       return;
     }
     if (password !== confirm) {
-      setError('Passwords do not match');
+      setError(t('auth.passwordsDoNotMatch'));
       return;
     }
     setLoading(true);
@@ -39,23 +41,23 @@ export const ResetPasswordScreen: React.FC = () => {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Text style={styles.title}>New password</Text>
-      <Text style={styles.sub}>Choose a strong password for your account.</Text>
+      <Text style={styles.title}>{t('auth.newPassword')}</Text>
+      <Text style={styles.sub}>{t('auth.newPasswordSubtitle')}</Text>
       <PasswordInput
-        placeholder="New password"
+        placeholder={t('auth.newPassword')}
         placeholderTextColor={colors.textMuted}
         value={password}
         onChangeText={setPassword}
       />
       <PasswordInput
-        placeholder="Confirm password"
+        placeholder={t('auth.confirmPassword')}
         placeholderTextColor={colors.textMuted}
         value={confirm}
         onChangeText={setConfirm}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Button label="Reset password" onPress={submit} loading={loading} />
-      <Button label="Back to sign in" onPress={() => navigation.navigate('Login')} variant="ghost" />
+      <Button label={t('auth.resetPassword')} onPress={submit} loading={loading} />
+      <Button label={t('auth.backToSignIn')} onPress={() => navigation.navigate('Login')} variant="ghost" />
     </KeyboardAvoidingView>
   );
 };

@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/authStore';
 import { apiClient } from '@/services/apiClient';
 import { Button } from '@/components/ui/Button';
 import { colors, spacing, typography } from '@/theme/tokens';
+import { inputTextStyle } from '@/utils/rtl';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { showAlert, showError } from '@/components/ConfirmationDialog';
 
@@ -37,7 +38,7 @@ export const EditProfileScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Name</Text>
-      <TextInput style={styles.input} value={name} onChangeText={setName} placeholderTextColor={colors.textMuted} />
+      <TextInput style={[styles.input, inputTextStyle()]} value={name} onChangeText={setName} placeholderTextColor={colors.textMuted} />
       <Text style={styles.label}>Email</Text>
       <Text style={styles.readonly}>{user?.email}</Text>
       <Button label="Save" onPress={save} loading={loading} />

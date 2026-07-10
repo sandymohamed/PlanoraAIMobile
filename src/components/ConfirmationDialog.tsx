@@ -2,6 +2,7 @@ import { useConfirmationDialogStore } from '@/store/confirmationDialogStore';
 import type { ConfirmDialogOptions, DialogVariant } from '@/store/confirmationDialogStore';
 import { useActionSheetStore } from '@/store/actionSheetStore';
 import type { ActionSheetOptions } from '@/store/actionSheetStore';
+import i18n from '@/i18n';
 
 export function showConfirmDialog(options: ConfirmDialogOptions): void {
   useConfirmationDialogStore.getState().show(options);
@@ -10,14 +11,14 @@ export function showConfirmDialog(options: ConfirmDialogOptions): void {
 export function showDeleteConfirmation(
   itemTitle: string,
   onConfirm: () => void | Promise<void>,
-  entityLabel = 'task'
+  entityLabel = i18n.t('navigation.task')
 ): void {
   showConfirmDialog({
-    title: `Delete ${entityLabel}?`,
+    title: i18n.t('dialogs.deleteTitle', { entity: entityLabel }),
     itemName: itemTitle,
-    message: 'This cannot be undone. All related data will be removed.',
-    confirmLabel: 'Delete',
-    cancelLabel: 'Cancel',
+    message: i18n.t('dialogs.deleteMessage'),
+    confirmLabel: i18n.t('common.delete'),
+    cancelLabel: i18n.t('common.cancel'),
     destructive: true,
     onConfirm,
   });
@@ -37,7 +38,7 @@ export function showAlert(
     message,
     alert: true,
     variant: options.variant ?? 'info',
-    confirmLabel: options.confirmLabel ?? 'OK',
+    confirmLabel: options.confirmLabel ?? i18n.t('common.ok'),
     onConfirm: options.onConfirm,
   });
 }

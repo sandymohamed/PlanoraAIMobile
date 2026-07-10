@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { Image, Text, StyleSheet, TextInput, KeyboardAvoidingView, Platform, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { colors, spacing, typography } from '@/theme/tokens';
+import { inputTextStyle } from '@/utils/rtl';
 import { getApiErrorMessage } from '@/utils/apiError';
 
 const logoImage = require('@/assets/logo.jpg');
 
 export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { t } = useTranslation();
   const login = useAuthStore((s) => s.login);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -34,19 +37,19 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <Image source={logoImage} style={styles.logo} />
         <Text style={styles.brand}>Planora</Text>
       </View>
-      <Text style={styles.title}>Welcome back</Text>
-      <Text style={styles.sub}>Your goals deserve a real plan.</Text>
-      <TextInput style={styles.input} placeholder="Email" placeholderTextColor={colors.textMuted} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+      <Text style={styles.title}>{t('auth.welcomeBack')}</Text>
+      <Text style={styles.sub}>{t('auth.tagline')}</Text>
+      <TextInput style={[styles.input, inputTextStyle()]} placeholder={t('auth.email')} placeholderTextColor={colors.textMuted} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
       <PasswordInput
-        placeholder="Password"
+        placeholder={t('auth.password')}
         placeholderTextColor={colors.textMuted}
         value={password}
         onChangeText={setPassword}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Button label="Sign in" onPress={handleLogin} loading={loading} />
-      <Button label="Forgot password?" onPress={() => navigation.navigate('ForgotPassword')} variant="ghost" />
-      <Button label="Create account" onPress={() => navigation.navigate('Register')} variant="ghost" />
+      <Button label={t('auth.signIn')} onPress={handleLogin} loading={loading} />
+      <Button label={t('auth.forgotPassword')} onPress={() => navigation.navigate('ForgotPassword')} variant="ghost" />
+      <Button label={t('auth.createAccount')} onPress={() => navigation.navigate('Register')} variant="ghost" />
     </KeyboardAvoidingView>
   );
 };

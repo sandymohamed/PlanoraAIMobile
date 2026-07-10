@@ -1,20 +1,38 @@
-import React from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { colors, typography, radius } from '@/theme/tokens';
-import type { PlanType } from '@/store/subscriptionStore';
+import React from "react";
+import { View, Text, StyleSheet, ViewStyle } from "react-native";
+import { colors, typography, radius } from "@/theme/tokens";
+import type { PlanType } from "@/store/subscriptionStore";
+import { useTranslation } from "react-i18next";
 
 interface PremiumBadgeProps {
-  variant?: 'pro' | 'premium';
+  variant?: "pro" | "premium";
   style?: ViewStyle;
   small?: boolean;
 }
 
-export const PremiumBadge: React.FC<PremiumBadgeProps> = ({ variant = 'pro', style, small }) => {
-  const isPremium = variant === 'premium';
+export const PremiumBadge: React.FC<PremiumBadgeProps> = ({
+  variant = "pro",
+  style,
+  small,
+}) => {
+  const isPremium = variant === "premium";
   return (
-    <View style={[styles.badge, isPremium && styles.premium, small && styles.small, style]}>
-      <Text style={[styles.text, isPremium && styles.textPremium, small && styles.textSmall]}>
-        {isPremium ? 'PREMIUM' : 'PRO'}
+    <View
+      style={[
+        styles.badge,
+        isPremium && styles.premium,
+        small && styles.small,
+        style,
+      ]}
+    >
+      <Text
+        style={[
+          styles.text,
+          isPremium && styles.textPremium,
+          small && styles.textSmall,
+        ]}
+      >
+        {isPremium ? "PREMIUM" : "PRO"}
       </Text>
     </View>
   );
@@ -22,16 +40,21 @@ export const PremiumBadge: React.FC<PremiumBadgeProps> = ({ variant = 'pro', sty
 
 /** Show badge only when user is on free plan and feature is gated */
 export function PremiumLabel({
-  requiredPlan = 'pro',
+  requiredPlan = "pro",
   children,
 }: {
   requiredPlan?: PlanType;
   children: React.ReactNode;
 }) {
+  const { i18n } = useTranslation();
+
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, { flexDirection: i18n.language === 'ar' ? 'row-reverse' : 'row' }]}>
       {children}
-      <PremiumBadge variant={requiredPlan === 'premium' ? 'premium' : 'pro'} small />
+      <PremiumBadge
+        variant={requiredPlan === "premium" ? "premium" : "pro"}
+        small
+      />
     </View>
   );
 }
@@ -46,7 +69,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   premium: {
-    backgroundColor: 'rgba(94, 234, 212, 0.15)',
+    backgroundColor: "rgba(94, 234, 212, 0.15)",
     borderColor: colors.accent,
   },
   small: { paddingHorizontal: 6, paddingVertical: 2 },
@@ -54,10 +77,14 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.primary,
     fontSize: 9,
-    fontWeight: '800',
+    fontWeight: "800",
     letterSpacing: 0.8,
   },
   textPremium: { color: colors.accent },
   textSmall: { fontSize: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  row: {
+   
+    alignItems: "center",
+    gap: 6,
+  },
 });

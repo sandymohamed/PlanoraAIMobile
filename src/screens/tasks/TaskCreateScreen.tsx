@@ -11,6 +11,7 @@ import { TasksStackParamList } from '@/navigation/TasksStack';
 import { colors, spacing } from '@/theme/tokens';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { showError } from '@/components/ConfirmationDialog';
+import { useTranslation } from 'react-i18next';
 
 type Route = RouteProp<TasksStackParamList, 'TaskCreate'>;
 type Nav = NativeStackNavigationProp<TasksStackParamList, 'TaskCreate'>;
@@ -19,7 +20,7 @@ export const TaskCreateScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { createTask, isLoading } = useTaskStore();
-
+  const { t } = useTranslation();
   const [values, setValues] = useState<TaskFormValues>({
     title: '',
     description: '',
@@ -77,8 +78,8 @@ export const TaskCreateScreen: React.FC = () => {
       />
       <View style={styles.footer}>
         {isLoading ? <ActivityIndicator color={colors.primary} /> : null}
-        <Button label="Create task" onPress={handleSave} loading={isLoading} disabled={isLoading} />
-        <Button label="Cancel" variant="ghost" onPress={() => navigation.goBack()} />
+        <Button label={t(`tasks.form.createTask`)} onPress={handleSave} loading={isLoading} disabled={isLoading} />
+        <Button label={t(`common.cancel`)} variant="ghost" onPress={() => navigation.goBack()} />
       </View>
     </View>
   );

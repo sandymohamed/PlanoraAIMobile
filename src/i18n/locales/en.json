@@ -1,0 +1,555 @@
+{
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "dismiss": "Dismiss",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "done": "Done",
+    "loading": "Loading...",
+    "syncing": "Syncing...",
+    "error": "Error",
+    "success": "Success",
+    "retry": "Retry",
+    "search": "Search",
+    "clear": "Clear",
+    "none": "None",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "thisWeekend": "This weekend",
+    "nextWeek": "Next week",
+    "noDueDate": "No due date",
+    "customDate": "Custom date",
+    "chooseDate": "Choose date",
+    "selectCustomDate": "Select custom date",
+    "time": "Time",
+    "selectTime": "Select time",
+    "selectReminderTime": "Select reminder time",
+    "enableReminderTime": "Enable reminder time",
+    "reminderTimeOn": "Reminder time on",
+    "addReminderTime": "Add reminder time",
+    "setQuickDate": "Set {{date}}",
+    "quickActions": {
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "weekend": "This Weekend",
+      "nextWeek": "Next Week"
+    },
+    "minute_one": "{{count}} minute",
+    "minute_other": "{{count}} minutes",
+    "hour_one": "{{count}} hour",
+    "hour_other": "{{count}} hours",
+    "day_one": "{{count}} day",
+    "day_other": "{{count}} days",
+    "event_one": "{{count}} event",
+    "event_other": "{{count}} events",
+    "reminder_one": "{{count}} reminder",
+    "reminder_other": "{{count}} reminders"
+  },
+  "navigation": {
+    "home": "Home",
+    "tasks": "Tasks",
+    "calendar": "Calendar",
+    "profile": "Account",
+    "goals": "Goals",
+    "routines": "Habits",
+    "alarms": "Alarms",
+    "settings": "Settings",
+    "editProfile": "Edit profile",
+    "changePassword": "Change password",
+    "notifications": "Notifications",
+    "privacy": "Privacy",
+    "dataExport": "Data & export",
+    "helpSupport": "Help & support",
+    "about": "About",
+    "newTask": "New task",
+    "editTask": "Edit task",
+    "task": "Task",
+    "newGoal": "New goal",
+    "editGoal": "Edit goal",
+    "goal": "Goal",
+    "newRoutine": "New Habit",
+    "editRoutine": "Edit Habit",
+    "newAlarm": "New alarm",
+    "editAlarm": "Edit alarm",
+    "alarm": "Alarm",
+    "comparePlans": "Compare plans",
+    "weeklyReview": "Weekly review",
+    "focus": "Focus",
+    "language": "Language",
+    "goToHome": "Go to Home"
+  },
+  "tasks": {
+    "priority": {
+      "LOW": "Low",
+      "MEDIUM": "Medium",
+      "HIGH": "High",
+      "URGENT": "Urgent"
+    },
+    "status": {
+      "TODO": "To do",
+      "IN_PROGRESS": "In progress",
+      "DONE": "Done",
+      "ARCHIVED": "Archived"
+    },
+    "filter": {
+      "all": "All",
+      "TODO": "To do",
+      "IN_PROGRESS": "Active",
+      "DONE": "Done"
+    },
+    "dueDate": {
+      "overdue": "Overdue · {{date}}"
+    },
+    "details": {
+      "editTask": "Edit task",
+      "deleteTask": "Delete task",
+      "markIncomplete": "Mark incomplete",
+      "markComplete": "Mark complete",
+      "completeTitle": "Task complete!",
+      "completeMessage": "Nice work — \"{{title}}\" is done. Keep the momentum going!"
+    },
+    "form": {
+      "titleLabel": "Title *",
+      "titlePlaceholder": "What needs to be done?",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Optional details",
+      "priorityLabel": "Priority",
+      "statusLabel": "Status",
+      "dueDateLabel": "Due date & time",
+      "noDueDate": "No due date",
+      "dueDateHelper": "Pick a quick due date. Add time only when you want a reminder.",
+      "createTask": "Create task",
+      "errors": {
+        "titleRequired": "Title is required",
+        "dueDatePast": "Due date cannot be in the past"
+      }
+    }
+  },
+  "profile": {
+    "title": "Account",
+    "defaultName": "Planora user",
+    "premium": "Premium",
+    "freePlan": "Free plan",
+    "settingsAccount": "Account & Settings",
+    "upgradePremium": "Upgrade to Premium",
+    "aiWeeklyReview": "AI Weekly Insights",
+    "focusTimers": "Focus & Timer",
+    "remindersAlarms": "Reminders & Alarms",
+    "signOut": "Sign out"
+  },
+  "auth": {
+    "createAccount": "Create account",
+    "resetPassword": "Reset password",
+    "newPassword": "New password",
+    "welcomeBack": "Welcome back",
+    "tagline": "Your goals deserve a real plan.",
+    "email": "Email",
+    "password": "Password",
+    "passwordMin": "Password (min 6)",
+    "name": "Name",
+    "signIn": "Sign in",
+    "forgotPassword": "Forgot password?",
+    "startPlan": "Start your plan",
+    "signInInstead": "Sign in instead",
+    "emailAlreadyRegistered": "Email already registered",
+    "useDifferentEmail": "Use different email",
+    "couldNotCreateAccount": "Could not create account",
+    "enterName": "Enter your name (at least 2 characters)",
+    "enterValidEmail": "Enter a valid email",
+    "passwordMinError": "Password must be at least 6 characters",
+    "enterCode": "Enter code",
+    "emailCodeMessage": "We will email you a 6-digit verification code.",
+    "codeSentTo": "Code sent to {{email}}",
+    "enterSixDigitCode": "Enter the 6-digit code",
+    "invalidResponse": "Invalid response",
+    "sendCode": "Send code",
+    "verifyCode": "Verify code",
+    "backToSignIn": "Back to sign in",
+    "resendCode": "Resend code",
+    "newPasswordSubtitle": "Choose a strong password for your account.",
+    "confirmPassword": "Confirm password",
+    "passwordsDoNotMatch": "Passwords do not match"
+  },
+  "settings": {
+    "title": "Settings",
+    "accountSection": "Account",
+    "preferencesSection": "Preferences",
+    "supportSection": "Support",
+    "editProfile": "Edit profile",
+    "changePassword": "Change password",
+    "notifications": "Notifications",
+    "privacy": "Privacy",
+    "language": "Language",
+    "languageSubtitle": "Choose the app language",
+    "helpSupport": "Help & support",
+    "about": "About"
+  },
+  "notificationSettings": {
+    "pushNotifications": "Push notifications",
+    "pushNotificationsDesc": "Alerts on your phone for tasks, goals, and reminders",
+    "taskReminders": "Task reminders",
+    "taskRemindersDesc": "Get reminded before a task is due",
+    "goalReminders": "Goal reminders",
+    "goalRemindersDesc": "Updates about your goal deadlines and milestones",
+    "dueDateReminders": "Due date reminders",
+    "dueDateRemindersDesc": "A nudge when something is due today or overdue"
+  },
+  "alarms": {
+    "savedTitle": "Alarm saved",
+    "openPermissions": "Fix permissions",
+    "verifyPermissions": "Allow alarms on this phone",
+    "verifyPermissionsDesc": "Planora needs notification and exact-alarm access so alarms ring on time",
+    "screen": {
+      "title": "Alarms & timers",
+      "subtitle": "Snooze from the alarm notification when it rings (+5 min)",
+      "empty": "No upcoming alarms",
+      "soon": "Soon",
+      "past": "Past"
+    },
+    "recurrence": {
+      "none": "Once",
+      "daily": "Daily",
+      "weekdays": "Weekdays",
+      "weekends": "Weekends",
+      "weekly": "Weekly",
+      "group": {
+        "none": "One-time",
+        "daily": "Daily",
+        "weekdays": "Weekdays",
+        "weekends": "Weekends",
+        "weekly": "Weekly"
+      }
+    },
+    "form": {
+      "title": "Title",
+      "defaultTitle": "Alarm",
+      "alarmTime": "Alarm time",
+      "scheduledFor": "Scheduled for {{date}} · {{fullDate}}",
+      "selectTime": "Select time",
+      "customDate": "Custom Date",
+      "hideCustomDate": "Hide custom date",
+      "customAlarmDate": "Custom alarm date",
+      "autoDatePlaceholder": "Automatic today/tomorrow",
+      "autoDateHelper": "Leave empty to automatically use today or tomorrow based on the selected time.",
+      "autoDateHelperEdit": "Clear it to automatically use today or tomorrow based on the selected time.",
+      "useAutoDate": "Use automatic date",
+      "alarmSound": "Alarm sound",
+      "defaultRingtone": "Default alarm",
+      "customRingtone": "Custom ringtone",
+      "repeat": "Repeat",
+      "snoozeHint": "Snooze: 5 min from notification (up to 3 times)",
+      "createAlarm": "Create alarm",
+      "saveChanges": "Save changes",
+      "notFound": "Alarm not found",
+      "goBack": "Go back",
+      "titleRequired": "Title required",
+      "titleRequiredMessage": "Please enter an alarm title.",
+      "soundTitle": "Alarm sound",
+      "soundAndroidOnly": "Custom ringtones are available on Android.",
+      "pickRingtoneError": "Could not pick ringtone"
+    },
+    "errors": {
+      "exactAlarmTitle": "Allow exact alarms",
+      "exactAlarmMessage": "Your alarm was saved, but Android is blocking exact alarms. Open settings and turn on \"Alarms & reminders\" for Planora.",
+      "notificationsTitle": "Allow notifications",
+      "notificationsMessage": "Your alarm was saved, but notifications are off. Turn on notifications for Planora so alarms can ring.",
+      "connectionTitle": "Could not connect to the app",
+      "connectionMessage": "Your alarm was saved, but scheduling failed. Close and reopen Planora, then try again. If you are developing, make sure the Metro server is running.",
+      "genericTitle": "Alarm may not ring",
+      "genericMessage": "Your alarm was saved, but we could not schedule it on this device. Check alarm permissions in Settings → Alarms."
+    }
+  },
+  "focusScreen": {
+    "title": "Focus",
+    "subtitle": "Rings even when your screen is off or the app is closed.",
+    "sessionsToday": "Sessions today",
+    "focusedToday": "Focused today",
+    "modes": {
+      "pomodoro": { "label": "Pomodoro", "tagline": "Classic 25-minute focus block" },
+      "deep": { "label": "Deep work", "tagline": "Long, uninterrupted deep session" }
+    },
+    "inFocus": "In focus",
+    "paused": "Paused",
+    "min": "min",
+    "pause": "Pause",
+    "resume": "Resume",
+    "startSession": "Start session",
+    "reset": "Reset",
+    "sessionComplete": "Session complete",
+    "sessionCompleteMessage": "{{mode}} block done — nice work staying in flow.",
+    "stopAlarm": "Stop alarm",
+    "backgroundAlarmTitle": "Background alarm unavailable",
+    "backgroundAlarmMessage": "Grant exact alarm + notification permissions so the timer can ring when the screen is off."
+  },
+  "goals": {
+    "priority": {
+      "LOW": "Low",
+      "MEDIUM": "Medium",
+      "HIGH": "High",
+      "URGENT": "Urgent"
+    },
+    "status": {
+      "DRAFT": "Draft",
+      "ACTIVE": "Active",
+      "PAUSED": "Paused",
+      "DONE": "Done",
+      "CANCELLED": "Cancelled"
+    },
+    "milestoneStatus": {
+      "TODO": "To do",
+      "IN_PROGRESS": "In progress",
+      "DONE": "Done",
+      "CANCELLED": "Cancelled"
+    },
+    "categories": {
+      "Personal": "Personal",
+      "Work": "Work",
+      "Health": "Health",
+      "Learning": "Learning",
+      "Finance": "Finance",
+      "Other": "Other"
+    },
+    "filter": {
+      "all": "All",
+      "active": "Active",
+      "completed": "Done"
+    },
+    "screen": {
+      "searchPlaceholder": "Search goals...",
+      "empty": "No goals yet. Create one to get started.",
+      "overdue": "Overdue",
+      "daysLeft": "{{count}}d left",
+      "percentComplete": "{{percent}}% complete",
+      "target": "Target: {{date}}",
+      "notFound": "Goal not found"
+    },
+    "form": {
+      "title": "Title",
+      "titlePlaceholder": "What do you want to achieve?",
+      "description": "Description",
+      "descriptionOptional": "Optional details",
+      "priority": "Priority",
+      "category": "Category",
+      "targetDate": "Target date",
+      "noTargetDate": "No target date",
+      "targetDateHelper": "Use quick dates or choose a custom goal target.",
+      "createGoal": "Create goal",
+      "saveChanges": "Save changes",
+      "titleRequired": "Title required",
+      "titleRequiredMessage": "Enter a goal title."
+    },
+    "detail": {
+      "edit": "Edit",
+      "complete": "Complete",
+      "resume": "Resume",
+      "pause": "Pause",
+      "generateAiPlan": "Generate AI plan",
+      "milestones": "Milestones",
+      "add": "+ Add",
+      "noMilestones": "No milestones yet.",
+      "editMilestone": "Edit",
+      "deleteMilestone": "Delete",
+      "cancelGoal": "Cancel goal",
+      "newMilestone": "New milestone",
+      "editMilestoneTitle": "Edit milestone",
+      "milestoneTitle": "Title",
+      "milestoneDescription": "Description",
+      "noMilestoneDate": "No milestone date",
+      "noDate": "No date",
+      "milestoneDateHelper": "Choose a quick date or custom milestone target.",
+      "save": "Save",
+      "deleteMilestoneTitle": "Delete milestone?",
+      "cancelGoalTitle": "Cancel goal?",
+      "yes": "Yes",
+      "no": "No",
+      "planGenerated": "Plan generated",
+      "planGeneratedPremium": "Milestones and tasks were updated from your AI plan.",
+      "planGeneratedRemaining": "Milestones and tasks were updated. You have {{count}} AI plan remaining this month.",
+      "planGeneratedRemaining_other": "Milestones and tasks were updated. You have {{count}} AI plans remaining this month.",
+      "aiLimitTitle": "Monthly AI limit reached",
+      "seePremium": "See Premium",
+      "notNow": "Not now",
+      "milestoneTitleRequired": "Title required",
+      "milestoneTitleRequiredMessage": "Enter a milestone title."
+    },
+    "actions": {
+      "complete": "Complete",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteTitle": "Delete goal?"
+    }
+  },
+  "routines": {
+    "frequency": {
+      "DAILY": "Daily",
+      "WEEKLY": "Weekly",
+      "MONTHLY": "Monthly"
+    },
+    "days": {
+      "0": "Sun",
+      "1": "Mon",
+      "2": "Tue",
+      "3": "Wed",
+      "4": "Thu",
+      "5": "Fri",
+      "6": "Sat"
+    },
+    "remindBefore": {
+      "30m": "30m",
+      "1h": "1h",
+      "2h": "2h",
+      "1d": "1d"
+    },
+    "screen": {
+      "title": "Routines",
+      "subtitle": "Recurring habits with reset and reminders",
+      "emptyTitle": "No routines",
+      "emptyMessage": "Build a daily or weekly habit loop.",
+      "createRoutine": "Create routine",
+      "off": "OFF",
+      "schedule": "{{time}} · {{frequency}}{{days}}",
+      "daysSuffix": " · days {{days}}",
+      "reset": "Reset",
+      "delete": "Delete",
+      "resetTitle": "Reset routine",
+      "resetMessage": "Reset all sub-task completion for this period?",
+      "deleteTitle": "Delete routine"
+    },
+    "form": {
+      "title": "Title",
+      "description": "Description",
+      "frequency": "Frequency",
+      "time": "Time",
+      "days": "Days",
+      "dayOfMonth": "Day of month (1-31)",
+      "remindBefore": "Remind before",
+      "titleRequired": "Title is required",
+      "createRoutine": "Create routine",
+      "saveRoutine": "Save routine"
+    }
+  },
+  "paywall": {
+    "badge": "PREMIUM",
+    "heroTitle": "Premium is coming soon",
+    "heroSub": "We're building the most powerful version of Planora. Join the waitlist and be first to know.",
+    "usage": {
+      "unlimited": "Unlimited AI plans",
+      "remainingWithLimit": "{{remaining}} of {{limit}} AI plans remaining this month",
+      "remaining": "{{remaining}} AI plans remaining this month"
+    },
+    "sectionTitle": "What you'll unlock",
+    "features": {
+      "unlimitedAi": {
+        "title": "Unlimited AI Plans",
+        "subtitle": "Generate as many AI goal plans as you need — no monthly cap."
+      },
+      "analytics": {
+        "title": "Advanced Analytics",
+        "subtitle": "Deeper insight into goals, routines, and where your time goes."
+      },
+      "reports": {
+        "title": "Smart Productivity Reports",
+        "subtitle": "Personalized weekly reviews with actionable recommendations."
+      },
+      "future": {
+        "title": "Future Premium Features",
+        "subtitle": "Early access to collaboration, themes, and everything we ship next."
+      }
+    },
+    "waitlist": {
+      "title": "Join the Premium waitlist",
+      "subtitle": "No payment now — just early access when we launch.",
+      "emailPlaceholder": "you@example.com",
+      "notifyMe": "Notify me at launch",
+      "joining": "Joining…",
+      "joinedTitle": "You're on the list!",
+      "joinedSub": "We'll email you the moment Premium launches. Thanks for being an early supporter."
+    },
+    "legal": "Premium pricing and billing are not active yet. The free plan includes {{limit}} AI plans per month.",
+    "errors": {
+      "invalidEmailTitle": "Invalid email",
+      "invalidEmailMessage": "Please enter a valid email address.",
+      "waitlistTitle": "Something went wrong",
+      "waitlistMessage": "We could not add you to the waitlist. Please try again."
+    }
+  },
+  "home": {
+    "goodMorning": "Good morning",
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening",
+    "todayReady": "Here's your plan for today.",
+    "todaysFocusLabel": "TODAY'S FOCUS",
+    "focusTitle": "Complete your top 3 tasks",
+    "focusMeta": "Tap Tasks to see what's due",
+    "aiPlanner": "AI Coach",
+    "aiPlannerBody": "Review your active goal and let AI refine this week's plan.",
+    "focus": "Focus",
+    "weekly": "Weekly",
+    "todaysTasks": "Today's tasks",
+    "seeAll": "See all",
+    "noTasksToday": "No tasks due today",
+    "activeRoutines": "Active habits",
+    "manage": "Manage",
+    "noActiveRoutines": "No active habits",
+    "goalProgress": "Goal Progress",
+    "noGoals": "No goals yet, Create your first goal and let AI build your plan.",
+    "dayStreak": "{{count}} day streak",
+    "activeDaysThisWeek": "{{completed}}/7 active days this week — keep going",
+    "startStreak": "Complete a task today to start your streak"
+  },
+  "language": {
+    "title": "Language",
+    "subtitle": "Choose your preferred language. The app updates immediately.",
+    "english": "English",
+    "arabic": "العربية",
+    "current": "Current language",
+    "restartNote": "Some native screen directions may fully update after reopening the app.",
+    "changedTitle": "Language updated",
+    "changedMessage": "Planora is now using {{language}}."
+  },
+  "dialogs": {
+    "deleteTitle": "Delete {{entity}}?",
+    "deleteMessage": "This cannot be undone. All related data will be removed."
+  },
+  "calendar": {
+    "viewModes": {
+      "month": "Month",
+      "week": "Week",
+      "day": "Day",
+      "agenda": "Agenda"
+    },
+    "tapForToday": "Tap for today",
+    "syncing": "Syncing calendar...",
+    "next24Hours": "Next 24 hours",
+    "noEventsPeriod": "No events this period",
+    "add": "Add",
+    "addTask": "Add task",
+    "addTaskThisDay": "Add task this day",
+    "addGoal": "Add goal",
+    "newTask": "New task",
+    "newGoal": "New goal",
+    "newRoutine": "New habit",
+    "newAlarm": "New alarm",
+    "routine": "Habits",
+    "goal": "Goal",
+    "alarm": "Alarm",
+    "reminderBefore": "Reminder {{duration}} before",
+    "allDay": "All day",
+    "markIncomplete": "Mark incomplete",
+    "markComplete": "Mark complete",
+    "openDetails": "Open details",
+    "editTask": "Edit task",
+    "overdue": "Overdue",
+    "minutesLeft": "{{count}}m left",
+    "hoursLeft": "{{count}}h left",
+    "daysLeft": "{{count}}d left"
+  },
+  "errors": {
+    "connection": "Connection error",
+    "generic": "Something went wrong. Please try again."
+  }
+}

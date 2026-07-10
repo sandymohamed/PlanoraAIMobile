@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -6,16 +6,25 @@ import {
   TouchableOpacity,
   Animated,
   Easing,
-} from 'react-native';
-import { AppIcon as Icon } from '@/components/ui/AppIcon';
-import { Task, TaskStatus } from '@/types/task';
-import { colors, spacing, typography } from '@/theme/tokens';
-import { formatDueLabel, isTaskOverdue, priorityColor, statusColor } from '@/utils/taskUi';
+} from "react-native";
+import { AppIcon as Icon } from "@/components/ui/AppIcon";
+import { Task, TaskStatus } from "@/types/task";
+import { colors, spacing, typography } from "@/theme/tokens";
+import { directionalHitSlop } from "@/utils/rtl";
+import {
+  formatDueLabel,
+  isTaskOverdue,
+  priorityColor,
+  statusColor,
+  translateTaskPriority,
+  translateTaskStatus,
+} from "@/utils/taskUi";
+import { useTranslation } from "react-i18next";
 
 const COMPLETE_ANIM_MS = 380;
 const EXIT_ANIM_MS = 140;
 const ROW_MARGIN = spacing.sm;
-const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
+const HIT_SLOP = directionalHitSlop(8);
 
 type Props = {
   task: Task;
@@ -39,8 +48,11 @@ const TaskListRowComponent: React.FC<Props> = ({
   const isDone = task.status === TaskStatus.DONE;
   const overdue = isTaskOverdue(task);
   const dueLabel = formatDueLabel(task.dueDate, task.dueTime, { overdue });
+  const { i18n } = useTranslation();
 
-  const [phase, setPhase] = useState<'idle' | 'completing' | 'exiting' | 'uncompleting'>('idle');
+  const [phase, setPhase] = useState<
+    "idle" | "completing" | "exiting" | "uncompleting"
+  >("idle");
   const [busy, setBusy] = useState(false);
 
   const progress = useRef(new Animated.Value(0)).current;
@@ -53,12 +65,12 @@ const TaskListRowComponent: React.FC<Props> = ({
   const [measuredHeight, setMeasuredHeight] = useState(72);
 
   useEffect(() => {
-    if (isDone && phase === 'idle') {
+    if (isDone && phase === "idle") {
       checkScale.setValue(1);
       checkOpacity.setValue(1);
       greenOverlay.setValue(1);
       progress.setValue(1);
-    } else if (!isDone && phase === 'idle') {
+    } else if (!isDone && phase === "idle") {
       checkScale.setValue(0);
       checkOpacity.setValue(0);
       greenOverlay.setValue(0);
@@ -164,12 +176,12 @@ const TaskListRowComponent: React.FC<Props> = ({
     });
 
   const handleCheckPress = async () => {
-    if (busy || phase !== 'idle') return;
+    if (busy || phase !== "idle") return;
     setBusy(true);
 
     const resetVisuals = (completed?: boolean) => {
       const done = completed ?? task.status === TaskStatus.DONE;
-      setPhase('idle');
+      setPhase("idle");
       rowOpacity.setValue(1);
       rowCollapse.setValue(1);
       ringScale.setValue(1);
@@ -188,15 +200,15 @@ const TaskListRowComponent: React.FC<Props> = ({
 
     try {
       if (isDone) {
-        setPhase('uncompleting');
+        setPhase("uncompleting");
         await runUncompleteAnimation();
         await onToggleComplete();
         resetVisuals(false);
       } else {
-        setPhase('completing');
+        setPhase("completing");
         await runCompleteAnimation();
         if (dismissOnComplete) {
-          setPhase('exiting');
+          setPhase("exiting");
           await Promise.all([runExitAnimation(), onToggleComplete()]);
           resetVisuals(true);
         } else {
@@ -211,15 +223,16 @@ const TaskListRowComponent: React.FC<Props> = ({
     }
   };
 
-  const showCompletedLook = phase === 'completing' || phase === 'exiting' || isDone;
+  const showCompletedLook =
+    phase === "completing" || phase === "exiting" || isDone;
 
   const progressWidth = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
+    outputRange: ["0%", "100%"],
   });
 
   const animatedRowStyle = compact
-    ? { opacity: rowOpacity, overflow: 'hidden' as const }
+    ? { opacity: rowOpacity, overflow: "hidden" as const }
     : {
         opacity: rowOpacity,
         maxHeight: rowCollapse.interpolate({
@@ -230,7 +243,7 @@ const TaskListRowComponent: React.FC<Props> = ({
           inputRange: [0, 1],
           outputRange: [0, ROW_MARGIN],
         }),
-        overflow: 'hidden' as const,
+        overflow: "hidden" as const,
       };
 
   const animatedOverlayStyle = {
@@ -258,18 +271,25 @@ const TaskListRowComponent: React.FC<Props> = ({
           compact && showCompletedLook && styles.rowCompactDone,
           !compact && showCompletedLook && styles.rowComplete,
           !compact && overdue && !showCompletedLook && styles.rowOverdue,
+          { flexDirection: i18n.language === "ar" ? "row-reverse" : "row" },
         ]}
         onPress={onPress}
         activeOpacity={0.85}
-        disabled={busy && phase === 'exiting'}
+        disabled={busy && phase === "exiting"}
         onLayout={(e) => {
           const h = e.nativeEvent.layout.height;
-          if (h > 0 && phase === 'idle') setMeasuredHeight(h);
+          if (h > 0 && phase === "idle") setMeasuredHeight(h);
         }}
       >
-        <Animated.View style={[styles.greenWash, animatedOverlayStyle]} pointerEvents="none" />
+        <Animated.View
+          style={[styles.greenWash, animatedOverlayStyle]}
+          pointerEvents="none"
+        />
 
-        <Animated.View style={[styles.progressTrack, { width: progressWidth }]} pointerEvents="none" />
+        <Animated.View
+          style={[styles.progressTrack, { width: progressWidth }]}
+          pointerEvents="none"
+        />
 
         <TouchableOpacity
           style={[styles.check, compact && styles.checkCompact]}
@@ -278,14 +298,26 @@ const TaskListRowComponent: React.FC<Props> = ({
           disabled={busy}
         >
           <Animated.View style={animatedRingStyle}>
-            <View style={[styles.checkIconStack, compact && styles.checkIconStackCompact]}>
+            <View
+              style={[
+                styles.checkIconStack,
+                compact && styles.checkIconStackCompact,
+                {
+                  flexDirection: i18n.language === "ar" ? "row-reverse" : "row",
+                },
+              ]}
+            >
               <Icon
                 name="checkbox-blank-circle-outline"
                 size={compact ? 22 : 26}
                 color={showCompletedLook ? colors.success : colors.textMuted}
               />
               <Animated.View style={[styles.checkFilled, animatedCheckStyle]}>
-                <Icon name="checkbox-marked-circle" size={compact ? 22 : 26} color={colors.success} />
+                <Icon
+                  name="checkbox-marked-circle"
+                  size={compact ? 22 : 26}
+                  color={colors.success}
+                />
               </Animated.View>
             </View>
           </Animated.View>
@@ -293,35 +325,84 @@ const TaskListRowComponent: React.FC<Props> = ({
 
         <View style={styles.rowBody}>
           <Text
-            style={[styles.rowTitle, compact && styles.rowTitleCompact, showCompletedLook && styles.rowTitleDone]}
+            style={[
+              styles.rowTitle,
+              compact && styles.rowTitleCompact,
+              showCompletedLook && styles.rowTitleDone,
+              {
+                textAlign: i18n.language === "ar" ? "right" : "left",
+              },
+            ]}
             numberOfLines={compact ? 1 : 2}
           >
             {task.title}
           </Text>
           {!compact && dueLabel ? (
-            <Text style={[styles.due, overdue && !showCompletedLook && styles.dueOverdue]}>{dueLabel}</Text>
+            <Text
+              style={[
+                styles.due,
+                overdue && !showCompletedLook && styles.dueOverdue,
+                {
+                  textAlign: i18n.language === "ar" ? "right" : "left",
+                },
+              ]}
+            >
+              {dueLabel}
+            </Text>
           ) : null}
           {!compact ? (
-            <View style={styles.meta}>
-              <View style={[styles.badge, { borderColor: priorityColor(task.priority) }]}>
-                <Text style={[styles.badgeText, { color: priorityColor(task.priority) }]}>
-                  {task.priority}
+            <View
+              style={[
+                styles.meta,
+
+                {
+                  flexDirection: i18n.language === "ar" ? "row-reverse" : "row",
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.badge,
+                  { borderColor: priorityColor(task.priority) },
+                  {
+                    flexDirection:
+                      i18n.language === "ar" ? "row-reverse" : "row",
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.badgeText,
+                    { color: priorityColor(task.priority) },
+                  ]}
+                >
+                  {translateTaskPriority(task.priority)}
                 </Text>
               </View>
               <Text
                 style={[
                   styles.statusText,
-                  { color: showCompletedLook ? colors.success : statusColor(task.status) },
+                  {
+                    color: showCompletedLook
+                      ? colors.success
+                      : statusColor(task.status),
+                  },
                 ]}
               >
-                {showCompletedLook && phase !== 'idle' ? 'Done' : task.status}
+                {showCompletedLook && phase !== "idle"
+                  ? translateTaskStatus(TaskStatus.DONE)
+                  : translateTaskStatus(task.status)}
               </Text>
             </View>
           ) : null}
         </View>
 
         {onDelete ? (
-          <TouchableOpacity onPress={onDelete} hitSlop={HIT_SLOP} disabled={busy}>
+          <TouchableOpacity
+            onPress={onDelete}
+            hitSlop={HIT_SLOP}
+            disabled={busy}
+          >
             <Icon name="trash-can-outline" size={20} color={colors.textMuted} />
           </TouchableOpacity>
         ) : null}
@@ -330,80 +411,95 @@ const TaskListRowComponent: React.FC<Props> = ({
   );
 };
 
-export const TaskListRow = React.memo(TaskListRowComponent, (prev, next) => (
-  prev.compact === next.compact &&
-  prev.dismissOnComplete === next.dismissOnComplete &&
-  Boolean(prev.onDelete) === Boolean(next.onDelete) &&
-  prev.task.id === next.task.id &&
-  prev.task.title === next.task.title &&
-  prev.task.status === next.task.status &&
-  prev.task.priority === next.task.priority &&
-  prev.task.dueDate === next.task.dueDate &&
-  prev.task.dueTime === next.task.dueTime
-));
+export const TaskListRow = React.memo(
+  TaskListRowComponent,
+  (prev, next) =>
+    prev.compact === next.compact &&
+    prev.dismissOnComplete === next.dismissOnComplete &&
+    Boolean(prev.onDelete) === Boolean(next.onDelete) &&
+    prev.task.id === next.task.id &&
+    prev.task.title === next.task.title &&
+    prev.task.status === next.task.status &&
+    prev.task.priority === next.task.priority &&
+    prev.task.dueDate === next.task.dueDate &&
+    prev.task.dueTime === next.task.dueTime,
+);
 
 const styles = StyleSheet.create({
   rowCompact: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: spacing.sm,
     paddingHorizontal: 0,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     borderWidth: 0,
     borderRadius: 0,
   },
   rowCompactDone: {
-    backgroundColor: 'rgba(74, 222, 128, 0.1)',
+    backgroundColor: "rgba(74, 222, 128, 0.1)",
     borderRadius: 8,
   },
   row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     padding: spacing.md,
     backgroundColor: colors.surface,
     borderRadius: 12,
     marginBottom: 0,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   rowComplete: {
     borderColor: colors.success,
-    backgroundColor: 'rgba(74, 222, 128, 0.08)',
+    backgroundColor: "rgba(74, 222, 128, 0.08)",
   },
   rowOverdue: {
     borderColor: colors.error,
     borderWidth: 1.5,
-    backgroundColor: 'rgba(248, 113, 113, 0.08)',
+    backgroundColor: "rgba(248, 113, 113, 0.08)",
   },
   greenWash: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(74, 222, 128, 0.14)',
+    backgroundColor: "rgba(74, 222, 128, 0.14)",
   },
   progressTrack: {
-    position: 'absolute',
-    left: 0,
+    position: "absolute",
+    start: 0,
     bottom: 0,
     height: 3,
     backgroundColor: colors.success,
-    borderBottomLeftRadius: 12,
+    borderBottomStartRadius: 12,
   },
-  check: { marginRight: spacing.sm, marginTop: 2, zIndex: 1 },
+  check: { marginEnd: spacing.sm, marginTop: 2, zIndex: 1 },
   checkCompact: { marginTop: 0 },
   checkIconStack: { width: 26, height: 26 },
   checkIconStackCompact: { width: 22, height: 22, marginTop: 0 },
-  rowTitleCompact: { fontWeight: '500' },
+  rowTitleCompact: { fontWeight: "500" },
   checkFilled: {
-    position: 'absolute',
-    left: 0,
+    position: "absolute",
+    start: 0,
     top: 0,
   },
   rowBody: { flex: 1, zIndex: 1 },
-  rowTitle: { ...typography.body, color: colors.text, fontWeight: '600' },
-  rowTitleDone: { textDecorationLine: 'line-through', color: colors.textSecondary },
+  rowTitle: { ...typography.body, color: colors.text, fontWeight: "600", padding: 2 },
+  rowTitleDone: {
+    textDecorationLine: "line-through",
+    color: colors.textSecondary,
+  },
   due: { ...typography.caption, color: colors.accent, marginTop: 4 },
-  dueOverdue: { color: colors.error, fontWeight: '600' },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
-  badge: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  badgeText: { fontSize: 10, fontWeight: '700' },
+  dueOverdue: { color: colors.error, fontWeight: "600" },
+  meta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  badge: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  badgeText: { fontSize: 10, fontWeight: "700" },
   statusText: { ...typography.label, fontSize: 10 },
 });

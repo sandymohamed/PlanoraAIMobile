@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useGoalStore } from '@/store/goalStore';
 import { GoalPriority } from '@/types/goal';
 import { colors, spacing, typography } from '@/theme/tokens';
@@ -22,6 +23,10 @@ export const GoalEditScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { goalId } = useRoute<RouteProp<{ params: { goalId: string } }, 'params'>>().params;
   const { currentGoal, fetchGoal, updateGoal, isLoading } = useGoalStore();
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language.startsWith('ar');
+  const textDir = { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' } as const;
+  const rowDir = { flexDirection: isArabic ? 'row-reverse' : 'row' } as const;
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -46,7 +51,7 @@ export const GoalEditScreen: React.FC = () => {
   const submit = async () => {
     if (submitting.current) return;
     if (!title.trim()) {
-      showAlert('Title required', 'Enter a goal title.', { variant: 'warning' });
+      showAlert(t('goals.form.titleRequired'), t('goals.form.titleRequiredMessage'), { variant: 'warning' });
       return;
     }
     submitting.current = true;
@@ -60,7 +65,7 @@ export const GoalEditScreen: React.FC = () => {
       });
       navigation.goBack();
     } catch (e) {
-      showError('Error', getApiErrorMessage(e));
+      showError(t('common.error'), getApiErrorMessage(e));
     } finally {
       submitting.current = false;
     }
@@ -76,49 +81,53 @@ export const GoalEditScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.label}>Title</Text>
-      <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholderTextColor={colors.textMuted} />
+      <Text style={[styles.label, textDir]}>{t('goals.form.title')}</Text>
+      <TextInput style={[styles.input, textDir]} value={title} onChangeText={setTitle} placeholderTextColor={colors.textMuted} />
 
-      <Text style={styles.label}>Description</Text>
+      <Text style={[styles.label, textDir]}>{t('goals.form.description')}</Text>
       <TextInput
-        style={[styles.input, styles.multiline]}
+        style={[styles.input, styles.multiline, textDir]}
         value={description}
         onChangeText={setDescription}
         multiline
         placeholderTextColor={colors.textMuted}
       />
 
-      <Text style={styles.label}>Priority</Text>
-      <View style={styles.row}>
+      <Text style={[styles.label, textDir]}>{t('goals.form.priority')}</Text>
+      <View style={[styles.row, rowDir]}>
         {Object.values(GoalPriority).map((p) => (
           <TouchableOpacity key={p} style={[styles.chip, priority === p && styles.chipActive]} onPress={() => setPriority(p)}>
-            <Text style={[styles.chipText, priority === p && styles.chipTextActive]}>{p}</Text>
+            <Text style={[styles.chipText, textDir, priority === p && styles.chipTextActive]}>{t(`goals.priority.${p}`)}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      <Text style={styles.label}>Category</Text>
-      <View style={styles.rowWrap}>
+      <Text style={[styles.label, textDir]}>{t('goals.form.category')}</Text>
+      <View style={[styles.rowWrap, rowDir]}>
         {CATEGORIES.map((c) => (
           <TouchableOpacity key={c} style={[styles.chip, category === c && styles.chipActive]} onPress={() => setCategory(c)}>
-            <Text style={[styles.chipText, category === c && styles.chipTextActive]}>{c}</Text>
+            <Text style={[styles.chipText, textDir, category === c && styles.chipTextActive]}>{t(`goals.categories.${c}`)}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      <Text style={styles.label}>Target date</Text>
+      <Text style={[styles.label, textDir]}>{t('goals.form.targetDate')}</Text>
       <DateTimePicker
         mode="date"
         value={targetDate}
         onChange={setTargetDate}
-        placeholder="No target date"
-        clearLabel="No target date"
-        helperText="Use quick dates or choose a custom goal target."
+        placeholder={t('goals.form.noTargetDate')}
+        clearLabel={t('goals.form.noTargetDate')}
+        helperText={t('goals.form.targetDateHelper')}
         showClear={Boolean(targetDate)}
       />
 
       <TouchableOpacity style={styles.submit} onPress={submit} disabled={isLoading}>
-        {isLoading ? <ActivityIndicator color={colors.background} /> : <Text style={styles.submitText}>Save changes</Text>}
+        {isLoading ? (
+          <ActivityIndicator color={colors.background} />
+        ) : (
+          <Text style={[styles.submitText, textDir]}>{t('goals.form.saveChanges')}</Text>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );
@@ -138,8 +147,8 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSubtle,
   },
   multiline: { minHeight: 88, textAlignVertical: 'top' },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  rowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  row: { flexWrap: 'wrap', gap: spacing.sm },
+  rowWrap: { flexWrap: 'wrap', gap: spacing.sm },
   chip: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,

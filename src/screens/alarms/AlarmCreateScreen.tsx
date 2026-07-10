@@ -9,46 +9,44 @@ import {
   ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useAlarmStore } from '@/store/alarmStore';
 import { alarmPermissionService } from '@/services/AlarmPermissionService';
 import { nativeAlarmBridge } from '@/services/NativeAlarmBridge';
-import { showAlert, showError } from '@/components/ConfirmationDialog';
+import { showAlert, showError, showConfirmDialog } from '@/components/ConfirmationDialog';
+import { AlarmScheduleWarning } from '@/utils/alarmErrors';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { DateTimePicker, formatTimeValue, getNextAlarmDateForTime } from '@/components/ui/DateTimePicker';
 import { format, isTomorrow, isToday } from 'date-fns';
 
-const RECURRENCE_OPTIONS = [
-  { value: 'none', label: 'Once' },
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekdays', label: 'Weekdays' },
-  { value: 'weekends', label: 'Weekends' },
-  { value: 'weekly', label: 'Weekly' },
-];
+const RECURRENCE_OPTIONS = ['none', 'daily', 'weekdays', 'weekends', 'weekly'] as const;
 
 export const AlarmCreateScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language.startsWith('ar');
   const createAlarm = useAlarmStore((s) => s.createAlarm);
-  const [title, setTitle] = useState('Alarm');
+  const [title, setTitle] = useState(t('alarms.form.defaultTitle'));
   const [alarmTime, setAlarmTime] = useState(new Date(Date.now() + 3600000));
   const [customDate, setCustomDate] = useState<Date | null>(null);
   const [showCustomDate, setShowCustomDate] = useState(false);
   const [recurrence, setRecurrence] = useState('none');
   const [ringtoneUri, setRingtoneUri] = useState<string | null>(null);
-  const [ringtoneName, setRingtoneName] = useState('Default alarm');
+  const [ringtoneName, setRingtoneName] = useState(t('alarms.form.defaultRingtone'));
   const saving = useRef(false);
 
   const when = useMemo(() => getNextAlarmDateForTime(alarmTime, customDate), [alarmTime, customDate]);
   const dateLabel = customDate
     ? format(when, 'EEE, MMM d')
     : isToday(when)
-      ? 'Today'
+      ? t('common.today')
       : isTomorrow(when)
-        ? 'Tomorrow'
+        ? t('common.tomorrow')
         : format(when, 'EEE, MMM d');
 
   const pickRingtone = async () => {
     if (Platform.OS !== 'android') {
-      showAlert('Alarm sound', 'Custom ringtones are available on Android.');
+      showAlert(t('alarms.form.soundTitle'), t('alarms.form.soundAndroidOnly'));
       return;
     }
     try {
@@ -56,10 +54,10 @@ export const AlarmCreateScreen: React.FC = () => {
       if (!uri) return;
       setRingtoneUri(uri);
       const name = await nativeAlarmBridge.getRingtoneTitle(uri);
-      setRingtoneName(name || 'Custom ringtone');
+      setRingtoneName(name || t('alarms.form.customRingtone'));
     } catch (e: any) {
       if (!String(e?.message).includes('CANCELLED')) {
-        showError('Error', e?.message || 'Could not pick ringtone');
+        showError(t('common.error'), e?.message || t('alarms.form.pickRingtoneError'));
       }
     }
   };
@@ -80,7 +78,23 @@ export const AlarmCreateScreen: React.FC = () => {
       });
       navigation.goBack();
     } catch (e: any) {
-      showError('Error', e.message);
+      if (e instanceof AlarmScheduleWarning) {
+        navigation.goBack();
+        if (e.info.canOpenSettings) {
+          showConfirmDialog({
+            title: t('alarms.savedTitle'),
+            message: e.info.message,
+            confirmLabel: t('alarms.openPermissions'),
+            cancelLabel: t('common.ok'),
+            variant: 'warning',
+            onConfirm: async () => { await alarmPermissionService.requestAllPermissions(); },
+          });
+        } else {
+          showAlert(t('alarms.savedTitle'), e.info.message, { variant: 'warning' });
+        }
+        return;
+      }
+      showError(t('common.error'), e.message);
     } finally {
       saving.current = false;
     }
@@ -88,20 +102,33 @@ export const AlarmCreateScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: spacing.xl }}>
-      <Text style={styles.label}>Title</Text>
-      <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholderTextColor={colors.textMuted} />
+      <Text style={[styles.label, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+        {t('alarms.form.title')}
+      </Text>
+      <TextInput
+        style={[styles.input, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}
+        value={title}
+        onChangeText={setTitle}
+        placeholderTextColor={colors.textMuted}
+      />
 
       <View style={styles.timeHero}>
-        <Text style={styles.heroLabel}>Alarm time</Text>
-        <Text style={styles.heroTime}>{formatTimeValue(alarmTime)}</Text>
-        <Text style={styles.heroDate}>Scheduled for {dateLabel} · {format(when, 'MMM d, yyyy')}</Text>
+        <Text style={[styles.heroLabel, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+          {t('alarms.form.alarmTime')}
+        </Text>
+        <Text style={[styles.heroTime, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+          {formatTimeValue(alarmTime)}
+        </Text>
+        <Text style={[styles.heroDate, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+          {t('alarms.form.scheduledFor', { date: dateLabel, fullDate: format(when, 'MMM d, yyyy') })}
+        </Text>
       </View>
 
       <DateTimePicker
         mode="time"
         value={alarmTime}
         onChange={(date) => date && setAlarmTime(date)}
-        label="Select time"
+        label={t('alarms.form.selectTime')}
         quickActions={false}
         showClear={false}
       />
@@ -111,7 +138,9 @@ export const AlarmCreateScreen: React.FC = () => {
         onPress={() => setShowCustomDate((v) => !v)}
         activeOpacity={0.85}
       >
-        <Text style={styles.customDateText}>{showCustomDate ? 'Hide custom date' : 'Custom Date'}</Text>
+        <Text style={[styles.customDateText, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+          {showCustomDate ? t('alarms.form.hideCustomDate') : t('alarms.form.customDate')}
+        </Text>
       </TouchableOpacity>
 
       {showCustomDate ? (
@@ -119,39 +148,49 @@ export const AlarmCreateScreen: React.FC = () => {
           mode="date"
           value={customDate}
           onChange={setCustomDate}
-          label="Custom alarm date"
-          placeholder="Automatic today/tomorrow"
-          helperText="Leave empty to automatically use today or tomorrow based on the selected time."
-          clearLabel="Use automatic date"
+          label={t('alarms.form.customAlarmDate')}
+          placeholder={t('alarms.form.autoDatePlaceholder')}
+          helperText={t('alarms.form.autoDateHelper')}
+          clearLabel={t('alarms.form.useAutoDate')}
           showClear={Boolean(customDate)}
         />
       ) : null}
 
       {Platform.OS === 'android' && (
         <>
-          <Text style={styles.label}>Alarm sound</Text>
+          <Text style={[styles.label, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+            {t('alarms.form.alarmSound')}
+          </Text>
           <TouchableOpacity style={styles.input} onPress={pickRingtone}>
-            <Text style={{ color: colors.text }}>{ringtoneName}</Text>
+            <Text style={{ color: colors.text, textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }}>
+              {ringtoneName}
+            </Text>
           </TouchableOpacity>
         </>
       )}
-      <Text style={styles.label}>Repeat</Text>
-      <View style={styles.chipRow}>
-        {RECURRENCE_OPTIONS.map((opt) => (
+      <Text style={[styles.label, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+        {t('alarms.form.repeat')}
+      </Text>
+      <View style={[styles.chipRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
+        {RECURRENCE_OPTIONS.map((value) => (
           <TouchableOpacity
-            key={opt.value}
-            style={[styles.chip, recurrence === opt.value && styles.chipActive]}
-            onPress={() => setRecurrence(opt.value)}
+            key={value}
+            style={[styles.chip, recurrence === value && styles.chipActive]}
+            onPress={() => setRecurrence(value)}
           >
-            <Text style={[styles.chipText, recurrence === opt.value && styles.chipTextActive]}>
-              {opt.label}
+            <Text style={[styles.chipText, recurrence === value && styles.chipTextActive, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+              {t(`alarms.recurrence.${value}`)}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
-      <Text style={styles.hint}>Snooze: 5 min from notification (up to 3 times)</Text>
+      <Text style={[styles.hint, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+        {t('alarms.form.snoozeHint')}
+      </Text>
       <TouchableOpacity style={styles.save} onPress={save}>
-        <Text style={styles.saveText}>Create alarm</Text>
+        <Text style={[styles.saveText, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+          {t('alarms.form.createAlarm')}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -191,7 +230,7 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSubtle,
   },
   customDateText: { ...typography.caption, color: colors.primary, fontWeight: '600' },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
+  chipRow: { flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   chip: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,

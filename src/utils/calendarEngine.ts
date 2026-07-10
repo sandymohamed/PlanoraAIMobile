@@ -202,11 +202,17 @@ export function goalsToCalendarTasks(goals: Goal[]): Task[] {
 
 export function routinesToCalendarTasks(
   routines: Routine[],
+  alarms: Alarm[],
   rangeStart: Date,
   rangeEnd: Date
 ): Task[] {
-  const routineTasks: Task[] = [];
+  const routineEvents: Task[] = [];
   const now = new Date();
+  const enabledRoutineAlarmTitles = new Set(
+    alarms
+      .filter((alarm) => alarm.enabled && alarm.title.startsWith('Routine: '))
+      .map((alarm) => alarm.title.replace(/^Routine:\s*/, '').trim().toLowerCase())
+  );
 
   routines
     .filter((r) => r.enabled)
@@ -216,72 +222,79 @@ export function routinesToCalendarTasks(
       const hour = parseInt(timeParts[0], 10);
       const minute = parseInt(timeParts[1], 10);
 
-      routine.routineTasks?.forEach((routineTask) => {
-        const pushInstance = (loopDate: Date, extra?: Record<string, unknown>) => {
-          const taskDate = new Date(loopDate);
-          taskDate.setHours(hour, minute, 0, 0);
-          const isCompletedOnDate =
-            routineTask.completed &&
-            routineTask.completedAt &&
-            isSameDay(new Date(routineTask.completedAt), loopDate);
-          routineTasks.push({
-            id: `routine_${routineTask.id}_${format(loopDate, 'yyyy-MM-dd')}`,
-            title: routineTask.title,
-            description: routineTask.description,
-            status: isCompletedOnDate ? TaskStatus.DONE : TaskStatus.TODO,
-            priority:
-              !isCompletedOnDate && taskDate < now ? TaskPriority.URGENT : TaskPriority.MEDIUM,
-            dueDate: taskDate.toISOString(),
-            dueTime: schedule.time,
-            createdBy: routine.userId,
-            tags: ['routine'],
-            order: routineTask.order,
-            metadata: {
-              routineId: routine.id,
-              routineTaskId: routineTask.id,
-              routineTitle: routine.title,
-              isRoutineTask: true,
-              ...extra,
-            },
-            createdAt: routineTask.createdAt,
-            updatedAt: routineTask.updatedAt,
-            isDeleted: false,
-          });
-        };
+      const tasks = routine.routineTasks || [];
+      const hasAlarm = enabledRoutineAlarmTitles.has(routine.title.trim().toLowerCase());
+      const hasReminder = Boolean(routine.reminderBefore);
 
-        if (routine.frequency === 'DAILY') {
-          const loop = new Date(rangeStart);
-          while (loop <= rangeEnd) {
-            pushInstance(loop);
-            loop.setDate(loop.getDate() + 1);
-          }
-        } else if (routine.frequency === 'WEEKLY' && schedule.days?.length) {
-          const loop = new Date(rangeStart);
-          while (loop <= rangeEnd) {
-            if (schedule.days.includes(loop.getDay())) {
-              pushInstance(loop, { scheduledDay: loop.getDay() });
-            }
-            loop.setDate(loop.getDate() + 1);
-          }
-        } else if (routine.frequency === 'MONTHLY' && schedule.day) {
-          const loop = new Date(rangeStart);
-          while (loop <= rangeEnd) {
-            if (loop.getDate() === schedule.day) pushInstance(loop);
-            loop.setDate(loop.getDate() + 1);
-          }
-        } else if (routine.frequency === 'YEARLY' && schedule.day) {
-          const loop = new Date(rangeStart);
-          while (loop <= rangeEnd) {
-            if (loop.getDate() === schedule.day && loop.getMonth() === (schedule as { month?: number }).month) {
-              pushInstance(loop);
-            }
-            loop.setDate(loop.getDate() + 1);
-          }
+      const pushInstance = (loopDate: Date, extra?: Record<string, unknown>) => {
+        const taskDate = new Date(loopDate);
+        taskDate.setHours(hour, minute, 0, 0);
+        const completedOnDate = tasks.filter(
+          (task) => task.completed && task.completedAt && isSameDay(new Date(task.completedAt), loopDate)
+        ).length;
+        const allDoneOnDate = tasks.length > 0 && completedOnDate === tasks.length;
+
+        routineEvents.push({
+          id: `routine_${routine.id}_${format(loopDate, 'yyyy-MM-dd')}`,
+          title: routine.title,
+          description: routine.description || `${tasks.length} routine task${tasks.length === 1 ? '' : 's'}`,
+          status: allDoneOnDate ? TaskStatus.DONE : TaskStatus.TODO,
+          priority: !allDoneOnDate && taskDate < now ? TaskPriority.URGENT : TaskPriority.MEDIUM,
+          dueDate: taskDate.toISOString(),
+          dueTime: schedule.time,
+          createdBy: routine.userId,
+          tags: ['routine'],
+          order: 0,
+          metadata: {
+            routineId: routine.id,
+            routineTitle: routine.title,
+            routineTaskCount: tasks.length,
+            routineCompletedCount: completedOnDate,
+            routineReminderBefore: routine.reminderBefore,
+            routineHasReminder: hasReminder,
+            routineHasAlarm: hasAlarm,
+            isRoutineTask: true,
+            isRoutineEvent: true,
+            ...extra,
+          },
+          createdAt: routine.createdAt,
+          updatedAt: routine.updatedAt,
+          isDeleted: false,
+        });
+      };
+
+      if (routine.frequency === 'DAILY') {
+        const loop = new Date(rangeStart);
+        while (loop <= rangeEnd) {
+          pushInstance(loop);
+          loop.setDate(loop.getDate() + 1);
         }
-      });
+      } else if (routine.frequency === 'WEEKLY' && schedule.days?.length) {
+        const loop = new Date(rangeStart);
+        while (loop <= rangeEnd) {
+          if (schedule.days.includes(loop.getDay())) {
+            pushInstance(loop, { scheduledDay: loop.getDay() });
+          }
+          loop.setDate(loop.getDate() + 1);
+        }
+      } else if (routine.frequency === 'MONTHLY' && schedule.day) {
+        const loop = new Date(rangeStart);
+        while (loop <= rangeEnd) {
+          if (loop.getDate() === schedule.day) pushInstance(loop);
+          loop.setDate(loop.getDate() + 1);
+        }
+      } else if (routine.frequency === 'YEARLY' && schedule.day) {
+        const loop = new Date(rangeStart);
+        while (loop <= rangeEnd) {
+          if (loop.getDate() === schedule.day && loop.getMonth() === (schedule as { month?: number }).month) {
+            pushInstance(loop);
+          }
+          loop.setDate(loop.getDate() + 1);
+        }
+      }
     });
 
-  return routineTasks;
+  return routineEvents;
 }
 
 export function alarmsToCalendarTasks(alarms: Alarm[], rangeStart: Date, rangeEnd: Date): Task[] {
@@ -433,6 +446,7 @@ export interface BuildCalendarItemsInput {
 export function buildCalendarItems(input: BuildCalendarItemsInput): Task[] {
   const { tasks, goals, routines, alarms, rangeStart, rangeEnd } = input;
   const regular = tasks.filter((t) => !t.metadata?.isRoutineTask);
+  const visibleAlarms = alarms.filter((alarm) => !alarm.title.startsWith('Routine: '));
 
   const expandedTasks: Task[] = [];
   regular.forEach((t) => {
@@ -442,9 +456,9 @@ export function buildCalendarItems(input: BuildCalendarItemsInput): Task[] {
   const map = new Map<string, Task>();
   [
     ...expandedTasks,
-    ...routinesToCalendarTasks(routines, rangeStart, rangeEnd),
+    ...routinesToCalendarTasks(routines, alarms, rangeStart, rangeEnd),
     ...goalsToCalendarTasks(goals),
-    ...alarmsToCalendarTasks(alarms, rangeStart, rangeEnd),
+    ...alarmsToCalendarTasks(visibleAlarms, rangeStart, rangeEnd),
   ].forEach((item) => {
     if (item.id) map.set(item.id, item);
   });

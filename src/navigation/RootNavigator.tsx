@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import {
   NavigationContainer,
   DarkTheme,
@@ -57,6 +58,7 @@ const navTheme = {
 };
 
 export const RootNavigator: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isInitialized = useAuthStore((s) => s.isInitialized);
   const hasCompletedOnboarding = useAuthStore((s) => s.hasCompletedOnboarding);
@@ -89,6 +91,7 @@ export const RootNavigator: React.FC = () => {
 
   return (
     <NavigationContainer
+      key={i18n.language}
       ref={navigationRef}
       theme={navTheme}
       onReady={() => {
@@ -111,7 +114,7 @@ export const RootNavigator: React.FC = () => {
             <Stack.Screen
               name="ComparePlans"
               component={ComparePlansScreen}
-              options={{ presentation: 'modal', headerShown: true, title: 'Compare plans' }}
+              options={{ presentation: 'modal', headerShown: true, title: t('navigation.comparePlans') }}
             />
             <Stack.Screen name="WeeklyReview" component={WeeklyReviewScreen} options={{ presentation: 'modal' }} />
             <Stack.Screen name="Focus" component={FocusScreen} options={{ presentation: 'fullScreenModal' }} />

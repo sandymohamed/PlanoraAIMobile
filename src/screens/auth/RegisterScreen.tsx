@@ -8,10 +8,12 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { colors, spacing, typography } from '@/theme/tokens';
+import { inputTextStyle } from '@/utils/rtl';
 import { getApiErrorMessage, isEmailExistsError } from '@/utils/apiError';
 import { showError, showConfirmDialog } from '@/components/ConfirmationDialog';
 import { track, AnalyticsEvents } from '@/analytics/posthog';
@@ -21,6 +23,7 @@ const logoImage = require('@/assets/logo.jpg');
 export const RegisterScreen: React.FC<{ navigation: { navigate: (screen: string) => void } }> = ({
   navigation,
 }) => {
+  const { t } = useTranslation();
   const register = useAuthStore((s) => s.register);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -36,15 +39,15 @@ export const RegisterScreen: React.FC<{ navigation: { navigate: (screen: string)
     const trimmedName = name.trim();
 
     if (!trimmedName || trimmedName.length < 2) {
-      setError('Enter your name (at least 2 characters)');
+      setError(t('auth.enterName'));
       return;
     }
     if (!trimmedEmail || !trimmedEmail.includes('@')) {
-      setError('Enter a valid email');
+      setError(t('auth.enterValidEmail'));
       return;
     }
     if (!password || password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError(t('auth.passwordMinError'));
       return;
     }
 
@@ -59,15 +62,15 @@ export const RegisterScreen: React.FC<{ navigation: { navigate: (screen: string)
       setEmailTaken(taken);
       if (taken) {
         showConfirmDialog({
-          title: 'Email already registered',
+          title: t('auth.emailAlreadyRegistered'),
           message: msg,
           variant: 'warning',
-          confirmLabel: 'Sign in',
-          cancelLabel: 'Use different email',
+          confirmLabel: t('auth.signIn'),
+          cancelLabel: t('auth.useDifferentEmail'),
           onConfirm: () => navigation.navigate('Login'),
         });
       } else {
-        showError('Could not create account', msg);
+        showError(t('auth.couldNotCreateAccount'), msg);
       }
     } finally {
       setLoading(false);
@@ -83,17 +86,17 @@ export const RegisterScreen: React.FC<{ navigation: { navigate: (screen: string)
         <Image source={logoImage} style={styles.logo} />
         <Text style={styles.brand}>Planora</Text>
       </View>
-      <Text style={styles.title}>Start your plan</Text>
+      <Text style={styles.title}>{t('auth.startPlan')}</Text>
       <TextInput
-        style={styles.input}
-        placeholder="Name"
+        style={[styles.input, inputTextStyle()]}
+        placeholder={t('auth.name')}
         placeholderTextColor={colors.textMuted}
         value={name}
         onChangeText={setName}
       />
       <TextInput
-        style={styles.input}
-        placeholder="Email"
+        style={[styles.input, inputTextStyle()]}
+        placeholder={t('auth.email')}
         placeholderTextColor={colors.textMuted}
         value={email}
         onChangeText={setEmail}
@@ -101,15 +104,15 @@ export const RegisterScreen: React.FC<{ navigation: { navigate: (screen: string)
         keyboardType="email-address"
       />
       <PasswordInput
-        placeholder="Password (min 6)"
+        placeholder={t('auth.passwordMin')}
         placeholderTextColor={colors.textMuted}
         value={password}
         onChangeText={setPassword}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Button label="Create account" loading={loading} onPress={handleRegister} />
+      <Button label={t('auth.createAccount')} loading={loading} onPress={handleRegister} />
       {emailTaken ? (
-        <Button label="Sign in instead" variant="ghost" onPress={() => navigation.navigate('Login')} />
+        <Button label={t('auth.signInInstead')} variant="ghost" onPress={() => navigation.navigate('Login')} />
       ) : null}
     </KeyboardAvoidingView>
   );

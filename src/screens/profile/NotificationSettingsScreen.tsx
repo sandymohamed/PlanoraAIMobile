@@ -1,7 +1,9 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Switch, ActivityIndicator, ScrollView } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '@/services/apiClient';
+import { useRTL } from '@/hooks/useRTL';
 import { colors, spacing, typography } from '@/theme/tokens';
 
 type NotificationPrefs = {
@@ -9,20 +11,30 @@ type NotificationPrefs = {
   taskReminders?: boolean;
   goalReminders?: boolean;
   dueDateReminders?: boolean;
-  weeklyDigest?: boolean;
 };
 
-const TOGGLES: { key: keyof NotificationPrefs; label: string }[] = [
-  { key: 'pushNotifications', label: 'Push notifications' },
-  { key: 'taskReminders', label: 'Task reminders' },
-  { key: 'goalReminders', label: 'Goal reminders' },
-  { key: 'dueDateReminders', label: 'Due date reminders' },
-  { key: 'weeklyDigest', label: 'Weekly digest email' },
-];
+const TOGGLE_KEYS = [
+  'pushNotifications',
+  'taskReminders',
+  'goalReminders',
+  'dueDateReminders',
+] as const;
 
 export const NotificationSettingsScreen: React.FC = () => {
+  const { t } = useTranslation();
+  const { directionalTextStyle: dirText } = useRTL();
   const [prefs, setPrefs] = useState<NotificationPrefs>({});
   const [loading, setLoading] = useState(true);
+
+  const toggles = useMemo(
+    () =>
+      TOGGLE_KEYS.map((key) => ({
+        key,
+        label: t(`notificationSettings.${key}`),
+        description: t(`notificationSettings.${key}Desc`),
+      })),
+    [t]
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -48,9 +60,13 @@ export const NotificationSettingsScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: spacing.lg }}>
-      {TOGGLES.map(({ key, label }) => (
+      <Text style={[styles.intro, dirText()]}>{t('settings.notifications')}</Text>
+      {toggles.map(({ key, label, description }) => (
         <View key={key} style={styles.row}>
-          <Text style={styles.label}>{label}</Text>
+          <View style={styles.labelWrap}>
+            <Text style={[styles.label, dirText()]}>{label}</Text>
+            <Text style={[styles.description, dirText()]}>{description}</Text>
+          </View>
           <Switch value={prefs[key] !== false} onValueChange={(v) => update(key, v)} />
         </View>
       ))}
@@ -60,13 +76,17 @@ export const NotificationSettingsScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
+  intro: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.md },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: spacing.md,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderSubtle,
   },
+  labelWrap: { flex: 1 },
   label: { ...typography.body, color: colors.text },
+  description: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
 });

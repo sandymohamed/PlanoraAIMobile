@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { routineService } from '@/services/routineService';
@@ -24,6 +25,8 @@ type Nav = NativeStackNavigationProp<RoutinesStackParamList, 'RoutinesList'>;
 
 export const RoutinesScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language.startsWith('ar');
   const fetchAlarms = useAlarmStore((s) => s.fetchAlarms);
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +40,7 @@ export const RoutinesScreen: React.FC = () => {
       const data = await routineService.getUserRoutines();
       setRoutines(data);
     } catch (e) {
-      showError('Error', getApiErrorMessage(e));
+      showError(t('common.error'), getApiErrorMessage(e));
     } finally {
       setLoading(false);
       loadingRef.current = false;
@@ -75,15 +78,15 @@ export const RoutinesScreen: React.FC = () => {
       );
     } catch (e) {
       setRoutines(previous);
-      showError('Error', getApiErrorMessage(e));
+      showError(t('common.error'), getApiErrorMessage(e));
     }
   };
 
   const resetRoutine = (id: string) => {
     showConfirmDialog({
-      title: 'Reset routine',
-      message: 'Reset all sub-task completion for this period?',
-      confirmLabel: 'Reset',
+      title: t('routines.screen.resetTitle'),
+      message: t('routines.screen.resetMessage'),
+      confirmLabel: t('routines.screen.reset'),
       onConfirm: async () => {
         const previous = routines;
         try {
@@ -107,7 +110,7 @@ export const RoutinesScreen: React.FC = () => {
           );
         } catch (e) {
           setRoutines(previous);
-          showError('Error', getApiErrorMessage(e));
+          showError(t('common.error'), getApiErrorMessage(e));
         }
       },
     });
@@ -115,9 +118,9 @@ export const RoutinesScreen: React.FC = () => {
 
   const deleteRoutine = (routine: Routine) => {
     showConfirmDialog({
-      title: 'Delete routine',
+      title: t('routines.screen.deleteTitle'),
       itemName: routine.title,
-      confirmLabel: 'Delete',
+      confirmLabel: t('routines.screen.delete'),
       destructive: true,
       onConfirm: async () => {
         const previous = routines;
@@ -127,7 +130,7 @@ export const RoutinesScreen: React.FC = () => {
           fetchAlarms(1, 1000, true).catch(() => {});
         } catch (e) {
           setRoutines(previous);
-          showError('Error', getApiErrorMessage(e));
+          showError(t('common.error'), getApiErrorMessage(e));
         }
       },
     });
@@ -135,8 +138,12 @@ export const RoutinesScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Routines</Text>
-      <Text style={styles.sub}>Recurring habits with reset and reminders</Text>
+      <Text style={[styles.title, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+        {t('routines.screen.title')}
+      </Text>
+      <Text style={[styles.sub, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+        {t('routines.screen.subtitle')}
+      </Text>
 
       {loading && routines.length === 0 ? (
         <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
@@ -147,32 +154,39 @@ export const RoutinesScreen: React.FC = () => {
         >
           {routines.length === 0 ? (
             <EmptyState
-              title="No routines"
-              message="Build a daily or weekly habit loop."
-              actionLabel="Create routine"
+              title={t('routines.screen.emptyTitle')}
+              message={t('routines.screen.emptyMessage')}
+              actionLabel={t('routines.screen.createRoutine')}
               onAction={() => navigation.navigate('RoutineCreate')}
             />
           ) : (
             routines.map((routine) => (
               <View key={routine.id} style={styles.card}>
                 <TouchableOpacity onPress={() => navigation.navigate('RoutineEdit', { routineId: routine.id })}>
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.cardTitle}>{routine.title}</Text>
+                  <View style={[styles.cardHeader, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
+                    <Text style={[styles.cardTitle, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+                      {routine.title}
+                    </Text>
                     <Text style={[styles.badge, !routine.enabled && styles.badgeOff]}>
-                      {routine.enabled ? routine.frequency : 'OFF'}
+                      {routine.enabled ? t(`routines.frequency.${routine.frequency}`) : t('routines.screen.off')}
                     </Text>
                   </View>
-                  <Text style={styles.schedule}>
-                    {routine.schedule.time || '—'} · {routine.frequency}
-                    {routine.schedule.days?.length
-                      ? ` · days ${routine.schedule.days.join(',')}`
-                      : ''}
+                  <Text style={[styles.schedule, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+                    {t('routines.screen.schedule', {
+                      time: routine.schedule.time || '—',
+                      frequency: t(`routines.frequency.${routine.frequency}`),
+                      days: routine.schedule.days?.length
+                        ? t('routines.screen.daysSuffix', {
+                            days: routine.schedule.days.map((d) => t(`routines.days.${d}`)).join(','),
+                          })
+                        : '',
+                    })}
                   </Text>
                 </TouchableOpacity>
                 {routine.routineTasks?.map((task) => (
                   <TouchableOpacity
                     key={task.id}
-                    style={styles.taskRow}
+                    style={[styles.taskRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}
                     onPress={() => toggleTask(task.id, task.completed)}
                   >
                     <Icon
@@ -180,15 +194,17 @@ export const RoutinesScreen: React.FC = () => {
                       size={22}
                       color={task.completed ? colors.success : colors.textMuted}
                     />
-                    <Text style={[styles.taskTitle, task.completed && styles.taskDone]}>{task.title}</Text>
+                    <Text style={[styles.taskTitle, task.completed && styles.taskDone, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+                      {task.title}
+                    </Text>
                   </TouchableOpacity>
                 ))}
-                <View style={styles.actions}>
+                <View style={[styles.actions, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
                   <TouchableOpacity onPress={() => resetRoutine(routine.id)}>
-                    <Text style={styles.actionText}>Reset</Text>
+                    <Text style={styles.actionText}>{t('routines.screen.reset')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => deleteRoutine(routine)}>
-                    <Text style={[styles.actionText, { color: colors.error }]}>Delete</Text>
+                    <Text style={[styles.actionText, { color: colors.error }]}>{t('routines.screen.delete')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -229,7 +245,7 @@ const styles = StyleSheet.create({
   actionText: { color: colors.primary, fontWeight: '600', fontSize: 13 },
   fab: {
     position: 'absolute',
-    right: spacing.lg,
+    end: spacing.lg,
     bottom: spacing.lg,
     width: 56,
     height: 56,

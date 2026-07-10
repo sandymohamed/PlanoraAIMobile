@@ -16,23 +16,25 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AppIcon as Icon } from '@/components/ui/AppIcon';
 import { useTaskStore } from '@/store/taskStore';
-import { Task, TaskPriority, TaskStatus } from '@/types/task';
+import { Task, TaskStatus, TaskStatusFilter } from '@/types/task';
 import { TasksStackParamList } from '@/navigation/TasksStack';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { showDeleteConfirmation, showError } from '@/components/ConfirmationDialog';
 import { colors, spacing, typography } from '@/theme/tokens';
-import { sortTasksByDueDate } from '@/utils/taskUi';
+import { inputTextStyle } from '@/utils/rtl';
+import { sortTasksByDueDate, translateTaskFilters } from '@/utils/taskUi';
 import { TaskListRow } from '@/components/tasks/TaskListRow';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { AdBanner } from '@/features/ads';
+import { useTranslation } from 'react-i18next';
 
 type Nav = NativeStackNavigationProp<TasksStackParamList, 'TasksList'>;
 
 /** `all` = active work (everything except done) */
-type StatusTab = 'all' | TaskStatus;
+type StatusTab = 'All' | TaskStatus;
 
 const STATUS_FILTERS: { label: string; value: StatusTab }[] = [
-  { label: 'All', value: 'all' },
+  { label: 'All', value: 'All' },
   { label: 'To do', value: TaskStatus.TODO },
   { label: 'Active', value: TaskStatus.IN_PROGRESS },
   { label: 'Done', value: TaskStatus.DONE },
@@ -45,6 +47,8 @@ const ALL_OPEN_STATUSES: TaskStatus[] = [
 ];
 
 export const TasksScreen: React.FC = () => {
+  const { t, i18n } = useTranslation();
+
   const navigation = useNavigation<Nav>();
   const filteredTasks = useTaskStore((s) => s.filteredTasks);
   const isLoading = useTaskStore((s) => s.isLoading);
@@ -60,7 +64,7 @@ export const TasksScreen: React.FC = () => {
   const setCurrentTask = useTaskStore((s) => s.setCurrentTask);
   const clearError = useTaskStore((s) => s.clearError);
 
-  const [statusTab, setStatusTab] = useState<StatusTab>('all');
+  const [statusTab, setStatusTab] = useState<StatusTab>('All');
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -78,7 +82,7 @@ export const TasksScreen: React.FC = () => {
       fetchingRef.current = true;
       setFilter({ status: ALL_OPEN_STATUSES });
       fetchTasks()
-        .catch(() => {})
+        .catch(() => { })
         .finally(() => {
           fetchingRef.current = false;
         });
@@ -99,7 +103,7 @@ export const TasksScreen: React.FC = () => {
 
   const applyStatusFilter = useCallback((tab: StatusTab) => {
     setStatusTab(tab);
-    if (tab === 'all') {
+    if (tab === 'All') {
       setFilter({ status: ALL_OPEN_STATUSES });
     } else {
       setFilter({ status: [tab] });
@@ -166,12 +170,11 @@ export const TasksScreen: React.FC = () => {
 
   const listHeader = useMemo(() => (
     <>
-      <Text style={styles.title}>Tasks</Text>
       <View style={styles.searchWrap}>
         <Icon name="magnify" size={20} color={colors.textMuted} style={styles.searchIcon} />
         <TextInput
-          style={styles.search}
-          placeholder="Search tasks..."
+          style={[styles.search, { textAlign: i18n.language === 'ar' ? 'right' : 'left' }]}
+          placeholder={t(`common.search`)}
           placeholderTextColor={colors.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -182,14 +185,16 @@ export const TasksScreen: React.FC = () => {
           </TouchableOpacity>
         ) : null}
       </View>
-      <View style={styles.chips}>
+      <View style={[styles.chips, { flexDirection: i18n.language === 'ar' ? 'row-reverse' : 'row' }]}>
         {STATUS_FILTERS.map((f) => (
           <TouchableOpacity
             key={f.label}
             style={[styles.chip, statusTab === f.value && styles.chipActive]}
             onPress={() => applyStatusFilter(f.value)}
           >
-            <Text style={[styles.chipText, statusTab === f.value && styles.chipTextActive]}>{f.label}</Text>
+            <Text style={[styles.chipText, statusTab === f.value && styles.chipTextActive]}>
+              {translateTaskFilters(f.value as TaskStatusFilter)}
+              </Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -232,7 +237,6 @@ export const TasksScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   list: { padding: spacing.lg, paddingBottom: 120 },
-  title: { ...typography.h1, color: colors.text },
   sub: { ...typography.caption, color: colors.textSecondary, marginBottom: spacing.md },
   searchWrap: {
     flexDirection: 'row',
@@ -244,11 +248,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     marginBottom: spacing.md,
   },
-  searchIcon: { marginRight: spacing.sm },
+  searchIcon: { marginEnd: spacing.sm },
   search: { flex: 1, color: colors.text, paddingVertical: spacing.md, ...typography.body },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md },
   chip: {
-    paddingHorizontal: spacing.md,
+    fontSize: 14,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
     borderRadius: 20,
     backgroundColor: colors.surface,
@@ -267,7 +272,7 @@ const styles = StyleSheet.create({
   errorText: { color: colors.error, ...typography.caption },
   fab: {
     position: 'absolute',
-    right: spacing.lg,
+    end: spacing.lg,
     bottom: spacing.lg,
     width: 56,
     height: 56,

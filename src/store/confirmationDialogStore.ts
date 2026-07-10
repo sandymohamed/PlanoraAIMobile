@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import i18n from '@/i18n';
 
 export type DialogVariant = 'info' | 'success' | 'error' | 'warning' | 'danger';
 
@@ -39,8 +40,8 @@ export const useConfirmationDialogStore = create<ConfirmationDialogState>((set) 
   title: '',
   message: '',
   itemName: undefined,
-  confirmLabel: 'Confirm',
-  cancelLabel: 'Cancel',
+  confirmLabel: i18n.t('common.confirm'),
+  cancelLabel: i18n.t('common.cancel'),
   destructive: false,
   variant: 'info',
   alert: false,
@@ -54,8 +55,8 @@ export const useConfirmationDialogStore = create<ConfirmationDialogState>((set) 
       title: options.title,
       message: options.message ?? '',
       itemName: options.itemName,
-      confirmLabel: options.confirmLabel ?? (options.alert ? 'OK' : 'Confirm'),
-      cancelLabel: options.cancelLabel ?? 'Cancel',
+      confirmLabel: options.confirmLabel ?? (options.alert ? i18n.t('common.ok') : i18n.t('common.confirm')),
+      cancelLabel: options.cancelLabel ?? i18n.t('common.cancel'),
       destructive,
       variant: options.variant ?? (destructive ? 'danger' : 'info'),
       alert: options.alert ?? false,

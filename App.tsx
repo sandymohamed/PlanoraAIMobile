@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { InteractionManager, LogBox, StatusBar } from 'react-native';
+import '@/i18n';
 
 LogBox.ignoreLogs([
   'Legacy Architecture',

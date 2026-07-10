@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { AppIcon as Icon } from '@/components/ui/AppIcon';
 import { showAlert } from '@/components/ConfirmationDialog';
 import { colors, spacing, typography } from '@/theme/tokens';
@@ -39,6 +40,8 @@ const MIN_MINUTES = 5;
 const MAX_MINUTES = 180;
 
 export const FocusScreen: React.FC = () => {
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language.startsWith('ar');
   const [mode, setMode] = useState<FocusMode>('pomodoro');
   const [secondsLeft, setSecondsLeft] = useState(FOCUS_MODES.pomodoro.minutes * 60);
   const [status, setStatus] = useState<Status>('idle');
@@ -163,12 +166,12 @@ export const FocusScreen: React.FC = () => {
     setStatus('running');
     startInterval();
     try {
-      await scheduleFocusAlarm(endsAt, `${FOCUS_MODES[mode].label} session`);
+      await scheduleFocusAlarm(endsAt, t(`focusScreen.modes.${mode}.label`));
     } catch {
       // Permission denied or native error — countdown still runs in-app.
       showAlert(
-        'Background alarm unavailable',
-        'Grant exact alarm + notification permissions so the timer can ring when the screen is off.',
+        t('focusScreen.backgroundAlarmTitle'),
+        t('focusScreen.backgroundAlarmMessage'),
         { variant: 'warning' }
       );
     }
@@ -237,21 +240,29 @@ export const FocusScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Focus</Text>
-      <Text style={styles.sub}>Rings even when your screen is off or the app is closed.</Text>
+      <Text style={[styles.title, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr', alignSelf: isArabic ? 'flex-end' : 'flex-start' }]}>
+        {t('focusScreen.title')}
+      </Text>
+      <Text style={[styles.sub, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr', alignSelf: isArabic ? 'flex-end' : 'flex-start' }]}>
+        {t('focusScreen.subtitle')}
+      </Text>
 
-      <View style={styles.statsRow}>
+      <View style={[styles.statsRow, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
         <View style={styles.statCard}>
           <Text style={styles.statValue}>{stats.completed}</Text>
-          <Text style={styles.statLabel}>Sessions today</Text>
+          <Text style={[styles.statLabel, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+            {t('focusScreen.sessionsToday')}
+          </Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{Math.round(stats.focusedSeconds / 60)}m</Text>
-          <Text style={styles.statLabel}>Focused today</Text>
+          <Text style={styles.statValue}>{Math.round(stats.focusedSeconds / 60)}{t('focusScreen.min')}</Text>
+          <Text style={[styles.statLabel, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+            {t('focusScreen.focusedToday')}
+          </Text>
         </View>
       </View>
 
-      <View style={styles.modes}>
+      <View style={[styles.modes, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
         {(Object.keys(FOCUS_MODES) as FocusMode[]).map((k) => (
           <TouchableOpacity
             key={k}
@@ -259,7 +270,7 @@ export const FocusScreen: React.FC = () => {
             onPress={() => onSelectMode(k)}
           >
             <Text style={[styles.modeText, mode === k && styles.modeTextActive]}>
-              {FOCUS_MODES[k].label}
+              {t(`focusScreen.modes.${k}.label`)}
             </Text>
           </TouchableOpacity>
         ))}
@@ -294,15 +305,19 @@ export const FocusScreen: React.FC = () => {
           <Text style={styles.timer}>
             {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
           </Text>
-          <Text style={styles.timerHint}>
-            {status === 'running' ? 'In focus' : status === 'paused' ? 'Paused' : FOCUS_MODES[mode].tagline}
+          <Text style={[styles.timerHint, { textAlign: 'center', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+            {status === 'running'
+              ? t('focusScreen.inFocus')
+              : status === 'paused'
+                ? t('focusScreen.paused')
+                : t(`focusScreen.modes.${mode}.tagline`)}
           </Text>
           {status === 'idle' && (
-            <View style={styles.stepper}>
+            <View style={[styles.stepper, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
               <TouchableOpacity style={styles.stepBtn} onPress={() => adjustMinutes(-5)}>
                 <Icon name="minus" size={18} color={colors.text} />
               </TouchableOpacity>
-              <Text style={styles.stepLabel}>{Math.round(secondsLeft / 60)} min</Text>
+              <Text style={styles.stepLabel}>{Math.round(secondsLeft / 60)} {t('focusScreen.min')}</Text>
               <TouchableOpacity style={styles.stepBtn} onPress={() => adjustMinutes(5)}>
                 <Icon name="plus" size={18} color={colors.text} />
               </TouchableOpacity>
@@ -313,19 +328,19 @@ export const FocusScreen: React.FC = () => {
 
       <View style={styles.actions}>
         {status === 'running' ? (
-          <TouchableOpacity style={styles.secondaryBtn} onPress={onPause}>
+          <TouchableOpacity style={[styles.secondaryBtn, { flexDirection: isArabic ? 'row-reverse' : 'row' }]} onPress={onPause}>
             <Icon name="pause" size={20} color={colors.text} />
-            <Text style={styles.secondaryText}>Pause</Text>
+            <Text style={styles.secondaryText}>{t('focusScreen.pause')}</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity style={styles.startBtn} onPress={status === 'paused' ? onResume : onStart}>
+          <TouchableOpacity style={[styles.startBtn, { flexDirection: isArabic ? 'row-reverse' : 'row' }]} onPress={status === 'paused' ? onResume : onStart}>
             <Icon name="play" size={22} color="#fff" />
-            <Text style={styles.startText}>{status === 'paused' ? 'Resume' : 'Start session'}</Text>
+            <Text style={styles.startText}>{status === 'paused' ? t('focusScreen.resume') : t('focusScreen.startSession')}</Text>
           </TouchableOpacity>
         )}
         {status !== 'idle' && (
           <TouchableOpacity style={styles.resetBtn} onPress={onReset}>
-            <Text style={styles.reset}>Reset</Text>
+            <Text style={[styles.reset, { textAlign: 'center', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>{t('focusScreen.reset')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -341,14 +356,15 @@ export const FocusScreen: React.FC = () => {
             <View style={styles.modalIconWrap}>
               <Icon name="check-circle" size={44} color={colors.primary} />
             </View>
-            <Text style={styles.modalTitle}>Session complete</Text>
-            <Text style={styles.modalMessage}>
-              {completedMode ? FOCUS_MODES[completedMode].label : 'Focus'} block done — nice work staying in
-              flow.
+            <Text style={[styles.modalTitle, { writingDirection: isArabic ? 'rtl' : 'ltr' }]}>{t('focusScreen.sessionComplete')}</Text>
+            <Text style={[styles.modalMessage, { writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+              {t('focusScreen.sessionCompleteMessage', {
+                mode: completedMode ? t(`focusScreen.modes.${completedMode}.label`) : t('focusScreen.title'),
+              })}
             </Text>
-            <TouchableOpacity style={styles.modalButton} onPress={dismissComplete} activeOpacity={0.85}>
+            <TouchableOpacity style={[styles.modalButton, { flexDirection: isArabic ? 'row-reverse' : 'row' }]} onPress={dismissComplete} activeOpacity={0.85}>
               <Icon name="stop-circle-outline" size={20} color="#fff" />
-              <Text style={styles.modalButtonText}>Stop alarm</Text>
+              <Text style={styles.modalButtonText}>{t('focusScreen.stopAlarm')}</Text>
             </TouchableOpacity>
           </View>
         </View>

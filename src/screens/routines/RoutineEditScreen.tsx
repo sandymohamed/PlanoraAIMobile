@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { routineService } from '@/services/routineService';
 import { useAlarmStore } from '@/store/alarmStore';
 import { RoutineForm } from '@/components/routines/RoutineForm';
@@ -12,6 +13,7 @@ import { showError } from '@/components/ConfirmationDialog';
 
 export const RoutineEditScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { t } = useTranslation();
   const { routineId } = useRoute<RouteProp<RoutinesStackParamList, 'RoutineEdit'>>().params;
   const fetchAlarms = useAlarmStore((s) => s.fetchAlarms);
   const [initial, setInitial] = useState<Partial<CreateRoutineData>>();
@@ -29,7 +31,7 @@ export const RoutineEditScreen: React.FC = () => {
           reminderBefore: r.reminderBefore,
         })
       )
-      .catch((e) => showError('Error', getApiErrorMessage(e)));
+      .catch((e) => showError(t('common.error'), getApiErrorMessage(e)));
   }, [routineId]);
 
   const onSubmit = async (data: CreateRoutineData) => {
@@ -39,7 +41,7 @@ export const RoutineEditScreen: React.FC = () => {
       setTimeout(() => fetchAlarms(1, 1000, true).catch(() => {}), 1000);
       navigation.goBack();
     } catch (e) {
-      showError('Error', getApiErrorMessage(e));
+      showError(t('common.error'), getApiErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -55,7 +57,7 @@ export const RoutineEditScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <RoutineForm initial={initial} onSubmit={onSubmit} submitLabel="Save routine" loading={loading} />
+      <RoutineForm initial={initial} onSubmit={onSubmit} submitLabel={t('routines.form.saveRoutine')} loading={loading} />
     </View>
   );
 };

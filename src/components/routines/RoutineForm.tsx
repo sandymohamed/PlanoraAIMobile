@@ -1,18 +1,13 @@
 import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { CreateRoutineData, RoutineFrequency } from '@/types/routine';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { DateTimePicker } from '@/components/ui/DateTimePicker';
 
-const DAYS = [
-  { v: 0, l: 'Sun' },
-  { v: 1, l: 'Mon' },
-  { v: 2, l: 'Tue' },
-  { v: 3, l: 'Wed' },
-  { v: 4, l: 'Thu' },
-  { v: 5, l: 'Fri' },
-  { v: 6, l: 'Sat' },
-];
+const DAY_VALUES = [0, 1, 2, 3, 4, 5, 6];
+const FREQUENCIES: RoutineFrequency[] = ['DAILY', 'WEEKLY', 'MONTHLY'];
+const REMIND_OPTIONS = ['30m', '1h', '2h', '1d'];
 
 interface RoutineFormProps {
   initial?: Partial<CreateRoutineData>;
@@ -22,6 +17,8 @@ interface RoutineFormProps {
 }
 
 export const RoutineForm: React.FC<RoutineFormProps> = ({ initial, onSubmit, submitLabel, loading }) => {
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language.startsWith('ar');
   const [title, setTitle] = useState(initial?.title || '');
   const [description, setDescription] = useState(initial?.description || '');
   const [frequency, setFrequency] = useState<RoutineFrequency>(initial?.frequency || 'DAILY');
@@ -46,7 +43,7 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({ initial, onSubmit, sub
   const handleSave = async () => {
     if (submitting.current || loading) return;
     if (!title.trim()) {
-      setError('Title is required');
+      setError(t('routines.form.titleRequired'));
       return;
     }
     submitting.current = true;
@@ -69,31 +66,59 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({ initial, onSubmit, sub
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.wrap}>
-      {error ? <Text style={styles.err}>{error}</Text> : null}
-      <Text style={styles.label}>Title</Text>
-      <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholderTextColor={colors.textMuted} />
-      <Text style={styles.label}>Description</Text>
+    <ScrollView
+      contentContainerStyle={[
+        styles.wrap,
+        { alignItems: isArabic ? 'flex-end' : 'flex-start' },
+      ]}
+    >
+      {error ? (
+        <Text style={[styles.err, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+          {error}
+        </Text>
+      ) : null}
+      <Text style={[styles.label, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+        {t('routines.form.title')}
+      </Text>
       <TextInput
-        style={[styles.input, styles.multi]}
+        style={[styles.input, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}
+        value={title}
+        onChangeText={setTitle}
+        placeholderTextColor={colors.textMuted}
+      />
+      <Text style={[styles.label, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+        {t('routines.form.description')}
+      </Text>
+      <TextInput
+        style={[
+          styles.input,
+          styles.multi,
+          { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' },
+        ]}
         value={description}
         onChangeText={setDescription}
         multiline
         placeholderTextColor={colors.textMuted}
       />
-      <Text style={styles.label}>Frequency</Text>
-      <View style={styles.row}>
-        {(['DAILY', 'WEEKLY', 'MONTHLY'] as RoutineFrequency[]).map((f) => (
+      <Text style={[styles.label, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+        {t('routines.form.frequency')}
+      </Text>
+      <View style={[styles.row, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
+        {FREQUENCIES.map((f) => (
           <TouchableOpacity
             key={f}
             style={[styles.chip, frequency === f && styles.chipOn]}
             onPress={() => setFrequency(f)}
           >
-            <Text style={[styles.chipText, frequency === f && styles.chipTextOn]}>{f}</Text>
+            <Text style={[styles.chipText, frequency === f && styles.chipTextOn]}>
+              {t(`routines.frequency.${f}`)}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
-      <Text style={styles.label}>Time</Text>
+      <Text style={[styles.label, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+        {t('routines.form.time')}
+      </Text>
       <DateTimePicker
         mode="time"
         value={timeValue}
@@ -106,15 +131,19 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({ initial, onSubmit, sub
       />
       {frequency === 'WEEKLY' && (
         <>
-          <Text style={styles.label}>Days</Text>
-          <View style={styles.row}>
-            {DAYS.map((d) => (
+          <Text style={[styles.label, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+            {t('routines.form.days')}
+          </Text>
+          <View style={[styles.row, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
+            {DAY_VALUES.map((d) => (
               <TouchableOpacity
-                key={d.v}
-                style={[styles.chip, days.includes(d.v) && styles.chipOn]}
-                onPress={() => toggleDay(d.v)}
+                key={d}
+                style={[styles.chip, days.includes(d) && styles.chipOn]}
+                onPress={() => toggleDay(d)}
               >
-                <Text style={[styles.chipText, days.includes(d.v) && styles.chipTextOn]}>{d.l}</Text>
+                <Text style={[styles.chipText, days.includes(d) && styles.chipTextOn]}>
+                  {t(`routines.days.${d}`)}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -122,19 +151,30 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({ initial, onSubmit, sub
       )}
       {frequency === 'MONTHLY' && (
         <>
-          <Text style={styles.label}>Day of month (1-31)</Text>
-          <TextInput style={styles.input} value={monthDay} onChangeText={setMonthDay} keyboardType="number-pad" />
+          <Text style={[styles.label, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+            {t('routines.form.dayOfMonth')}
+          </Text>
+          <TextInput
+            style={[styles.input, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}
+            value={monthDay}
+            onChangeText={setMonthDay}
+            keyboardType="number-pad"
+          />
         </>
       )}
-      <Text style={styles.label}>Remind before</Text>
-      <View style={styles.row}>
-        {['30m', '1h', '2h', '1d'].map((r) => (
+      <Text style={[styles.label, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+        {t('routines.form.remindBefore')}
+      </Text>
+      <View style={[styles.row, { flexDirection: isArabic ? 'row-reverse' : 'row' }]}>
+        {REMIND_OPTIONS.map((r) => (
           <TouchableOpacity
             key={r}
             style={[styles.chip, reminderBefore === r && styles.chipOn]}
             onPress={() => setReminderBefore(r)}
           >
-            <Text style={[styles.chipText, reminderBefore === r && styles.chipTextOn]}>{r}</Text>
+            <Text style={[styles.chipText, reminderBefore === r && styles.chipTextOn]}>
+              {t(`routines.remindBefore.${r}`)}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -146,8 +186,8 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({ initial, onSubmit, sub
 };
 
 const styles = StyleSheet.create({
-  wrap: { padding: spacing.lg, paddingBottom: 80 },
-  label: { ...typography.label, color: colors.textSecondary, marginTop: spacing.md, marginBottom: spacing.sm },
+  wrap: { padding: spacing.lg, paddingBottom: 80, alignSelf: 'stretch' },
+  label: { ...typography.label, color: colors.textSecondary, marginTop: spacing.md, marginBottom: spacing.sm, alignSelf: 'stretch' },
   input: {
     backgroundColor: colors.surface,
     borderRadius: 12,
@@ -155,9 +195,10 @@ const styles = StyleSheet.create({
     color: colors.text,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
+    alignSelf: 'stretch',
   },
   multi: { minHeight: 80, textAlignVertical: 'top' },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, alignSelf: 'stretch' },
   chip: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -175,7 +216,8 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: 12,
     alignItems: 'center',
+    alignSelf: 'stretch',
   },
   saveText: { color: '#fff', fontWeight: '700' },
-  err: { color: colors.error, marginBottom: spacing.sm },
+  err: { color: colors.error, marginBottom: spacing.sm, alignSelf: 'stretch' },
 });

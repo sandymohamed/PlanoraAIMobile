@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { TaskPriority, TaskStatus } from '@/types/task';
 import { colors, spacing, typography } from '@/theme/tokens';
-import { priorityColor } from '@/utils/taskUi';
+import { priorityColor, translateTaskPriority, translateTaskStatus } from '@/utils/taskUi';
 import { DateTimePicker } from '@/components/ui/DateTimePicker';
 
 export interface TaskFormValues {
@@ -36,76 +37,166 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   selectedDateTime,
   onDueChange,
   onToggleHasTime,
-  onClearDue,
-}) => (
-  <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
-    <Text style={styles.label}>Title *</Text>
-    <TextInput
-      style={[styles.input, errors.title && styles.inputError]}
-      value={values.title}
-      onChangeText={(title) => onChange({ title })}
-      placeholder="What needs to be done?"
-      placeholderTextColor={colors.textMuted}
-    />
-    {errors.title ? <Text style={styles.err}>{errors.title}</Text> : null}
+}) => {
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language.startsWith('ar');
 
-    <Text style={styles.label}>Description</Text>
-    <TextInput
-      style={[styles.input, styles.multiline]}
-      value={values.description}
-      onChangeText={(description) => onChange({ description })}
-      placeholder="Optional details"
-      placeholderTextColor={colors.textMuted}
-      multiline
-    />
-
-    <Text style={styles.label}>Priority</Text>
-    <View style={styles.rowChips}>
-      {PRIORITIES.map((p) => (
-        <TouchableOpacity
-          key={p}
-          style={[styles.chip, values.priority === p && { borderColor: priorityColor(p), backgroundColor: colors.primarySoft }]}
-          onPress={() => onChange({ priority: p })}
+  return (
+    <ScrollView
+      contentContainerStyle={[
+        styles.wrap,
+        {
+          flexDirection: 'column',
+          alignItems: isArabic ? 'flex-end' : 'flex-start',
+        },
+      ]}
+      keyboardShouldPersistTaps="handled"
+    >
+      <Text
+        style={[
+          styles.label,
+          { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' },
+        ]}
+      >
+        {t('tasks.form.titleLabel')}
+      </Text>
+      <TextInput
+        style={[
+          styles.input,
+          { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' },
+          errors.title && styles.inputError,
+        ]}
+        value={values.title}
+        onChangeText={(title) => onChange({ title })}
+        placeholder={t('tasks.form.titlePlaceholder')}
+        placeholderTextColor={colors.textMuted}
+      />
+      {errors.title ? (
+        <Text
+          style={[
+            styles.err,
+            { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' },
+          ]}
         >
-          <Text style={[styles.chipText, values.priority === p && { color: priorityColor(p) }]}>{p}</Text>
-        </TouchableOpacity>
-      ))}
-    </View>
+          {errors.title}
+        </Text>
+      ) : null}
 
-    <Text style={styles.label}>Status</Text>
-    <View style={styles.rowChips}>
-      {STATUSES.map((s) => (
-        <TouchableOpacity
-          key={s}
-          style={[styles.chip, values.status === s && styles.chipActive]}
-          onPress={() => onChange({ status: s })}
+      <Text
+        style={[
+          styles.label,
+          { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' },
+        ]}
+      >
+        {t('tasks.form.descriptionLabel')}
+      </Text>
+      <TextInput
+        style={[
+          styles.input,
+          styles.multiline,
+          { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' },
+        ]}
+        value={values.description}
+        onChangeText={(description) => onChange({ description })}
+        placeholder={t('tasks.form.descriptionPlaceholder')}
+        placeholderTextColor={colors.textMuted}
+        multiline
+      />
+
+      <Text
+        style={[
+          styles.label,
+          { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' },
+        ]}
+      >
+        {t('tasks.form.priorityLabel')}
+      </Text>
+      <View style={styles.rowChips}>
+        {PRIORITIES.map((p) => (
+          <TouchableOpacity
+            key={p}
+            style={[
+              styles.chip,
+              values.priority === p && {
+                borderColor: priorityColor(p),
+                backgroundColor: colors.primarySoft,
+              },
+            ]}
+            onPress={() => onChange({ priority: p })}
+          >
+            <Text
+              style={[
+                styles.chipText,
+                values.priority === p && { color: priorityColor(p) },
+              ]}
+            >
+              {translateTaskPriority(p)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <Text
+        style={[
+          styles.label,
+          { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' },
+        ]}
+      >
+        {t('tasks.form.statusLabel')}
+      </Text>
+      <View style={styles.rowChips}>
+        {STATUSES.map((s) => (
+          <TouchableOpacity
+            key={s}
+            style={[styles.chip, values.status === s && styles.chipActive]}
+            onPress={() => onChange({ status: s })}
+          >
+            <Text style={[styles.chipText, values.status === s && styles.chipTextActive]}>
+              {translateTaskStatus(s)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <Text
+        style={[
+          styles.label,
+          { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' },
+        ]}
+      >
+        {t('tasks.form.dueDateLabel')}
+      </Text>
+      <DateTimePicker
+        mode="datetime"
+        value={selectedDateTime}
+        onChange={onDueChange}
+        optionalTime
+        hasTime={hasTime}
+        onHasTimeChange={onToggleHasTime}
+        placeholder={t('tasks.form.noDueDate')}
+        helperText={t('tasks.form.dueDateHelper')}
+        clearLabel={t('tasks.form.noDueDate')}
+        showClear={Boolean(values.dueDate)}
+      />
+      {errors.dueDate ? (
+        <Text
+          style={[
+            styles.err,
+            { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' },
+          ]}
         >
-          <Text style={[styles.chipText, values.status === s && styles.chipTextActive]}>{s}</Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-
-    <Text style={styles.label}>Due date & time</Text>
-    <DateTimePicker
-      mode="datetime"
-      value={selectedDateTime}
-      onChange={onDueChange}
-      optionalTime
-      hasTime={hasTime}
-      onHasTimeChange={onToggleHasTime}
-      placeholder="No due date"
-      helperText="Pick a quick due date. Add time only when you want a reminder."
-      clearLabel="No due date"
-      showClear={Boolean(values.dueDate)}
-    />
-    {errors.dueDate ? <Text style={styles.err}>{errors.dueDate}</Text> : null}
-  </ScrollView>
-);
+          {errors.dueDate}
+        </Text>
+      ) : null}
+    </ScrollView>
+  );
+};
 
 const styles = StyleSheet.create({
   wrap: { padding: spacing.lg, paddingBottom: 120 },
   label: { ...typography.label, color: colors.textSecondary, marginBottom: spacing.sm, marginTop: spacing.md },
   input: {
+    width: '100%',
     backgroundColor: colors.surface,
     borderRadius: 12,
     padding: spacing.md,

@@ -5,6 +5,7 @@ import { notificationService } from '@/services/notificationService';
 import { reliableAlarmService } from '@/services/ReliableAlarmService';
 import { useAuthStore } from '@/store/authStore';
 import { logger } from '@/utils/logger';
+import { AlarmScheduleWarning } from '@/utils/alarmErrors';
 
 interface AlarmState {
   // State
@@ -392,9 +393,8 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
         } catch (scheduleError) {
           const detail =
             scheduleError instanceof Error ? scheduleError.message : 'Could not schedule on device';
-          throw new Error(
-            `Alarm saved but may not ring: ${detail}. Tap "verify alarm permissions" on the Alarms screen.`
-          );
+          logger.warn('Alarm saved but native schedule failed', { alarmId: alarm.id, detail });
+          throw new AlarmScheduleWarning(alarm, detail);
         }
       }
 

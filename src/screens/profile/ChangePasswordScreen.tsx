@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { apiClient } from '@/services/apiClient';
 import { Button } from '@/components/ui/Button';
 import { colors, spacing, typography } from '@/theme/tokens';
+import { inputTextStyle } from '@/utils/rtl';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { showAlert, showError, showSuccess } from '@/components/ConfirmationDialog';
 
@@ -40,7 +41,7 @@ export const ChangePasswordScreen: React.FC = () => {
         <View key={label}>
           <Text style={styles.fieldLabel}>{label}</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, inputTextStyle()]}
             secureTextEntry
             value={[currentPassword, newPassword, confirm][i]}
             onChangeText={[setCurrentPassword, setNewPassword, setConfirm][i]}

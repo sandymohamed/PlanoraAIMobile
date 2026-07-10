@@ -4,6 +4,13 @@ export enum TaskStatus {
   DONE = 'DONE',
   ARCHIVED = 'ARCHIVED',
 }
+export enum TaskStatusFilter {
+  ALL = 'ALL',
+  TODO = 'TODO',
+  IN_PROGRESS = 'IN_PROGRESS',
+  DONE = 'DONE',
+  ARCHIVED = 'ARCHIVED',
+}
 
 export enum TaskPriority {
   LOW = 'LOW',
@@ -47,9 +54,15 @@ export interface TaskMetadata {
   dependencies?: string[];
   aiGenerated?: boolean;
   isRoutineTask?: boolean;
+  isRoutineEvent?: boolean;
   routineId?: string;
   routineTaskId?: string;
   routineTitle?: string;
+  routineTaskCount?: number;
+  routineCompletedCount?: number;
+  routineReminderBefore?: string;
+  routineHasReminder?: boolean;
+  routineHasAlarm?: boolean;
   scheduledDay?: number;
   isGoalMilestone?: boolean;
   goalTitle?: string;

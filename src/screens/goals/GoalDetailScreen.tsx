@@ -14,10 +14,12 @@ import {
 } from 'react-native';
 import { AppIcon as Icon } from '@/components/ui/AppIcon';
 import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useGoalStore } from '@/store/goalStore';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { Milestone, MilestoneStatus } from '@/types/goal';
 import { colors, spacing, typography } from '@/theme/tokens';
+import { directionalHitSlop } from '@/utils/rtl';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { track, AnalyticsEvents } from '@/analytics/posthog';
 import { showAlert, showError, showSuccess, showConfirmDialog } from '@/components/ConfirmationDialog';
@@ -27,6 +29,10 @@ import { format } from 'date-fns';
 export const GoalDetailScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { goalId } = useRoute<RouteProp<{ params: { goalId: string } }, 'params'>>().params;
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language.startsWith('ar');
+  const textDir = { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' } as const;
+  const rowDir = { flexDirection: isArabic ? 'row-reverse' : 'row' } as const;
 
   const {
     currentGoal,
@@ -94,14 +100,14 @@ export const GoalDetailScreen: React.FC = () => {
         await completeMilestone(goalId, m.id);
       }
     } catch (e) {
-      showError('Error', getApiErrorMessage(e));
+      showError(t('common.error'), getApiErrorMessage(e));
       throw e;
     }
   };
 
   const saveMilestone = async () => {
     if (!mTitle.trim()) {
-      showAlert('Title required', 'Enter a milestone title.', { variant: 'warning' });
+      showAlert(t('goals.detail.milestoneTitleRequired'), t('goals.detail.milestoneTitleRequiredMessage'), { variant: 'warning' });
       return;
     }
     try {
@@ -117,7 +123,7 @@ export const GoalDetailScreen: React.FC = () => {
       }
       setMilestoneModal(null);
     } catch (e) {
-      showError('Error', getApiErrorMessage(e));
+      showError(t('common.error'), getApiErrorMessage(e));
     }
   };
 
@@ -131,24 +137,22 @@ export const GoalDetailScreen: React.FC = () => {
       const { aiPlansRemaining, isPremium } = useSubscriptionStore.getState();
       const remainingNote =
         isPremium || aiPlansRemaining == null
-          ? 'Milestones and tasks were updated from your AI plan.'
-          : `Milestones and tasks were updated. You have ${aiPlansRemaining} AI plan${
-              aiPlansRemaining === 1 ? '' : 's'
-            } remaining this month.`;
-      showSuccess('Plan generated', remainingNote);
+          ? t('goals.detail.planGeneratedPremium')
+          : t('goals.detail.planGeneratedRemaining', { count: aiPlansRemaining });
+      showSuccess(t('goals.detail.planGenerated'), remainingNote);
     } catch (e) {
       const status = (e as { response?: { status?: number } })?.response?.status;
       if (status === 403) {
         showConfirmDialog({
-          title: 'Monthly AI limit reached',
+          title: t('goals.detail.aiLimitTitle'),
           message: getApiErrorMessage(e),
           variant: 'warning',
-          confirmLabel: 'See Premium',
-          cancelLabel: 'Not now',
+          confirmLabel: t('goals.detail.seePremium'),
+          cancelLabel: t('goals.detail.notNow'),
           onConfirm: () => navigation.navigate('Paywall'),
         });
       } else {
-        showError('Error', getApiErrorMessage(e));
+        showError(t('common.error'), getApiErrorMessage(e));
       }
     } finally {
       setAiLoading(false);
@@ -166,7 +170,7 @@ export const GoalDetailScreen: React.FC = () => {
   if (!goal) {
     return (
       <View style={styles.container}>
-        <Text style={styles.error}>Goal not found</Text>
+        <Text style={[styles.error, textDir]}>{t('goals.screen.notFound')}</Text>
       </View>
     );
   }
@@ -178,28 +182,45 @@ export const GoalDetailScreen: React.FC = () => {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        <Text style={styles.title}>{goal.title}</Text>
-        {goal.description ? <Text style={styles.body}>{goal.description}</Text> : null}
-        <Text style={styles.meta}>
-          {goal.status} · {goal.priority} · {goal.category}
+        <Text style={[styles.title, textDir]}>{goal.title}</Text>
+        {goal.description ? <Text style={[styles.body, textDir]}>{goal.description}</Text> : null}
+        <Text style={[styles.meta, textDir]}>
+          {t(`goals.status.${goal.status}`)} · {t(`goals.priority.${goal.priority}`)} ·{' '}
+          {t(`goals.categories.${goal.category}`, { defaultValue: goal.category })}
         </Text>
 
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${Math.min(100, goal.progress || 0)}%` }]} />
         </View>
-        <Text style={styles.progressLabel}>{Math.round(goal.progress || 0)}% complete</Text>
+        <Text style={[styles.progressLabel, textDir]}>
+          {t('goals.screen.percentComplete', { percent: Math.round(goal.progress || 0) })}
+        </Text>
 
         {goal.targetDate ? (
-          <Text style={styles.meta}>Target: {format(new Date(goal.targetDate), 'PPP')}</Text>
+          <Text style={[styles.meta, textDir]}>
+            {t('goals.screen.target', { date: format(new Date(goal.targetDate), 'PPP') })}
+          </Text>
         ) : null}
 
-        <View style={styles.actions}>
-          <ActionBtn label="Edit" onPress={() => navigation.navigate('GoalEdit', { goalId })} />
-          <ActionBtn label="Complete" onPress={() => completeGoal(goalId).catch((e) => showError('Error', getApiErrorMessage(e)))} />
+        <View style={[styles.actions, rowDir]}>
+          <ActionBtn label={t('goals.detail.edit')} textDir={textDir} onPress={() => navigation.navigate('GoalEdit', { goalId })} />
+          <ActionBtn
+            label={t('goals.detail.complete')}
+            textDir={textDir}
+            onPress={() => completeGoal(goalId).catch((e) => showError(t('common.error'), getApiErrorMessage(e)))}
+          />
           {goal.status === 'PAUSED' ? (
-            <ActionBtn label="Resume" onPress={() => resumeGoal(goalId).catch((e) => showError('Error', getApiErrorMessage(e)))} />
+            <ActionBtn
+              label={t('goals.detail.resume')}
+              textDir={textDir}
+              onPress={() => resumeGoal(goalId).catch((e) => showError(t('common.error'), getApiErrorMessage(e)))}
+            />
           ) : (
-            <ActionBtn label="Pause" onPress={() => pauseGoal(goalId).catch((e) => showError('Error', getApiErrorMessage(e)))} />
+            <ActionBtn
+              label={t('goals.detail.pause')}
+              textDir={textDir}
+              onPress={() => pauseGoal(goalId).catch((e) => showError(t('common.error'), getApiErrorMessage(e)))}
+            />
           )}
         </View>
 
@@ -207,14 +228,14 @@ export const GoalDetailScreen: React.FC = () => {
           {aiLoading ? (
             <ActivityIndicator color={colors.background} />
           ) : (
-            <Text style={styles.aiBtnText}>Generate AI plan</Text>
+            <Text style={[styles.aiBtnText, textDir]}>{t('goals.detail.generateAiPlan')}</Text>
           )}
         </TouchableOpacity>
 
-        <View style={styles.sectionRow}>
-          <Text style={styles.section}>Milestones</Text>
+        <View style={[styles.sectionRow, rowDir]}>
+          <Text style={[styles.section, textDir]}>{t('goals.detail.milestones')}</Text>
           <TouchableOpacity onPress={openCreateMilestone}>
-            <Text style={styles.link}>+ Add</Text>
+            <Text style={[styles.link, textDir]}>{t('goals.detail.add')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -222,77 +243,80 @@ export const GoalDetailScreen: React.FC = () => {
           goal.milestones.map((m) => {
             const isDone = m.status === MilestoneStatus.DONE;
             return (
-            <View key={m.id} style={[styles.milestone, isDone && styles.milestoneDone]}>
-              <View style={styles.mRow}>
-                <MilestoneCheckToggle
-                  isDone={isDone}
-                  onToggle={() => toggleMilestoneComplete(m)}
-                />
-                <View style={styles.mBody}>
-                  <View style={styles.mTitleRow}>
-                    <Text style={[styles.mTitle, isDone && styles.mTitleDone]}>{m.title}</Text>
-                    <Text style={[styles.mStatus, isDone && { color: colors.success }]}>{m.status}</Text>
+              <View key={m.id} style={[styles.milestone, isDone && styles.milestoneDone]}>
+                <View style={[styles.mRow, rowDir]}>
+                  <MilestoneCheckToggle isDone={isDone} onToggle={() => toggleMilestoneComplete(m)} />
+                  <View style={styles.mBody}>
+                    <View style={[styles.mTitleRow, rowDir]}>
+                      <Text style={[styles.mTitle, textDir, isDone && styles.mTitleDone]}>{m.title}</Text>
+                      <Text style={[styles.mStatus, textDir, isDone && { color: colors.success }]}>
+                        {t(`goals.milestoneStatus.${m.status}`)}
+                      </Text>
+                    </View>
+                    {m.description ? <Text style={[styles.mDesc, textDir]}>{m.description}</Text> : null}
+                    {m.targetDate ? (
+                      <Text style={[styles.mMeta, textDir]}>{format(new Date(m.targetDate), 'MMM d, yyyy')}</Text>
+                    ) : null}
                   </View>
-                  {m.description ? <Text style={styles.mDesc}>{m.description}</Text> : null}
-                  {m.targetDate ? <Text style={styles.mMeta}>{format(new Date(m.targetDate), 'MMM d, yyyy')}</Text> : null}
+                </View>
+                <View style={[styles.mActions, rowDir]}>
+                  <TouchableOpacity onPress={() => openEditMilestone(m)}>
+                    <Text style={[styles.link, textDir]}>{t('goals.detail.editMilestone')}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() =>
+                      showConfirmDialog({
+                        title: t('goals.detail.deleteMilestoneTitle'),
+                        itemName: m.title,
+                        confirmLabel: t('goals.detail.deleteMilestone'),
+                        destructive: true,
+                        onConfirm: () => deleteMilestone(goalId, m.id),
+                      })
+                    }
+                  >
+                    <Text style={[styles.link, textDir, { color: colors.error }]}>{t('goals.detail.deleteMilestone')}</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
-              <View style={styles.mActions}>
-                <TouchableOpacity onPress={() => openEditMilestone(m)}>
-                  <Text style={styles.link}>Edit</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() =>
-                    showConfirmDialog({
-                      title: 'Delete milestone?',
-                      itemName: m.title,
-                      confirmLabel: 'Delete',
-                      destructive: true,
-                      onConfirm: () => deleteMilestone(goalId, m.id),
-                    })
-                  }
-                >
-                  <Text style={[styles.link, { color: colors.error }]}>Delete</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
             );
           })
         ) : (
-          <Text style={styles.body}>No milestones yet.</Text>
+          <Text style={[styles.body, textDir]}>{t('goals.detail.noMilestones')}</Text>
         )}
 
         <TouchableOpacity
           style={styles.danger}
           onPress={() =>
             showConfirmDialog({
-              title: 'Cancel goal?',
+              title: t('goals.detail.cancelGoalTitle'),
               itemName: goal.title,
-              confirmLabel: 'Yes',
-              cancelLabel: 'No',
+              confirmLabel: t('goals.detail.yes'),
+              cancelLabel: t('goals.detail.no'),
               destructive: true,
               onConfirm: () => cancelGoal(goalId).then(() => navigation.goBack()),
             })
           }
         >
-          <Text style={styles.dangerText}>Cancel goal</Text>
+          <Text style={[styles.dangerText, textDir]}>{t('goals.detail.cancelGoal')}</Text>
         </TouchableOpacity>
       </ScrollView>
 
       <Modal visible={milestoneModal !== null} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modal}>
-            <Text style={styles.modalTitle}>{milestoneModal === 'create' ? 'New milestone' : 'Edit milestone'}</Text>
+            <Text style={[styles.modalTitle, textDir]}>
+              {milestoneModal === 'create' ? t('goals.detail.newMilestone') : t('goals.detail.editMilestoneTitle')}
+            </Text>
             <TextInput
-              style={styles.input}
-              placeholder="Title"
+              style={[styles.input, textDir]}
+              placeholder={t('goals.detail.milestoneTitle')}
               placeholderTextColor={colors.textMuted}
               value={mTitle}
               onChangeText={setMTitle}
             />
             <TextInput
-              style={[styles.input, styles.multiline]}
-              placeholder="Description"
+              style={[styles.input, styles.multiline, textDir]}
+              placeholder={t('goals.detail.milestoneDescription')}
               placeholderTextColor={colors.textMuted}
               value={mDesc}
               onChangeText={setMDesc}
@@ -302,17 +326,17 @@ export const GoalDetailScreen: React.FC = () => {
               mode="date"
               value={mDate}
               onChange={setMDate}
-              placeholder="No milestone date"
-              clearLabel="No date"
-              helperText="Choose a quick date or custom milestone target."
+              placeholder={t('goals.detail.noMilestoneDate')}
+              clearLabel={t('goals.detail.noDate')}
+              helperText={t('goals.detail.milestoneDateHelper')}
               showClear={Boolean(mDate)}
             />
-            <View style={styles.modalActions}>
+            <View style={[styles.modalActions, rowDir]}>
               <TouchableOpacity onPress={() => setMilestoneModal(null)}>
-                <Text style={styles.link}>Cancel</Text>
+                <Text style={[styles.link, textDir]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={saveMilestone}>
-                <Text style={[styles.link, { fontWeight: '700' }]}>Save</Text>
+                <Text style={[styles.link, textDir, { fontWeight: '700' }]}>{t('goals.detail.save')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -322,9 +346,13 @@ export const GoalDetailScreen: React.FC = () => {
   );
 };
 
-const ActionBtn: React.FC<{ label: string; onPress: () => void }> = ({ label, onPress }) => (
+const ActionBtn: React.FC<{
+  label: string;
+  textDir: { textAlign: 'right' | 'left'; writingDirection: 'rtl' | 'ltr' };
+  onPress: () => void;
+}> = ({ label, textDir, onPress }) => (
   <TouchableOpacity style={styles.actionBtn} onPress={onPress}>
-    <Text style={styles.actionBtnText}>{label}</Text>
+    <Text style={[styles.actionBtnText, textDir]}>{label}</Text>
   </TouchableOpacity>
 );
 
@@ -423,7 +451,7 @@ const MilestoneCheckToggle: React.FC<{
     <TouchableOpacity
       style={styles.mCheck}
       onPress={handlePress}
-      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      hitSlop={directionalHitSlop(8)}
       disabled={busy}
     >
       <Animated.View style={{ transform: [{ scale: ringScale }] }}>
@@ -460,7 +488,7 @@ const styles = StyleSheet.create({
   },
   progressFill: { height: '100%', backgroundColor: colors.primary },
   progressLabel: { ...typography.caption, color: colors.primary, marginTop: spacing.xs },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
+  actions: { flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
   actionBtn: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -478,7 +506,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   aiBtnText: { ...typography.body, color: colors.background, fontWeight: '600' },
-  sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.xl },
+  sectionRow: { justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.xl },
   section: { ...typography.h3, color: colors.text },
   link: { ...typography.caption, color: colors.primary, fontWeight: '600' },
   milestone: {
@@ -493,18 +521,18 @@ const styles = StyleSheet.create({
     borderColor: colors.success,
     backgroundColor: 'rgba(74, 222, 128, 0.08)',
   },
-  mRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  mCheck: { marginRight: spacing.sm, marginTop: 2 },
+  mRow: { alignItems: 'flex-start' },
+  mCheck: { marginEnd: spacing.sm, marginTop: 2 },
   mCheckIconStack: { width: 26, height: 26 },
-  mCheckFilled: { position: 'absolute', left: 0, top: 0 },
+  mCheckFilled: { position: 'absolute', start: 0, top: 0 },
   mBody: { flex: 1 },
-  mTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm },
+  mTitleRow: { justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm },
   mTitle: { ...typography.body, color: colors.text, fontWeight: '600', flex: 1 },
   mTitleDone: { textDecorationLine: 'line-through', color: colors.textSecondary },
   mStatus: { ...typography.caption, color: colors.textMuted },
   mDesc: { ...typography.caption, color: colors.textSecondary, marginTop: 4 },
   mMeta: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
-  mActions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
+  mActions: { gap: spacing.md, marginTop: spacing.sm },
   danger: { marginTop: spacing.xl, alignItems: 'center' },
   dangerText: { color: colors.error, ...typography.caption },
   error: { color: colors.error, padding: spacing.lg },
@@ -526,5 +554,5 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSubtle,
   },
   multiline: { minHeight: 72 },
-  modalActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.md },
+  modalActions: { justifyContent: 'space-between', marginTop: spacing.md },
 });

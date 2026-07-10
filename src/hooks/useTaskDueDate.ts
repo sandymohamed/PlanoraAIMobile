@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { TaskFormValues } from '@/components/tasks/TaskForm';
+import i18n from '@/i18n';
 
 function toDueTime(date: Date) {
   return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
@@ -58,10 +59,10 @@ export function useTaskDueDate(initial?: { dueDate?: string; dueTime?: string })
 
 export function validateTaskForm(values: TaskFormValues): Record<string, string> {
   const errors: Record<string, string> = {};
-  if (!values.title.trim()) errors.title = 'Title is required';
+  if (!values.title.trim()) errors.title = i18n.t('tasks.form.errors.titleRequired');
   if (values.dueDate) {
     const due = new Date(values.dueDate);
-    if (due.getTime() < Date.now() - 60_000) errors.dueDate = 'Due date cannot be in the past';
+    if (due.getTime() < Date.now() - 60_000) errors.dueDate = i18n.t('tasks.form.errors.dueDatePast');
   }
   return errors;
 }

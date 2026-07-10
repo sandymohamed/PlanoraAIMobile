@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '@/services/apiClient';
 import { Button } from '@/components/ui/Button';
 import { colors, spacing, typography } from '@/theme/tokens';
+import { inputTextStyle } from '@/utils/rtl';
 import { getApiErrorMessage } from '@/utils/apiError';
 
 type Step = 'email' | 'otp';
 
 export const ForgotPasswordScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
@@ -19,7 +22,7 @@ export const ForgotPasswordScreen: React.FC = () => {
   const sendOtp = async () => {
     setError('');
     if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) {
-      setError('Enter a valid email');
+      setError(t('auth.enterValidEmail'));
       return;
     }
     setLoading(true);
@@ -36,7 +39,7 @@ export const ForgotPasswordScreen: React.FC = () => {
   const verifyOtp = async () => {
     setError('');
     if (otp.trim().length !== 6) {
-      setError('Enter the 6-digit code');
+      setError(t('auth.enterSixDigitCode'));
       return;
     }
     setLoading(true);
@@ -47,7 +50,7 @@ export const ForgotPasswordScreen: React.FC = () => {
         { skipAuthHeader: true }
       );
       const token = res.data?.token;
-      if (!token) throw new Error('Invalid response');
+      if (!token) throw new Error(t('auth.invalidResponse'));
       navigation.navigate('ResetPassword', { token });
     } catch (e) {
       setError(getApiErrorMessage(e));
@@ -58,15 +61,15 @@ export const ForgotPasswordScreen: React.FC = () => {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Text style={styles.title}>{step === 'email' ? 'Reset password' : 'Enter code'}</Text>
+      <Text style={styles.title}>{step === 'email' ? t('auth.resetPassword') : t('auth.enterCode')}</Text>
       <Text style={styles.sub}>
-        {step === 'email' ? 'We will email you a 6-digit verification code.' : `Code sent to ${email}`}
+        {step === 'email' ? t('auth.emailCodeMessage') : t('auth.codeSentTo', { email })}
       </Text>
 
       {step === 'email' ? (
         <TextInput
-          style={styles.input}
-          placeholder="Email"
+          style={[styles.input, inputTextStyle()]}
+          placeholder={t('auth.email')}
           placeholderTextColor={colors.textMuted}
           value={email}
           onChangeText={setEmail}
@@ -75,7 +78,7 @@ export const ForgotPasswordScreen: React.FC = () => {
         />
       ) : (
         <TextInput
-          style={styles.input}
+          style={[styles.input, inputTextStyle()]}
           placeholder="000000"
           placeholderTextColor={colors.textMuted}
           value={otp}
@@ -88,12 +91,12 @@ export const ForgotPasswordScreen: React.FC = () => {
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <Button
-        label={step === 'email' ? 'Send code' : 'Verify code'}
+        label={step === 'email' ? t('auth.sendCode') : t('auth.verifyCode')}
         onPress={step === 'email' ? sendOtp : verifyOtp}
         loading={loading}
       />
-      <Button label="Back to sign in" onPress={() => navigation.navigate('Login')} variant="ghost" />
-      {step === 'otp' && <Button label="Resend code" onPress={sendOtp} variant="ghost" />}
+      <Button label={t('auth.backToSignIn')} onPress={() => navigation.navigate('Login')} variant="ghost" />
+      {step === 'otp' && <Button label={t('auth.resendCode')} onPress={sendOtp} variant="ghost" />}
     </KeyboardAvoidingView>
   );
 };

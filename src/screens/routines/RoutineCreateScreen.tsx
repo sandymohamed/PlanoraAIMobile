@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { routineService } from '@/services/routineService';
 import { useAlarmStore } from '@/store/alarmStore';
 import { RoutineForm } from '@/components/routines/RoutineForm';
@@ -11,6 +12,7 @@ import { showError } from '@/components/ConfirmationDialog';
 
 export const RoutineCreateScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { t } = useTranslation();
   const fetchAlarms = useAlarmStore((s) => s.fetchAlarms);
   const [loading, setLoading] = useState(false);
 
@@ -21,7 +23,7 @@ export const RoutineCreateScreen: React.FC = () => {
       setTimeout(() => fetchAlarms(1, 1000, true).catch(() => {}), 1000);
       navigation.goBack();
     } catch (e) {
-      showError('Error', getApiErrorMessage(e));
+      showError(t('common.error'), getApiErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -29,7 +31,7 @@ export const RoutineCreateScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <RoutineForm onSubmit={onSubmit} submitLabel="Create routine" loading={loading} />
+      <RoutineForm onSubmit={onSubmit} submitLabel={t('routines.form.createRoutine')} loading={loading} />
     </View>
   );
 };

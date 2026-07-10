@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, TextInput, Pressable, StyleSheet, TextInputProps } from 'react-native';
 import { AppIcon } from '@/components/ui/AppIcon';
 import { colors, spacing } from '@/theme/tokens';
+import { inputTextStyle } from '@/utils/rtl';
 
 type PasswordInputProps = Omit<TextInputProps, 'secureTextEntry'>;
 
@@ -12,7 +13,7 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({ style, ...textInpu
     <View style={styles.container}>
       <TextInput
         {...textInputProps}
-        style={[styles.input, style]}
+        style={[styles.input, inputTextStyle(), style]}
         secureTextEntry={!visible}
       />
       <Pressable
@@ -45,11 +46,11 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     padding: spacing.md,
-    paddingRight: spacing.xs,
+    paddingEnd: spacing.xs,
     color: colors.text,
   },
   toggle: {
     padding: spacing.md,
-    paddingLeft: spacing.xs,
+    paddingStart: spacing.xs,
   },
 });
