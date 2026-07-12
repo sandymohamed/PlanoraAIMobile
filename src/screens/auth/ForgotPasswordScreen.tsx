@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { inputTextStyle } from '@/utils/rtl';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { track, trackFailure, AnalyticsEvents } from '@/analytics/posthog';
 
 type Step = 'email' | 'otp';
 
@@ -28,8 +29,10 @@ export const ForgotPasswordScreen: React.FC = () => {
     setLoading(true);
     try {
       await apiClient.post('/auth/forgot-password', { email: email.trim().toLowerCase() }, { skipAuthHeader: true });
+      track(AnalyticsEvents.PASSWORD_RESET_REQUESTED);
       setStep('otp');
     } catch (e) {
+      trackFailure(AnalyticsEvents.PASSWORD_RESET_FAILED, e, { step: 'request' });
       setError(getApiErrorMessage(e));
     } finally {
       setLoading(false);

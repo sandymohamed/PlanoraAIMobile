@@ -33,6 +33,9 @@ import { priorityColor } from '@/utils/taskUi';
 import { Button } from '@/components/ui/Button';
 import { AdBanner } from '@/features/ads';
 import { showError } from '@/components/ConfirmationDialog';
+import { useScreenAnalytics } from '@/hooks/useScreenAnalytics';
+import { AnalyticsEvents } from '@/analytics/posthog';
+import { setPendingAnalyticsContext } from '@/analytics/pendingContext';
 
 const WEEK_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const VIEW_MODES: CalendarViewMode[] = ['month', 'week', 'day', 'agenda'];
@@ -58,6 +61,8 @@ export const CalendarScreen: React.FC = () => {
 
   const rootNav = navigation.getParent();
 
+  useScreenAnalytics(AnalyticsEvents.CALENDAR_OPENED);
+
   useFocusEffect(
     useCallback(() => {
       cal.refresh({ blocking: false, includeAlarms: false }).catch(() => { });
@@ -72,6 +77,7 @@ export const CalendarScreen: React.FC = () => {
 
   const navigateCreateTask = useCallback(
     (dueDate?: Date, dueTime?: string) => {
+      setPendingAnalyticsContext({ taskCreateSource: 'calendar' });
       navigation.navigate('Tasks', {
         screen: 'TaskCreate',
         params: {
@@ -475,6 +481,7 @@ export const CalendarScreen: React.FC = () => {
               style={styles.fabMenuItem}
               onPress={() => {
                 setFabOpen(false);
+                setPendingAnalyticsContext({ goalCreateSource: 'calendar' });
                 rootNav?.navigate('Goals', { screen: 'GoalCreate' });
               }}
             >
@@ -485,6 +492,7 @@ export const CalendarScreen: React.FC = () => {
               style={styles.fabMenuItem}
               onPress={() => {
                 setFabOpen(false);
+                setPendingAnalyticsContext({ habitCreateSource: 'calendar' });
                 rootNav?.navigate('Routines', { screen: 'RoutineCreate' });
               }}
             >
@@ -495,6 +503,7 @@ export const CalendarScreen: React.FC = () => {
               style={styles.fabMenuItem}
               onPress={() => {
                 setFabOpen(false);
+                setPendingAnalyticsContext({ alarmCreateSource: 'calendar' });
                 rootNav?.navigate('Alarms', { screen: 'AlarmCreate' });
               }}
             >
@@ -516,7 +525,7 @@ export const CalendarScreen: React.FC = () => {
               {formatDate(cal.selectedDate, { month: 'short', day: 'numeric' })}
             </Text>
             <Button label={t('calendar.addTask')} onPress={() => { setQuickAddOpen(false); navigateCreateTask(cal.selectedDate); }} />
-            <Button label={t('calendar.addGoal')} variant="secondary" onPress={() => { setQuickAddOpen(false); rootNav?.navigate('Goals', { screen: 'GoalCreate' }); }} />
+            <Button label={t('calendar.addGoal')} variant="secondary" onPress={() => { setQuickAddOpen(false); setPendingAnalyticsContext({ goalCreateSource: 'calendar' }); rootNav?.navigate('Goals', { screen: 'GoalCreate' }); }} />
             <Button label={t('common.cancel')} variant="ghost" onPress={() => setQuickAddOpen(false)} />
           </View>
         </View>

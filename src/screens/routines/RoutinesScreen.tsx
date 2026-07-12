@@ -20,6 +20,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { showError, showConfirmDialog } from '@/components/ConfirmationDialog';
+import { useScreenAnalytics } from '@/hooks/useScreenAnalytics';
+import { AnalyticsEvents } from '@/analytics/posthog';
 
 type Nav = NativeStackNavigationProp<RoutinesStackParamList, 'RoutinesList'>;
 
@@ -32,6 +34,8 @@ export const RoutinesScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const loadingRef = useRef(false);
+
+  useScreenAnalytics(AnalyticsEvents.HABITS_OPENED);
 
   const loadRoutines = useCallback(async () => {
     if (loadingRef.current) return;

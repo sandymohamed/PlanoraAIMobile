@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useRTL } from '@/hooks/useRTL';
 import { colors, spacing, typography } from '@/theme/tokens';
+import { useScreenAnalytics } from '@/hooks/useScreenAnalytics';
+import { AnalyticsEvents } from '@/analytics/posthog';
 
 
 export const SettingsScreen: React.FC = () => {
@@ -13,6 +15,8 @@ export const SettingsScreen: React.FC = () => {
 
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language.startsWith('ar');
+
+  useScreenAnalytics(AnalyticsEvents.SETTINGS_OPENED);
 
   const { chevronForward, directionalTextStyle: dirText } = useRTL();
 
@@ -29,6 +33,8 @@ export const SettingsScreen: React.FC = () => {
         route: 'LanguageSettings',
       },
       { icon: 'help-circle-outline', label: t('settings.helpSupport'), route: 'HelpSupport' },
+      { icon: 'shield-star-outline', label: t('settings.privacyPolicy'), route: 'PrivacyPolicy' },
+      { icon: 'information-outline', label: t('settings.termsOfService'), route: 'TermsOfService' },
       { icon: 'information-outline', label: t('settings.about'), route: 'About' },
 
     ], [t]);

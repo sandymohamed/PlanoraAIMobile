@@ -129,9 +129,9 @@ export const GoalDetailScreen: React.FC = () => {
 
   const onGenerateAI = async () => {
     setAiLoading(true);
+    track(AnalyticsEvents.AI_GENERATE_CLICKED, { goalId });
     try {
       await generateAIPlan(goalId);
-      track(AnalyticsEvents.AI_PLAN_GENERATED, { goalId });
       const { fetchAIUsage } = useSubscriptionStore.getState();
       await fetchAIUsage();
       const { aiPlansRemaining, isPremium } = useSubscriptionStore.getState();

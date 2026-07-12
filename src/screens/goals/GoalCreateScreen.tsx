@@ -8,12 +8,13 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useGoalStore } from '@/store/goalStore';
 import { GoalPriority } from '@/types/goal';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { setPendingAnalyticsContext } from '@/analytics/pendingContext';
 import { showAlert, showError } from '@/components/ConfirmationDialog';
 import { DateTimePicker } from '@/components/ui/DateTimePicker';
 
@@ -21,6 +22,7 @@ const CATEGORIES = ['Personal', 'Work', 'Health', 'Learning', 'Finance', 'Other'
 
 export const GoalCreateScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const { createGoal, isLoading } = useGoalStore();
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language.startsWith('ar');
@@ -42,6 +44,9 @@ export const GoalCreateScreen: React.FC = () => {
     }
     submitting.current = true;
     try {
+      if (route.params?.source === 'calendar') {
+        setPendingAnalyticsContext({ goalCreateSource: 'calendar' });
+      }
       await createGoal({
         title: title.trim(),
         description: description.trim() || undefined,

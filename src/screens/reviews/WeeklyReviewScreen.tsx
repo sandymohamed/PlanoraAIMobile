@@ -5,10 +5,13 @@ import { apiClient } from '@/services/apiClient';
 import { Button } from '@/components/ui/Button';
 import { colors, spacing, typography, radius } from '@/theme/tokens';
 import { track, AnalyticsEvents } from '@/analytics/posthog';
+import { useScreenAnalytics } from '@/hooks/useScreenAnalytics';
 
 export const WeeklyReviewScreen: React.FC = () => {
   const [review, setReview] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  useScreenAnalytics(AnalyticsEvents.WEEKLY_REVIEW_OPENED);
 
   useEffect(() => {
     apiClient

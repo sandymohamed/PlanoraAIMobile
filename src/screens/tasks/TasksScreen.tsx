@@ -27,6 +27,8 @@ import { TaskListRow } from '@/components/tasks/TaskListRow';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { AdBanner } from '@/features/ads';
 import { useTranslation } from 'react-i18next';
+import { useScreenAnalytics } from '@/hooks/useScreenAnalytics';
+import { AnalyticsEvents } from '@/analytics/posthog';
 
 type Nav = NativeStackNavigationProp<TasksStackParamList, 'TasksList'>;
 
@@ -48,6 +50,7 @@ const ALL_OPEN_STATUSES: TaskStatus[] = [
 
 export const TasksScreen: React.FC = () => {
   const { t, i18n } = useTranslation();
+  useScreenAnalytics(AnalyticsEvents.TASKS_OPENED);
 
   const navigation = useNavigation<Nav>();
   const filteredTasks = useTaskStore((s) => s.filteredTasks);

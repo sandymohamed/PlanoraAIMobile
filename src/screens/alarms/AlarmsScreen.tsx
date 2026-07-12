@@ -20,6 +20,8 @@ import { showDeleteConfirmation, showError } from '@/components/ConfirmationDial
 import { colors, spacing, typography } from '@/theme/tokens';
 import { format } from 'date-fns';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { useScreenAnalytics } from '@/hooks/useScreenAnalytics';
+import { AnalyticsEvents } from '@/analytics/posthog';
 
 export const AlarmsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -27,6 +29,8 @@ export const AlarmsScreen: React.FC = () => {
   const isArabic = i18n.language.startsWith('ar');
   const { alarms, timers, loading, fetchAlarms, fetchTimers, toggleAlarm, deleteAlarm, cleanupExpiredAlarms } =
     useAlarmStore();
+
+  useScreenAnalytics(AnalyticsEvents.ALARMS_OPENED);
 
   // Hide one-time alarms that have already rung — only keep alarms that will ring in the future.
   const visibleAlarms = alarms.filter((a) => !isAlarmExpired(a));

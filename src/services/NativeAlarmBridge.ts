@@ -51,6 +51,8 @@ class NativeAlarmBridge {
     this.eventEmitter.addListener('AlarmStop', async (event: { alarmId: string; action: string }) => {
       logger.info('🔔 Native alarm stop event received:', event.alarmId);
       try {
+        const { track, AnalyticsEvents } = await import('@/analytics/posthog');
+        track(AnalyticsEvents.ALARM_DISMISSED);
         // Clear any pending alarm state
         await AsyncStorage.removeItem('pending_alarm_id').catch(() => {});
         await AsyncStorage.removeItem('active_alarm').catch(() => {});
@@ -63,6 +65,9 @@ class NativeAlarmBridge {
     // Listen for alarm fired events (for UI updates)
     this.eventEmitter.addListener('AlarmFired', (event: { alarmId: string; title: string; action: string }) => {
       logger.info('🔔 Native alarm fired event:', event.alarmId);
+      import('@/analytics/posthog').then(({ track, AnalyticsEvents }) => {
+        track(AnalyticsEvents.ALARM_TRIGGERED);
+      }).catch(() => {});
       // Store pending alarm for UI
       AsyncStorage.setItem('pending_alarm_id', event.alarmId).catch(err => {
         logger.error('Failed to store pending alarm ID:', err);

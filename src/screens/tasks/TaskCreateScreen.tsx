@@ -11,6 +11,7 @@ import { TasksStackParamList } from '@/navigation/TasksStack';
 import { colors, spacing } from '@/theme/tokens';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { showError } from '@/components/ConfirmationDialog';
+import { setPendingAnalyticsContext } from '@/analytics/pendingContext';
 import { useTranslation } from 'react-i18next';
 
 type Route = RouteProp<TasksStackParamList, 'TaskCreate'>;
@@ -55,6 +56,9 @@ export const TaskCreateScreen: React.FC = () => {
     };
 
     try {
+      if (route.params?.dueDate) {
+        setPendingAnalyticsContext({ taskCreateSource: 'calendar' });
+      }
       await createTask(payload);
       navigation.goBack();
     } catch (e) {

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { track, trackFailure, AnalyticsEvents } from '@/analytics/posthog';
 
 export const ResetPasswordScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -31,8 +32,10 @@ export const ResetPasswordScreen: React.FC = () => {
     setLoading(true);
     try {
       await apiClient.post('/auth/reset-password', { token, newPassword: password }, { skipAuthHeader: true });
+      track(AnalyticsEvents.PASSWORD_RESET_COMPLETED);
       navigation.navigate('Login');
     } catch (e) {
+      trackFailure(AnalyticsEvents.PASSWORD_RESET_FAILED, e, { step: 'complete' });
       setError(getApiErrorMessage(e));
     } finally {
       setLoading(false);

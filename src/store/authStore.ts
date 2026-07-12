@@ -5,6 +5,8 @@ import * as Keychain from 'react-native-keychain';
 import { apiClient } from '@/services/apiClient';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { logger } from '@/utils/logger';
+import { track, trackFailure, AnalyticsEvents } from '@/analytics/posthog';
+import { identifyCurrentUser } from '@/analytics/identifyUser';
 
 interface User {
   id: string;
@@ -83,7 +85,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
-  clearSession: () => Promise<void>;
+  clearSession: (options?: { reason?: 'session_expired' | 'manual' }) => Promise<void>;
   refreshAuthToken: () => Promise<boolean>;
   initializeAuth: () => Promise<void>;
   completeOnboarding: () => void;
@@ -106,28 +108,43 @@ export const useAuthStore = create<AuthState>()(
 
       login: async (email, password) => {
         logger.info('[Planora Auth] login');
-        const res = await apiClient.post<ApiEnvelope<{ user: User; tokens: AuthTokens }>>('/auth/login', {
-          email,
-          password,
-        });
-        const { user, tokens } = parseAuthPayload(res);
-        await storeTokens(tokens);
-        logger.info('[Planora Auth] login OK');
-        set({ user, isAuthenticated: true });
+        try {
+          const res = await apiClient.post<ApiEnvelope<{ user: User; tokens: AuthTokens }>>('/auth/login', {
+            email,
+            password,
+          });
+          const { user, tokens } = parseAuthPayload(res);
+          await storeTokens(tokens);
+          logger.info('[Planora Auth] login OK');
+          set({ user, isAuthenticated: true });
+          track(AnalyticsEvents.USER_LOGGED_IN, { method: 'email' });
+          identifyCurrentUser();
+        } catch (error) {
+          trackFailure(AnalyticsEvents.LOGIN_FAILED, error, { method: 'email' });
+          throw error;
+        }
       },
 
       register: async (email, password, name) => {
         logger.info('[Planora Auth] signup');
-        const res = await apiClient.post<ApiEnvelope<{ user: User; tokens: AuthTokens }>>('/auth/signup', {
-          email: email.trim().toLowerCase(),
-          password,
-          name: name.trim(),
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-        });
-        const { user, tokens } = parseAuthPayload(res);
-        await storeTokens(tokens);
-        logger.info('[Planora Auth] signup OK');
-        set({ user, isAuthenticated: true });
+        try {
+          const res = await apiClient.post<ApiEnvelope<{ user: User; tokens: AuthTokens }>>('/auth/signup', {
+            email: email.trim().toLowerCase(),
+            password,
+            name: name.trim(),
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+          });
+          const { user, tokens } = parseAuthPayload(res);
+          await storeTokens(tokens);
+          logger.info('[Planora Auth] signup OK');
+          set({ user, isAuthenticated: true });
+          track(AnalyticsEvents.USER_SIGNED_UP, { method: 'email' });
+          track(AnalyticsEvents.SIGNUP_COMPLETED, { method: 'email' });
+          identifyCurrentUser();
+        } catch (error) {
+          trackFailure(AnalyticsEvents.SIGNUP_FAILED, error, { method: 'email' });
+          throw error;
+        }
       },
 
       logout: async () => {
@@ -143,14 +160,18 @@ export const useAuthStore = create<AuthState>()(
           /* ignore */
         }
         await get().clearSession();
+        track(AnalyticsEvents.USER_LOGGED_OUT);
       },
 
-      clearSession: async () => {
+      clearSession: async (options?: { reason?: 'session_expired' | 'manual' }) => {
         await Keychain.resetGenericPassword();
         import('./goalStore')
           .then(({ useGoalStore }) => useGoalStore.getState().clearFilters())
           .catch(() => {});
         set({ user: null, isAuthenticated: false });
+        if (options?.reason === 'session_expired') {
+          track(AnalyticsEvents.SESSION_EXPIRED);
+        }
       },
 
       refreshAuthToken: async () => {
@@ -173,6 +194,7 @@ export const useAuthStore = create<AuthState>()(
             return true;
           } catch (error) {
             logger.warn('[Planora Auth] token refresh failed', getApiErrorMessage(error));
+            track(AnalyticsEvents.REFRESH_TOKEN_FAILED);
             return false;
           } finally {
             refreshPromise = null;
@@ -198,6 +220,7 @@ export const useAuthStore = create<AuthState>()(
               const res = await apiClient.get<ApiEnvelope<User>>('/me', { skipAuthRetry: true });
               set({ user: res.data, isAuthenticated: true });
               logger.info('[Planora Auth] session restored');
+              identifyCurrentUser();
               return;
             } catch {
               logger.info('[Planora Auth] access token expired, trying refresh');
@@ -210,6 +233,7 @@ export const useAuthStore = create<AuthState>()(
               const res = await apiClient.get<ApiEnvelope<User>>('/me', { skipAuthRetry: true });
               set({ user: res.data, isAuthenticated: true });
               logger.info('[Planora Auth] session restored after refresh');
+              identifyCurrentUser();
               return;
             } catch (e) {
               logger.warn('[Planora Auth] /me failed after refresh', getApiErrorMessage(e));
@@ -218,7 +242,7 @@ export const useAuthStore = create<AuthState>()(
             logger.warn('[Planora Auth] refresh token invalid or expired — sign in again');
           }
 
-          await get().clearSession();
+          await get().clearSession({ reason: 'session_expired' });
         } finally {
           set({ isInitialized: true });
         }

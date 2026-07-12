@@ -26,6 +26,8 @@ import { Routine } from "@/types/routine";
 import { Card } from "@/components/ui/Card";
 import { colors, spacing, typography, radius } from "@/theme/tokens";
 import { track, AnalyticsEvents } from "@/analytics/posthog";
+import { useScreenAnalytics } from "@/hooks/useScreenAnalytics";
+import { setPendingAnalyticsContext } from "@/analytics/pendingContext";
 import { AdBanner } from "@/features/ads";
 import { PremiumLabel } from "@/components/premium/PremiumBadge";
 
@@ -42,6 +44,8 @@ export const HomeScreen: React.FC = () => {
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  useScreenAnalytics(AnalyticsEvents.HOME_OPENED);
 
   const load = useCallback(async () => {
     await fetchTasks();
@@ -93,6 +97,7 @@ export const HomeScreen: React.FC = () => {
 
   const toggleTaskComplete = useCallback(
     async (task: Task) => {
+      setPendingAnalyticsContext({ taskCompleteSource: "today" });
       if (task.status === TaskStatus.DONE) await uncompleteTask(task.id);
       else await completeTask(task.id);
     },
@@ -100,7 +105,7 @@ export const HomeScreen: React.FC = () => {
   );
 
   const navigateToGoals = useCallback(() => {
-    track(AnalyticsEvents.AI_PLAN_GENERATED, { source: "home" });
+    track(AnalyticsEvents.AI_PLANNER_OPENED, { source: "home" });
     navigation.navigate("Goals");
   }, [navigation]);
 

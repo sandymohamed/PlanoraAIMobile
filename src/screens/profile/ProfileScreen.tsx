@@ -8,6 +8,8 @@ import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { Card } from '@/components/ui/Card';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { trackPremiumClick } from '@/store/subscriptionStore';
+import { useScreenAnalytics } from '@/hooks/useScreenAnalytics';
+import { AnalyticsEvents } from '@/analytics/posthog';
 
 export const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -16,6 +18,8 @@ export const ProfileScreen: React.FC = () => {
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language.startsWith('ar');
   const textDir = { textAlign: isArabic ? 'right' as const : 'left' as const, writingDirection: isArabic ? 'rtl' as const : 'ltr' as const };
+
+  useScreenAnalytics(AnalyticsEvents.PROFILE_OPENED);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: spacing.lg }}>

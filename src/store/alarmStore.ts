@@ -6,6 +6,8 @@ import { reliableAlarmService } from '@/services/ReliableAlarmService';
 import { useAuthStore } from '@/store/authStore';
 import { logger } from '@/utils/logger';
 import { AlarmScheduleWarning } from '@/utils/alarmErrors';
+import { track, trackFailure, AnalyticsEvents } from '@/analytics/posthog';
+import { consumePendingAnalytics } from '@/analytics/pendingContext';
 
 interface AlarmState {
   // State
@@ -398,8 +400,22 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
         }
       }
 
+      const alarmSource = consumePendingAnalytics('alarmCreateSource') || 'manual';
+      track(AnalyticsEvents.ALARM_CREATED, { source: alarmSource });
+      if (alarmSource === 'calendar') {
+        track(AnalyticsEvents.CALENDAR_EVENT_CREATED, { entity: 'alarm' });
+      }
       return alarm;
     } catch (error) {
+      if (error instanceof AlarmScheduleWarning) {
+        const alarmSource = consumePendingAnalytics('alarmCreateSource') || 'manual';
+        track(AnalyticsEvents.ALARM_CREATED, { source: alarmSource });
+        if (alarmSource === 'calendar') {
+          track(AnalyticsEvents.CALENDAR_EVENT_CREATED, { entity: 'alarm' });
+        }
+      } else {
+        trackFailure(AnalyticsEvents.ALARM_CREATION_FAILED, error);
+      }
       set({
         error: error instanceof Error ? error.message : 'Failed to create alarm',
         loading: false,
@@ -440,6 +456,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
         await get().scheduleAlarmNative(alarm);
       }
 
+      track(AnalyticsEvents.ALARM_UPDATED);
       return alarm;
     } catch (error) {
       set({
@@ -498,6 +515,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
       reliableAlarmService.cancelAlarm(id).catch((error) => {
         logger.error('Failed to cancel native alarm', error);
       });
+      track(AnalyticsEvents.ALARM_DELETED);
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to delete alarm',
@@ -657,6 +675,8 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
       // The merge logic in fetchAlarms will preserve the snoozed time if it's more recent than backend
       logger.info(`Alarm ${id} snoozed and rescheduled natively`);
 
+      track(AnalyticsEvents.ALARM_SNOOZED, { durationMin: duration });
+
       // If authenticated, sync snooze to backend (non-blocking)
       const { isAuthenticated } = useAuthStore.getState();
       if (isAuthenticated) {
@@ -685,6 +705,7 @@ export const useAlarmStore = create<AlarmState>((set, get) => ({
 
     try {
       await alarmService.dismissAlarm(id);
+      track(AnalyticsEvents.ALARM_DISMISSED);
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to dismiss alarm',

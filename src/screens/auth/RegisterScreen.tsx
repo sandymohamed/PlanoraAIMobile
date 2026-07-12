@@ -16,7 +16,6 @@ import { colors, spacing, typography } from '@/theme/tokens';
 import { inputTextStyle } from '@/utils/rtl';
 import { getApiErrorMessage, isEmailExistsError } from '@/utils/apiError';
 import { showError, showConfirmDialog } from '@/components/ConfirmationDialog';
-import { track, AnalyticsEvents } from '@/analytics/posthog';
 
 const logoImage = require('@/assets/logo.jpg');
 
@@ -54,7 +53,6 @@ export const RegisterScreen: React.FC<{ navigation: { navigate: (screen: string)
     setLoading(true);
     try {
       await register(trimmedEmail, password, trimmedName);
-      track(AnalyticsEvents.SIGNUP_COMPLETED, { method: 'email' });
     } catch (e) {
       const msg = getApiErrorMessage(e);
       const taken = isEmailExistsError(e);

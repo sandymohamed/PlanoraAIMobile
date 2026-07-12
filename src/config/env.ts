@@ -5,8 +5,10 @@ declare const process: {
     API_BASE_URL?: string;
     API_ROOT_URL?: string;
     SENTRY_DSN?: string;
-    POSTHOG_API_KEY?: string;
-    POSTHOG_HOST?: string;
+  POSTHOG_API_KEY?: string;
+  POSTHOG_HOST?: string;
+  DEBUG_ANALYTICS?: string;
+  APP_BUILD_NUMBER?: string;
     APP_RELEASE_CHANNEL?: string;
     ADS_ENABLED?: string;
   };
@@ -16,9 +18,9 @@ declare const process: {
  * Your PC's LAN IPv4 (same Wi‑Fi as the phone). Run `ipconfig` on Windows to find it.
  * Android emulator uses 10.0.2.2 instead — set USE_ANDROID_EMULATOR=true when using emulator.
  */
-const DEV_MACHINE_IP = '192.168.1.15';
-// const DEV_MACHINE_IP = 'planorabackend-production-6e48.up.railway.app';
-const API_PORT = 3001;
+// const DEV_MACHINE_IP = '192.168.1.15';
+const DEV_MACHINE_IP = 'planorabackend-production-d233.up.railway.app';
+// const API_PORT = 3001;
 const USE_ANDROID_EMULATOR = false;
 
 function getDevApiHost(): string {
@@ -28,8 +30,8 @@ function getDevApiHost(): string {
   return 'localhost';
 }
 
-const devBase = `http://${getDevApiHost()}:${API_PORT}`;
-// const devBase = `https://${getDevApiHost()}`;
+// const devBase = `http://${getDevApiHost()}:${API_PORT}`;
+const devBase = `https://${getDevApiHost()}`;
 
 const releaseChannel = __DEV__ ? 'development' : process.env.APP_RELEASE_CHANNEL || 'production';
 
@@ -41,6 +43,8 @@ export const config = {
   SENTRY_DSN: process.env.SENTRY_DSN || '',
   POSTHOG_API_KEY: process.env.POSTHOG_API_KEY || '',
   POSTHOG_HOST: process.env.POSTHOG_HOST || 'https://us.i.posthog.com',
+  DEBUG_ANALYTICS: process.env.DEBUG_ANALYTICS === 'true',
+  APP_BUILD_NUMBER: process.env.APP_BUILD_NUMBER || '1',
   APP_RELEASE_CHANNEL: releaseChannel,
   ADS_ENABLED: process.env.ADS_ENABLED === 'true',
   APP_NAME: 'Planora AI',

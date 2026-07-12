@@ -4,6 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { taskService } from '@/services/taskService';
 import { Task, CreateTaskData, UpdateTaskData, TaskFilter, TaskPriority } from '@/types/task';
 import { logger } from '@/utils/logger';
+import { track, trackFailure, AnalyticsEvents } from '@/analytics/posthog';
+import { consumePendingAnalytics } from '@/analytics/pendingContext';
 
 interface TaskState {
   tasks: Task[];
@@ -248,6 +250,12 @@ export const useTaskStore = create<TaskStore>()(
 
           get().applyFilters();
 
+          const createSource = consumePendingAnalytics('taskCreateSource');
+          track(AnalyticsEvents.TASK_CREATED, { source: createSource || 'manual' });
+          if (createSource === 'calendar') {
+            track(AnalyticsEvents.CALENDAR_EVENT_CREATED, { entity: 'task' });
+          }
+
           // Refresh alarms after task creation if task has dueDate
           // This ensures newly created alarms from the backend are fetched
           if (task.dueDate) {
@@ -269,6 +277,7 @@ export const useTaskStore = create<TaskStore>()(
           }
         } catch (error: any) {
           logger.error('Create task error:', error);
+          trackFailure(AnalyticsEvents.TASK_CREATION_FAILED, error);
           set({
             error: error.message || 'Failed to create task',
             isLoading: false,
@@ -320,8 +329,14 @@ export const useTaskStore = create<TaskStore>()(
 
           // Apply current filters
           get().applyFilters();
+          track(AnalyticsEvents.TASK_UPDATED);
+          const calendarAction = consumePendingAnalytics('calendarEventAction');
+          if (calendarAction === 'updated') {
+            track(AnalyticsEvents.CALENDAR_EVENT_UPDATED, { entity: 'task' });
+          }
         } catch (error: any) {
           logger.error('Update task error:', error);
+          trackFailure(AnalyticsEvents.TASK_UPDATE_FAILED, error);
           set({
             error: error.message || 'Failed to update task',
             isLoading: false,
@@ -344,8 +359,14 @@ export const useTaskStore = create<TaskStore>()(
 
           // Apply current filters
           get().applyFilters();
+          track(AnalyticsEvents.TASK_DELETED);
+          const calendarAction = consumePendingAnalytics('calendarEventAction');
+          if (calendarAction === 'deleted') {
+            track(AnalyticsEvents.CALENDAR_EVENT_DELETED, { entity: 'task' });
+          }
         } catch (error: any) {
           logger.error('Delete task error:', error);
+          trackFailure(AnalyticsEvents.TASK_DELETE_FAILED, error);
           set({
             error: error.message || 'Failed to delete task',
             isLoading: false,
@@ -366,6 +387,11 @@ export const useTaskStore = create<TaskStore>()(
 
           // Apply current filters
           get().applyFilters();
+          const completeSource = consumePendingAnalytics('taskCompleteSource');
+          track(AnalyticsEvents.TASK_COMPLETED, { source: completeSource || 'task_list' });
+          if (completeSource === 'calendar') {
+            track(AnalyticsEvents.CALENDAR_EVENT_UPDATED, { entity: 'task', action: 'completed' });
+          }
         } catch (error: any) {
           logger.error('Complete task error:', error);
           throw error;
@@ -383,6 +409,11 @@ export const useTaskStore = create<TaskStore>()(
 
           // Apply current filters
           get().applyFilters();
+          const completeSource = consumePendingAnalytics('taskCompleteSource');
+          track(AnalyticsEvents.TASK_UNCOMPLETED, { source: completeSource || 'task_list' });
+          if (completeSource === 'calendar') {
+            track(AnalyticsEvents.CALENDAR_EVENT_UPDATED, { entity: 'task', action: 'uncompleted' });
+          }
         } catch (error: any) {
           logger.error('Uncomplete task error:', error);
           throw error;

@@ -25,6 +25,7 @@ import {
   sortTasksByDueTime,
   getTaskHour,
 } from '@/utils/calendarEngine';
+import { setPendingAnalyticsContext } from '@/analytics/pendingContext';
 
 export type { CalendarViewMode };
 
@@ -196,6 +197,7 @@ export function useCalendarData() {
       }
       const realId = task.metadata?.recurrenceParentId || task.id;
       const newStatus = task.status === TaskStatus.DONE ? TaskStatus.TODO : TaskStatus.DONE;
+      setPendingAnalyticsContext({ calendarEventAction: 'updated', taskCompleteSource: 'calendar' });
       await updateTask(realId, { status: newStatus });
     },
     [updateTask]

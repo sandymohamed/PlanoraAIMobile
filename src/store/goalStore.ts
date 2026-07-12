@@ -6,6 +6,8 @@ import { Goal, CreateGoalData, UpdateGoalData, GoalStatus, GoalPriority, AIPlanR
 import { CreateGoalMilestoneData, MilestoneStatus, UpdateGoalMilestoneData } from '@/types';
 import { logger } from '@/utils/logger';
 import { format } from 'date-fns';
+import { track, trackFailure, AnalyticsEvents } from '@/analytics/posthog';
+import { consumePendingAnalytics } from '@/analytics/pendingContext';
 import { useAuthStore } from './authStore';
 import { useTaskStore } from './taskStore';
 
@@ -240,8 +242,14 @@ export const useGoalStore = create<GoalStore>()(
 
           // Apply current filters
           get().applyFilters();
+          const createSource = consumePendingAnalytics('goalCreateSource');
+          track(AnalyticsEvents.GOAL_CREATED, { source: createSource || 'manual' });
+          if (createSource === 'calendar') {
+            track(AnalyticsEvents.CALENDAR_EVENT_CREATED, { entity: 'goal' });
+          }
         } catch (error: any) {
           logger.error('Create goal error:', error);
+          trackFailure(AnalyticsEvents.GOAL_CREATION_FAILED, error);
           set({
             error: error.message || 'Failed to create goal',
             isLoading: false,
@@ -264,8 +272,10 @@ export const useGoalStore = create<GoalStore>()(
 
           // Apply current filters
           get().applyFilters();
+          track(AnalyticsEvents.GOAL_UPDATED);
         } catch (error: any) {
           logger.error('Update goal error:', error);
+          trackFailure(AnalyticsEvents.GOAL_UPDATE_FAILED, error);
           set({
             error: error.message || 'Failed to update goal',
             isLoading: false,
@@ -288,8 +298,10 @@ export const useGoalStore = create<GoalStore>()(
 
           // Apply current filters
           get().applyFilters();
+          track(AnalyticsEvents.GOAL_DELETED);
         } catch (error: any) {
           logger.error('Delete goal error:', error);
+          trackFailure(AnalyticsEvents.GOAL_DELETE_FAILED, error);
           set({
             error: error.message || 'Failed to delete goal',
             isLoading: false,
@@ -313,6 +325,7 @@ export const useGoalStore = create<GoalStore>()(
           }));
 
           get().applyFilters();
+          track(AnalyticsEvents.GOAL_COMPLETED);
         } catch (error: any) {
           logger.error('Complete goal error:', error);
           throw error;
@@ -617,8 +630,10 @@ export const useGoalStore = create<GoalStore>()(
 
       // AI Planning
       generateAIPlan: async (goalId: string, promptOptions?: AIPlanRequest['promptOptions']) => {
+        const startedAt = Date.now();
         try {
           set({ isLoading: true, error: null });
+          track(AnalyticsEvents.AI_REQUEST_STARTED, { goalId });
 
           const result = await goalService.generateAIPlan({ goalId, promptOptions });
           const baseGoal = get().currentGoal?.id === goalId
@@ -651,9 +666,22 @@ export const useGoalStore = create<GoalStore>()(
 
           get().applyFilters();
 
+          const durationMs = Date.now() - startedAt;
+          const tasksCount = result.tasks?.length ?? 0;
+          const milestonesCount = result.milestones?.length ?? 0;
+          track(AnalyticsEvents.AI_PLAN_GENERATED, { goalId, durationMs, tasksCount, milestonesCount });
+          track(AnalyticsEvents.PLAN_SAVED, { goalId, durationMs });
+          if (tasksCount > 0) {
+            track(AnalyticsEvents.TASKS_GENERATED, { goalId, count: tasksCount });
+          }
+          if ('usedOfflineTemplate' in result && Boolean((result as { usedOfflineTemplate?: boolean }).usedOfflineTemplate)) {
+            track(AnalyticsEvents.OFFLINE_TEMPLATE_USED, { goalId });
+          }
+
           return updatedGoal;
         } catch (error: any) {
           logger.error('Generate AI plan error:', error);
+          trackFailure(AnalyticsEvents.AI_PLAN_FAILED, error, { goalId });
           set({ error: error.message || 'Failed to generate AI plan', isLoading: false });
           throw error;
         }

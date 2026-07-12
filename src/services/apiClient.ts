@@ -168,7 +168,7 @@ class ApiClient {
           return this.client(cfg);
         }
         this.flushQueue(error);
-        await useAuthStore.getState().clearSession();
+        await useAuthStore.getState().clearSession({ reason: 'session_expired' });
         throw error;
       }
     );

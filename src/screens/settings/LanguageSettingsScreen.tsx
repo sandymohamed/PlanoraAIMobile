@@ -8,6 +8,7 @@ import {
   setAppLanguage,
   supportedLanguages,
 } from '@/i18n';
+import { track, refreshGlobalProperties, AnalyticsEvents } from '@/analytics/posthog';
 import { useRTL } from '@/hooks/useRTL';
 import { colors, spacing, typography } from '@/theme/tokens';
 
@@ -18,7 +19,10 @@ export const LanguageSettingsScreen: React.FC = () => {
 
   const changeLanguage = async (language: AppLanguage) => {
     if (language === currentLanguage) return;
+    const from = currentLanguage;
     await setAppLanguage(language);
+    track(AnalyticsEvents.LANGUAGE_CHANGED, { from, to: language });
+    void refreshGlobalProperties();
     const selected = supportedLanguages.find((item) => item.code === language);
     showSuccess(
       t('language.changedTitle'),

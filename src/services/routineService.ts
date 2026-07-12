@@ -10,6 +10,8 @@ import {
 import { ApiResponse } from '@/types/api';
 import { logger } from '@/utils/logger';
 import { routineEvents } from './routineEvents';
+import { track, trackFailure, AnalyticsEvents } from '@/analytics/posthog';
+import { consumePendingAnalytics } from '@/analytics/pendingContext';
 
 class RoutineServiceClass {
   // Get all routines for the current user
@@ -53,9 +55,15 @@ class RoutineServiceClass {
         throw new Error(response.error || 'Failed to create routine');
       }
 
+      const habitSource = consumePendingAnalytics('habitCreateSource') || 'manual';
+      track(AnalyticsEvents.HABIT_CREATED, { source: habitSource });
+      if (habitSource === 'calendar') {
+        track(AnalyticsEvents.CALENDAR_EVENT_CREATED, { entity: 'habit' });
+      }
       return response.data;
     } catch (error) {
       logger.error('Create routine error:', error);
+      trackFailure(AnalyticsEvents.HABIT_CREATION_FAILED, error);
       throw error;
     }
   }
@@ -69,9 +77,11 @@ class RoutineServiceClass {
         throw new Error(response.error || 'Failed to update routine');
       }
 
+      track(AnalyticsEvents.HABIT_UPDATED);
       return response.data;
     } catch (error) {
       logger.error('Update routine error:', error);
+      trackFailure(AnalyticsEvents.HABIT_UPDATE_FAILED, error);
       throw error;
     }
   }
@@ -86,8 +96,10 @@ class RoutineServiceClass {
       }
 
       routineEvents.emitDeleted(routineId);
+      track(AnalyticsEvents.HABIT_DELETED);
     } catch (error) {
       logger.error('Delete routine error:', error);
+      trackFailure(AnalyticsEvents.HABIT_DELETE_FAILED, error);
       throw error;
     }
   }
@@ -154,6 +166,12 @@ class RoutineServiceClass {
 
       if (!response.success) {
         throw new Error(response.error || 'Failed to toggle task');
+      }
+
+      if (completed) {
+        track(AnalyticsEvents.HABIT_COMPLETED);
+      } else {
+        track(AnalyticsEvents.HABIT_SKIPPED);
       }
 
       return response.data;

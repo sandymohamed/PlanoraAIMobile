@@ -62,6 +62,8 @@
     "changePassword": "تغيير كلمة المرور",
     "notifications": "الإشعارات",
     "privacy": "الخصوصية",
+    "termsOfService": "شروط الخدمة",
+    "privacyPolicy": "سياسة الخصوصية",
     "dataExport": "البيانات والتصدير",
     "helpSupport": "المساعدة والدعم",
     "about": "حول التطبيق",
@@ -183,6 +185,8 @@
     "changePassword": "تغيير كلمة المرور",
     "notifications": "الإشعارات",
     "privacy": "الخصوصية",
+    "termsOfService": "شروط الخدمة",
+    "privacyPolicy": "سياسة الخصوصية",
     "language": "اللغة",
     "languageSubtitle": "اختر لغة التطبيق",
     "helpSupport": "المساعدة والدعم",
@@ -269,8 +273,14 @@
     "sessionsToday": "جلسات اليوم",
     "focusedToday": "تركيز اليوم",
     "modes": {
-      "pomodoro": { "label": "بومودورو", "tagline": "كتلة تركيز كلاسيكية 25 دقيقة" },
-      "deep": { "label": "عمل عميق", "tagline": "جلسة عميقة طويلة دون انقطاع" }
+      "pomodoro": {
+        "label": "بومودورو",
+        "tagline": "كتلة تركيز كلاسيكية 25 دقيقة"
+      },
+      "deep": {
+        "label": "عمل عميق",
+        "tagline": "جلسة عميقة طويلة دون انقطاع"
+      }
     },
     "inFocus": "في التركيز",
     "paused": "متوقف مؤقتاً",

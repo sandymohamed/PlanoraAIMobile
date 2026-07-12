@@ -18,6 +18,8 @@ import { getApiErrorMessage } from '@/utils/apiError';
 import { showError, showConfirmDialog, showActionSheet } from '@/components/ConfirmationDialog';
 import { format, isAfter, differenceInDays } from 'date-fns';
 import { AdBanner } from '@/features/ads';
+import { useScreenAnalytics } from '@/hooks/useScreenAnalytics';
+import { AnalyticsEvents } from '@/analytics/posthog';
 
 const STATUS_FILTERS: { key: 'all' | 'active' | 'completed'; statuses?: GoalStatus[] }[] = [
   { key: 'all' },
@@ -31,6 +33,8 @@ export const GoalsScreen: React.FC = () => {
   const isArabic = i18n.language.startsWith('ar');
   const textDir = { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' } as const;
   const rowDir = { flexDirection: isArabic ? 'row-reverse' : 'row' } as const;
+
+  useScreenAnalytics(AnalyticsEvents.GOALS_OPENED);
 
   const {
     filteredGoals,

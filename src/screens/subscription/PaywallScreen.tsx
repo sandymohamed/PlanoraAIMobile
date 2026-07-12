@@ -51,6 +51,7 @@ export const PaywallScreen: React.FC = () => {
 
   useEffect(() => {
     track(AnalyticsEvents.PAYWALL_VIEWED, { source: 'paywall' });
+    track(AnalyticsEvents.PREMIUM_PAGE_OPENED, { source: 'paywall' });
     fetchAIUsage();
   }, [fetchAIUsage]);
 

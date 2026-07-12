@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { colors, spacing, typography } from '@/theme/tokens';
 import { useRTL } from '@/hooks/useRTL';
+import { useScreenAnalytics } from '@/hooks/useScreenAnalytics';
+import { AnalyticsEvents } from '@/analytics/posthog';
 
 type Row = { feature: string; free: string; pro: string; premium: string };
 
@@ -16,6 +18,7 @@ const ROWS: Row[] = [
 
 export const ComparePlansScreen: React.FC = () => {
   const { directionalTextStyle: dirText } = useRTL();
+  useScreenAnalytics(AnalyticsEvents.PREMIUM_COMPARE_PLANS);
 
   return (
   <ScrollView style={styles.container} contentContainerStyle={styles.content}>
