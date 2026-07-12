@@ -51,7 +51,6 @@ function eventAccent(task: Task): string {
 export const CalendarScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { t } = useTranslation();
-  const { navigatePrevious, navigateNext } = useRTL();
   const cal = useCalendarData();
   const [refreshing, setRefreshing] = useState(false);
   const [modalTask, setModalTask] = useState<Task | null>(null);

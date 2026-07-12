@@ -1,20 +1,20 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { InteractionManager } from 'react-native';
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { InteractionManager } from "react-native";
 import {
   format,
   differenceInHours,
   differenceInMinutes,
   differenceInDays,
   isSameDay,
-} from 'date-fns';
-import i18n, { formatDate } from '@/i18n';
-import { useTaskStore } from '@/store/taskStore';
-import { useGoalStore } from '@/store/goalStore';
-import { useAlarmStore } from '@/store/alarmStore';
-import { routineService } from '@/services/routineService';
-import { routineEvents } from '@/services/routineEvents';
-import { Routine } from '@/types/routine';
-import { Task, TaskStatus } from '@/types/task';
+} from "date-fns";
+import i18n, { formatDate } from "@/i18n";
+import { useTaskStore } from "@/store/taskStore";
+import { useGoalStore } from "@/store/goalStore";
+import { useAlarmStore } from "@/store/alarmStore";
+import { routineService } from "@/services/routineService";
+import { routineEvents } from "@/services/routineEvents";
+import { Routine } from "@/types/routine";
+import { Task, TaskStatus } from "@/types/task";
 import {
   CalendarViewMode,
   buildCalendarItems,
@@ -24,8 +24,8 @@ import {
   groupTasksByDayKey,
   sortTasksByDueTime,
   getTaskHour,
-} from '@/utils/calendarEngine';
-import { setPendingAnalyticsContext } from '@/analytics/pendingContext';
+} from "@/utils/calendarEngine";
+import { setPendingAnalyticsContext } from "@/analytics/pendingContext";
 
 export type { CalendarViewMode };
 
@@ -44,7 +44,7 @@ export function useCalendarData() {
   const fetchAlarms = useAlarmStore((s) => s.fetchAlarms);
 
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<CalendarViewMode>('month');
+  const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -58,27 +58,32 @@ export function useCalendarData() {
       setRoutines([]);
     }
   }, []);
+// this hook recall everytime I go to calender screen, 
+// so I need to make sure it is not blocking the UI. 
+//  I will use a non-blocking refresh for this.
+  const refresh = useCallback(
+    async (options: CalendarRefreshOptions = {}) => {
+      const { blocking = true, includeAlarms = false } = options;
+      if (blocking) setIsLoading(true);
+      else setIsSyncing(true);
+      console.log("Refreshing calendar data...", blocking, isSyncing);
+      try {
+        await Promise.all([
+          fetchTasks({ skipAlarmSync: true }),
+          fetchGoals(1, 100),
+          loadRoutines(),
+        ]);
 
-  const refresh = useCallback(async (options: CalendarRefreshOptions = {}) => {
-    const { blocking = true, includeAlarms = false } = options;
-    if (blocking) setIsLoading(true);
-    else setIsSyncing(true);
-
-    try {
-      await Promise.all([
-        fetchTasks({ skipAlarmSync: true }),
-        fetchGoals(1, 100),
-        loadRoutines(),
-      ]);
-
-      if (includeAlarms) {
-        await fetchAlarms(1, 500, true, 0, { scheduleNative: false });
+        if (includeAlarms) {
+          await fetchAlarms(1, 500, true, 0, { scheduleNative: false });
+        }
+      } finally {
+        if (blocking) setIsLoading(false);
+        else setIsSyncing(false);
       }
-    } finally {
-      if (blocking) setIsLoading(false);
-      else setIsSyncing(false);
-    }
-  }, [fetchTasks, fetchGoals, fetchAlarms, loadRoutines]);
+    },
+    [fetchTasks, fetchGoals, fetchAlarms, loadRoutines],
+  );
 
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
@@ -90,7 +95,9 @@ export function useCalendarData() {
 
   useEffect(() => {
     const unsubscribe = routineEvents.onDeleted((routineId) => {
-      setRoutines((current) => current.filter((routine) => routine.id !== routineId));
+      setRoutines((current) =>
+        current.filter((routine) => routine.id !== routineId),
+      );
       fetchAlarms(1, 500, true, 0, { scheduleNative: false }).catch(() => {});
     });
 
@@ -101,7 +108,7 @@ export function useCalendarData() {
 
   const dateRange = useMemo(
     () => getCalendarDateRange(viewMode, currentDate, selectedDate),
-    [viewMode, currentDate, selectedDate]
+    [viewMode, currentDate, selectedDate],
   );
 
   const allCalendarItems = useMemo(
@@ -114,15 +121,17 @@ export function useCalendarData() {
         rangeStart: dateRange.start,
         rangeEnd: dateRange.end,
       }),
-    [tasks, goals, routines, alarms, dateRange.start, dateRange.end]
+    [tasks, goals, routines, alarms, dateRange.start, dateRange.end],
   );
 
   const getTasksForDate = useCallback(
     (date: Date) =>
       allCalendarItems
-        .filter((item) => item.dueDate && isSameDay(new Date(item.dueDate), date))
+        .filter(
+          (item) => item.dueDate && isSameDay(new Date(item.dueDate), date),
+        )
         .sort(sortTasksByDueTime),
-    [allCalendarItems]
+    [allCalendarItems],
   );
 
   const monthData = useMemo(() => {
@@ -132,10 +141,16 @@ export function useCalendarData() {
 
   const weekData = useMemo(() => {
     const weekDays = getWeekDays(selectedDate);
-    return { weekDays, weekTasks: groupTasksByDayKey(allCalendarItems, weekDays) };
+    return {
+      weekDays,
+      weekTasks: groupTasksByDayKey(allCalendarItems, weekDays),
+    };
   }, [selectedDate, allCalendarItems]);
 
-  const dayTasks = useMemo(() => getTasksForDate(selectedDate), [selectedDate, getTasksForDate]);
+  const dayTasks = useMemo(
+    () => getTasksForDate(selectedDate),
+    [selectedDate, getTasksForDate],
+  );
 
   const dayReminders = useMemo(() => [], []);
 
@@ -144,7 +159,7 @@ export function useCalendarData() {
     const byDay: Record<string, Task[]> = {};
     items.forEach((t) => {
       if (!t.dueDate) return;
-      const key = format(new Date(t.dueDate), 'yyyy-MM-dd');
+      const key = format(new Date(t.dueDate), "yyyy-MM-dd");
       if (!byDay[key]) byDay[key] = [];
       byDay[key].push(t);
     });
@@ -172,7 +187,7 @@ export function useCalendarData() {
       if (task.metadata?.isRoutineTask && task.metadata.routineTaskId) {
         const updatedRoutineTask = await routineService.toggleTaskCompletion(
           task.metadata.routineTaskId,
-          task.status !== TaskStatus.DONE
+          task.status !== TaskStatus.DONE,
         );
         setRoutines((current) =>
           current.map((routine) =>
@@ -180,12 +195,14 @@ export function useCalendarData() {
               ? {
                   ...routine,
                   routineTasks: routine.routineTasks.map((routineTask) =>
-                    routineTask.id === updatedRoutineTask.id ? updatedRoutineTask : routineTask
+                    routineTask.id === updatedRoutineTask.id
+                      ? updatedRoutineTask
+                      : routineTask,
                   ),
                   updatedAt: new Date().toISOString(),
                 }
-              : routine
-          )
+              : routine,
+          ),
         );
         return;
       }
@@ -196,11 +213,15 @@ export function useCalendarData() {
         return;
       }
       const realId = task.metadata?.recurrenceParentId || task.id;
-      const newStatus = task.status === TaskStatus.DONE ? TaskStatus.TODO : TaskStatus.DONE;
-      setPendingAnalyticsContext({ calendarEventAction: 'updated', taskCompleteSource: 'calendar' });
+      const newStatus =
+        task.status === TaskStatus.DONE ? TaskStatus.TODO : TaskStatus.DONE;
+      setPendingAnalyticsContext({
+        calendarEventAction: "updated",
+        taskCompleteSource: "calendar",
+      });
       await updateTask(realId, { status: newStatus });
     },
-    [updateTask]
+    [updateTask],
   );
 
   const getRemindersOnDay = useCallback((_date: Date) => [], []);
@@ -211,50 +232,53 @@ export function useCalendarData() {
     const mins = differenceInMinutes(taskDate, now);
     const hrs = differenceInHours(taskDate, now);
     const days = differenceInDays(taskDate, now);
-    if (mins < 0) return i18n.t('calendar.overdue');
-    if (mins < 60) return i18n.t('calendar.minutesLeft', { count: mins });
-    if (hrs < 24) return i18n.t('calendar.hoursLeft', { count: hrs });
-    if (days < 7) return i18n.t('calendar.daysLeft', { count: days });
-    return formatDate(taskDate, { month: 'short', day: 'numeric' });
+    if (mins < 0) return i18n.t("calendar.overdue");
+    if (mins < 60) return i18n.t("calendar.minutesLeft", { count: mins });
+    if (hrs < 24) return i18n.t("calendar.hoursLeft", { count: hrs });
+    if (days < 7) return i18n.t("calendar.daysLeft", { count: days });
+    return formatDate(taskDate, { month: "short", day: "numeric" });
   }, []);
 
-  return useMemo(() => ({
-    currentDate,
-    setCurrentDate,
-    viewMode,
-    setViewMode,
-    selectedDate,
-    setSelectedDate,
-    isLoading,
-    isSyncing,
-    monthData,
-    weekData,
-    dayTasks,
-    dayReminders,
-    agendaItems,
-    upcomingTasks,
-    allCalendarItems,
-    completeCalendarTask,
-    getRemindersOnDay,
-    getTaskHour,
-    getTimeUntil,
-    refresh,
-  }), [
-    currentDate,
-    viewMode,
-    selectedDate,
-    isLoading,
-    isSyncing,
-    monthData,
-    weekData,
-    dayTasks,
-    dayReminders,
-    agendaItems,
-    upcomingTasks,
-    allCalendarItems,
-    completeCalendarTask,
-    getRemindersOnDay,
-    getTimeUntil,
-    refresh,
-  ]);
+  return useMemo(
+    () => ({
+      currentDate,
+      setCurrentDate,
+      viewMode,
+      setViewMode,
+      selectedDate,
+      setSelectedDate,
+      isLoading,
+      isSyncing,
+      monthData,
+      weekData,
+      dayTasks,
+      dayReminders,
+      agendaItems,
+      upcomingTasks,
+      allCalendarItems,
+      completeCalendarTask,
+      getRemindersOnDay,
+      getTaskHour,
+      getTimeUntil,
+      refresh,
+    }),
+    [
+      currentDate,
+      viewMode,
+      selectedDate,
+      isLoading,
+      isSyncing,
+      monthData,
+      weekData,
+      dayTasks,
+      dayReminders,
+      agendaItems,
+      upcomingTasks,
+      allCalendarItems,
+      completeCalendarTask,
+      getRemindersOnDay,
+      getTimeUntil,
+      refresh,
+    ],
+  );
 }
