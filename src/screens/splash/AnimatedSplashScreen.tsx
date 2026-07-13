@@ -22,9 +22,9 @@ export const AnimatedSplashScreen: React.FC<AnimatedSplashScreenProps> = ({ onFi
       onEnd={onFinish}
       onError={onFinish}
     />
-    <Pressable style={styles.skipButton} onPress={onFinish} accessibilityRole="button">
+    {/* <Pressable style={styles.skipButton} onPress={onFinish} accessibilityRole="button">
       <Text style={styles.skipText}>Skip</Text>
-    </Pressable>
+    </Pressable> */}
   </View>
 );
 

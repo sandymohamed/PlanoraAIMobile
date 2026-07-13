@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useGoalStore } from '@/store/goalStore';
 import { Goal, GoalStatus } from '@/types/goal';
@@ -20,6 +20,7 @@ import { format, isAfter, differenceInDays } from 'date-fns';
 import { AdBanner } from '@/features/ads';
 import { useScreenAnalytics } from '@/hooks/useScreenAnalytics';
 import { AnalyticsEvents } from '@/analytics/posthog';
+import { syncIfNeeded } from '@/services/sync/appSync';
 
 const STATUS_FILTERS: { key: 'all' | 'active' | 'completed'; statuses?: GoalStatus[] }[] = [
   { key: 'all' },
@@ -36,39 +37,56 @@ export const GoalsScreen: React.FC = () => {
 
   useScreenAnalytics(AnalyticsEvents.GOALS_OPENED);
 
-  const {
-    filteredGoals,
-    isLoading,
-    searchQuery,
-    fetchGoals,
-    loadMoreGoals,
-    hasNextPage,
-    setSearchQuery,
-    clearFilters,
-    applyFilters,
-    setStatusFilter,
-    deleteGoal,
-    completeGoal,
-  } = useGoalStore();
+  // Read directly from store - instant render from cache
+  const filteredGoals = useGoalStore((s) => s.filteredGoals);
+  const isLoading = useGoalStore((s) => s.isLoading);
+  const isLoaded = useGoalStore((s) => s.isLoaded);
+  const searchQuery = useGoalStore((s) => s.searchQuery);
+  const hasNextPage = useGoalStore((s) => s.hasNextPage);
+  
+  // Store actions
+  const fetchGoals = useGoalStore((s) => s.fetchGoals);
+  const loadMoreGoals = useGoalStore((s) => s.loadMoreGoals);
+  const setSearchQuery = useGoalStore((s) => s.setSearchQuery);
+  const clearFilters = useGoalStore((s) => s.clearFilters);
+  const setStatusFilter = useGoalStore((s) => s.setStatusFilter);
+  const applyFilters = useGoalStore((s) => s.applyFilters);
+  const deleteGoal = useGoalStore((s) => s.deleteGoal);
+  const completeGoal = useGoalStore((s) => s.completeGoal);
 
   const [viewMode, setViewMode] = useState<'all' | 'active' | 'completed'>('all');
   const [refreshing, setRefreshing] = useState(false);
   const [localSearch, setLocalSearch] = useState(searchQuery);
+  const [isInitialLoading, setIsInitialLoading] = useState(!isLoaded);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchGoals();
-      return () => {
-        setLocalSearch('');
-        setViewMode('all');
-        clearFilters();
-      };
-    }, [clearFilters, fetchGoals])
-  );
+  // ✅ Only fetch on initial load if not loaded
+  useEffect(() => {
+    if (!isLoaded) {
+      fetchGoals(1, 20)
+        .catch(() => {})
+        .finally(() => {
+          setIsInitialLoading(false);
+        });
+    } else {
+      setIsInitialLoading(false);
+      // Silently check for updates in background
+      const timer = setTimeout(() => {
+        syncIfNeeded().catch(() => {});
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoaded, fetchGoals]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearFilters();
+    };
+  }, [clearFilters]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchGoals();
+    await fetchGoals(1, 20, true); // Force refresh
     setRefreshing(false);
   };
 
@@ -77,12 +95,11 @@ export const GoalsScreen: React.FC = () => {
     const cfg = STATUS_FILTERS.find((f) => f.key === mode);
     setStatusFilter(cfg?.statuses ?? []);
     applyFilters();
-    fetchGoals();
   };
 
   const onSearchSubmit = () => {
     setSearchQuery(localSearch);
-    fetchGoals();
+    // Don't fetch here - filter will apply automatically
   };
 
   const onSearchChange = (text: string) => {
@@ -172,7 +189,7 @@ export const GoalsScreen: React.FC = () => {
             <Text style={[styles.metaText, textDir, overdue && styles.overdue]}>
               {overdue
                 ? t('goals.screen.overdue')
-                : daysLeft !== null
+                : daysLeft !== null && daysLeft >= 0
                   ? t('goals.screen.daysLeft', { count: daysLeft })
                   : format(new Date(item.targetDate), 'MMM d')}
             </Text>
@@ -181,6 +198,15 @@ export const GoalsScreen: React.FC = () => {
       </TouchableOpacity>
     );
   };
+
+  // Show loading only on initial load
+  if (isInitialLoading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -205,21 +231,21 @@ export const GoalsScreen: React.FC = () => {
         ))}
       </View>
 
-      {isLoading && filteredGoals.length === 0 ? (
-        <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />
-      ) : (
-        <FlatList
-          data={filteredGoals}
-          keyExtractor={(g) => g.id}
-          renderItem={renderGoal}
-          contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-          onEndReached={() => hasNextPage && loadMoreGoals()}
-          onEndReachedThreshold={0.3}
-          ListEmptyComponent={<Text style={[styles.empty, textDir]}>{t('goals.screen.empty')}</Text>}
-          ListFooterComponent={<AdBanner placement="goals" />}
-        />
-      )}
+      <FlatList
+        data={filteredGoals}
+        keyExtractor={(g) => g.id}
+        renderItem={renderGoal}
+        contentContainerStyle={styles.list}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        onEndReached={() => {
+          if (hasNextPage && !isLoading) {
+            loadMoreGoals();
+          }
+        }}
+        onEndReachedThreshold={0.3}
+        ListEmptyComponent={<Text style={[styles.empty, textDir]}>{t('goals.screen.empty')}</Text>}
+        ListFooterComponent={<AdBanner placement="goals" />}
+      />
 
       <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('GoalCreate')} activeOpacity={0.9}>
         <Text style={styles.fabText}>+</Text>

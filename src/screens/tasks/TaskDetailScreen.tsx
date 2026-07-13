@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -21,13 +21,33 @@ export const TaskDetailScreen: React.FC = () => {
   const { t } = useTranslation();
   
   const { taskId } = useRoute<Route>().params;
-  const { tasks, fetchTask, completeTask, uncompleteTask, deleteTask, isLoading } = useTaskStore();
+  
+  // Read from store - instant render from cache
+  const tasks = useTaskStore((s) => s.tasks);
+  const isLoading = useTaskStore((s) => s.isLoading);
+  const isLoaded = useTaskStore((s) => s.isLoaded);
+  const fetchTask = useTaskStore((s) => s.fetchTask);
+  const completeTask = useTaskStore((s) => s.completeTask);
+  const uncompleteTask = useTaskStore((s) => s.uncompleteTask);
+  const deleteTask = useTaskStore((s) => s.deleteTask);
+  
   const task = tasks.find((t) => t.id === taskId);
-  useEffect(() => {
-    if (!task) fetchTask(taskId).catch(() => {});
-  }, [task, taskId, fetchTask]);
+  const [isLoadingTask, setIsLoadingTask] = useState(false);
 
-  if (!task && isLoading) {
+  // ✅ Only fetch if task doesn't exist in cache
+  useEffect(() => {
+    if (!task && isLoaded) {
+      setIsLoadingTask(true);
+      fetchTask(taskId)
+        .catch(() => {})
+        .finally(() => {
+          setIsLoadingTask(false);
+        });
+    }
+  }, [task, taskId, fetchTask, isLoaded]);
+
+  // ✅ Show loading only if task doesn't exist and we're fetching it
+  if ((!task && isLoadingTask) || (!task && !isLoaded)) {
     return (
       <View style={styles.center}>
         <ActivityIndicator color={colors.primary} />

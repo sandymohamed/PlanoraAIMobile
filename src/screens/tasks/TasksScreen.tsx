@@ -12,7 +12,7 @@ import {
   Platform,
   UIManager,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AppIcon as Icon } from '@/components/ui/AppIcon';
 import { useTaskStore } from '@/store/taskStore';
@@ -21,7 +21,6 @@ import { TasksStackParamList } from '@/navigation/TasksStack';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { showDeleteConfirmation, showError } from '@/components/ConfirmationDialog';
 import { colors, spacing, typography } from '@/theme/tokens';
-import { inputTextStyle } from '@/utils/rtl';
 import { sortTasksByDueDate, translateTaskFilters } from '@/utils/taskUi';
 import { TaskListRow } from '@/components/tasks/TaskListRow';
 import { getApiErrorMessage } from '@/utils/apiError';
@@ -29,6 +28,7 @@ import { AdBanner } from '@/features/ads';
 import { useTranslation } from 'react-i18next';
 import { useScreenAnalytics } from '@/hooks/useScreenAnalytics';
 import { AnalyticsEvents } from '@/analytics/posthog';
+import { syncIfNeeded } from '@/services/sync/appSync';
 
 type Nav = NativeStackNavigationProp<TasksStackParamList, 'TasksList'>;
 
@@ -53,10 +53,15 @@ export const TasksScreen: React.FC = () => {
   useScreenAnalytics(AnalyticsEvents.TASKS_OPENED);
 
   const navigation = useNavigation<Nav>();
+  
+  // Read directly from store - instant render from cache
   const filteredTasks = useTaskStore((s) => s.filteredTasks);
   const isLoading = useTaskStore((s) => s.isLoading);
+  const isLoaded = useTaskStore((s) => s.isLoaded);
   const error = useTaskStore((s) => s.error);
   const searchQuery = useTaskStore((s) => s.searchQuery);
+  
+  // Store actions
   const fetchTasks = useTaskStore((s) => s.fetchTasks);
   const refreshTasks = useTaskStore((s) => s.refreshTasks);
   const setSearchQuery = useTaskStore((s) => s.setSearchQuery);
@@ -69,6 +74,7 @@ export const TasksScreen: React.FC = () => {
 
   const [statusTab, setStatusTab] = useState<StatusTab>('All');
   const [refreshing, setRefreshing] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(!isLoaded);
 
   useEffect(() => {
     if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -76,28 +82,34 @@ export const TasksScreen: React.FC = () => {
     }
   }, []);
 
-  const sortedTasks = useMemo(() => sortTasksByDueDate(filteredTasks), [filteredTasks]);
-  const fetchingRef = useRef(false);
+  // Set initial filter
+  useEffect(() => {
+    setFilter({ status: ALL_OPEN_STATUSES });
+  }, [setFilter]);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (fetchingRef.current) return;
-      fetchingRef.current = true;
-      setFilter({ status: ALL_OPEN_STATUSES });
+  // ✅ Instead of fetching on focus, check if data needs refresh in background
+  useEffect(() => {
+    // If data is not loaded, fetch it (only once)
+    if (!isLoaded) {
       fetchTasks()
-        .catch(() => { })
+        .catch(() => {})
         .finally(() => {
-          fetchingRef.current = false;
+          setIsInitialLoading(false);
         });
-      return () => {
-        fetchingRef.current = false;
-      };
-    }, [fetchTasks, setFilter])
-  );
+    } else {
+      setIsInitialLoading(false);
+      // Silently check for updates in background (non-blocking)
+      const timer = setTimeout(() => {
+        syncIfNeeded().catch(() => {});
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoaded, fetchTasks]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
+      // ✅ Force refresh all data
       await refreshTasks();
     } finally {
       setRefreshing(false);
@@ -158,6 +170,8 @@ export const TasksScreen: React.FC = () => {
 
   const keyExtractor = useCallback((task: Task) => task.id, []);
 
+  const sortedTasks = useMemo(() => sortTasksByDueDate(filteredTasks), [filteredTasks]);
+
   const listEmpty = useMemo(() => (
     <EmptyState
       title="No tasks yet"
@@ -208,27 +222,32 @@ export const TasksScreen: React.FC = () => {
       ) : null}
       <AdBanner placement="tasks" />
     </>
-  ), [applyStatusFilter, clearError, error, searchQuery, setSearchQuery, statusTab]);
+  ), [applyStatusFilter, clearError, error, searchQuery, setSearchQuery, statusTab, t, i18n.language]);
+
+  // Show loading only on initial load, not on subsequent visits
+  if (isInitialLoading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator color={colors.primary} style={{ marginTop: 48 }} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      {isLoading && sortedTasks.length === 0 ? (
-        <ActivityIndicator color={colors.primary} style={{ marginTop: 48 }} />
-      ) : (
-        <FlatList
-          data={sortedTasks}
-          keyExtractor={keyExtractor}
-          renderItem={renderTask}
-          ListHeaderComponent={listHeader}
-          ListEmptyComponent={listEmpty}
-          contentContainerStyle={styles.list}
-          refreshControl={refreshControl}
-          initialNumToRender={10}
-          maxToRenderPerBatch={10}
-          windowSize={5}
-          removeClippedSubviews={Platform.OS === 'android'}
-        />
-      )}
+      <FlatList
+        data={sortedTasks}
+        keyExtractor={keyExtractor}
+        renderItem={renderTask}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={listEmpty}
+        contentContainerStyle={styles.list}
+        refreshControl={refreshControl}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === 'android'}
+      />
 
       <TouchableOpacity style={styles.fab} onPress={handleCreate} activeOpacity={0.9}>
         <Icon name="plus" size={28} color="#fff" />
@@ -249,7 +268,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     paddingHorizontal: spacing.md,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   searchIcon: { marginEnd: spacing.sm },
   search: { flex: 1, color: colors.text, paddingVertical: spacing.md, ...typography.body },

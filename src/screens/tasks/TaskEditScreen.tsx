@@ -18,7 +18,14 @@ type Nav = NativeStackNavigationProp<TasksStackParamList, 'TaskEdit'>;
 export const TaskEditScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
   const { taskId } = useRoute<Route>().params;
-  const { tasks, updateTask, fetchTask, isLoading } = useTaskStore();
+  
+  // Read from store - instant render from cache
+  const tasks = useTaskStore((s) => s.tasks);
+  const isLoading = useTaskStore((s) => s.isLoading);
+  const isLoaded = useTaskStore((s) => s.isLoaded);
+  const fetchTask = useTaskStore((s) => s.fetchTask);
+  const updateTask = useTaskStore((s) => s.updateTask);
+  
   const task = tasks.find((t) => t.id === taskId);
 
   const [values, setValues] = useState<TaskFormValues>({
@@ -28,13 +35,23 @@ export const TaskEditScreen: React.FC = () => {
     status: TaskStatus.TODO,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoadingTask, setIsLoadingTask] = useState(false);
   const submittingRef = useRef(false);
   const due = useTaskDueDate({ dueDate: task?.dueDate, dueTime: task?.dueTime });
   const { syncFromValues } = due;
 
+  // ✅ Only fetch if task doesn't exist in cache
   useEffect(() => {
-    if (!task) fetchTask(taskId).catch(() => {});
-  }, [task, taskId, fetchTask]);
+    if (!task && isLoaded) {
+      // Task not in cache, fetch it
+      setIsLoadingTask(true);
+      fetchTask(taskId)
+        .catch(() => {})
+        .finally(() => {
+          setIsLoadingTask(false);
+        });
+    }
+  }, [task, taskId, fetchTask, isLoaded]);
 
   useEffect(() => {
     if (!task) return;
@@ -77,7 +94,8 @@ export const TaskEditScreen: React.FC = () => {
     }
   };
 
-  if (!task && isLoading) {
+  // ✅ Show loading only if task doesn't exist and we're fetching it
+  if ((!task && isLoadingTask) || (!task && !isLoaded)) {
     return (
       <View style={styles.center}>
         <ActivityIndicator color={colors.primary} />

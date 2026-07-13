@@ -22,6 +22,7 @@ export const TaskCreateScreen: React.FC = () => {
   const route = useRoute<Route>();
   const { createTask, isLoading } = useTaskStore();
   const { t } = useTranslation();
+  
   const [values, setValues] = useState<TaskFormValues>({
     title: '',
     description: '',
@@ -59,6 +60,7 @@ export const TaskCreateScreen: React.FC = () => {
       if (route.params?.dueDate) {
         setPendingAnalyticsContext({ taskCreateSource: 'calendar' });
       }
+      // ✅ createTask now uses optimistic updates - instant UI response
       await createTask(payload);
       navigation.goBack();
     } catch (e) {

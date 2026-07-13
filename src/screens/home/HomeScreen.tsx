@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { format, isSameDay, startOfDay, subDays } from "date-fns";
 import {
   View,
@@ -7,8 +7,9 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  InteractionManager,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import LinearGradient from "react-native-linear-gradient";
@@ -30,41 +31,36 @@ import { useScreenAnalytics } from "@/hooks/useScreenAnalytics";
 import { setPendingAnalyticsContext } from "@/analytics/pendingContext";
 import { AdBanner } from "@/features/ads";
 import { PremiumLabel } from "@/components/premium/PremiumBadge";
+import { syncIfNeeded } from "@/services/sync/appSync";
 
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { t } = useTranslation();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
 
+  // ✅ Read from store directly - instant data
   const user = useAuthStore((s) => s.user);
   const tasks = useTaskStore((s) => s.tasks);
+  const isLoaded = useTaskStore((s) => s.isLoaded);
+  
+  // ✅ Store actions
   const fetchTasks = useTaskStore((s) => s.fetchTasks);
   const completeTask = useTaskStore((s) => s.completeTask);
   const uncompleteTask = useTaskStore((s) => s.uncompleteTask);
+  
+  // ✅ Local state for non-store data
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [isLoadingRoutines, setIsLoadingRoutines] = useState(false);
+  const [isLoadingGoals, setIsLoadingGoals] = useState(false);
+  
+  // ✅ Refs to prevent double loading
+  const loadRoutinesRef = useRef(false);
+  const loadGoalsRef = useRef(false);
 
   useScreenAnalytics(AnalyticsEvents.HOME_OPENED);
 
-  const load = useCallback(async () => {
-    await fetchTasks();
-    try {
-      const [r, gRes] = await Promise.all([
-        routineService.getUserRoutines(),
-        goalService.getGoals({ limit: 5 }),
-      ]);
-      setRoutines(r.filter((x) => x.enabled).slice(0, 3));
-      setGoals((gRes.data || []).slice(0, 3));
-    } catch {
-      /* keep partial data */
-    }
-  }, [fetchTasks]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
+  // ✅ Memoized greeting - no re-render on every frame
   const greeting = useMemo(() => {
     const h = new Date().getHours();
     if (h < 12) return t("home.goodMorning");
@@ -72,12 +68,82 @@ export const HomeScreen: React.FC = () => {
     return t("home.goodEvening");
   }, [t]);
 
+  // ✅ Load non-critical data in background (non-blocking)
+  const loadRoutines = useCallback(async () => {
+    if (loadRoutinesRef.current) return;
+    loadRoutinesRef.current = true;
+    
+    try {
+      setIsLoadingRoutines(true);
+      const r = await routineService.getUserRoutines();
+      setRoutines(r.filter((x) => x.enabled).slice(0, 3));
+    } catch {
+      // Keep existing data
+    } finally {
+      setIsLoadingRoutines(false);
+    }
+  }, []);
+
+  const loadGoals = useCallback(async () => {
+    if (loadGoalsRef.current) return;
+    loadGoalsRef.current = true;
+    
+    try {
+      setIsLoadingGoals(true);
+      const gRes = await goalService.getGoals({ limit: 5 });
+      setGoals((gRes.data || []).slice(0, 3));
+    } catch {
+      // Keep existing data
+    } finally {
+      setIsLoadingGoals(false);
+    }
+  }, []);
+
+  // ✅ Load data only on first mount
+  useEffect(() => {
+    // If tasks aren't loaded, fetch them (but don't block UI)
+    if (!isLoaded) {
+      fetchTasks().catch(() => {});
+    }
+    
+    // Load routines and goals in background
+    const task = InteractionManager.runAfterInteractions(() => {
+      loadRoutines();
+      loadGoals();
+    });
+
+    return () => task.cancel();
+  }, [isLoaded, fetchTasks, loadRoutines, loadGoals]);
+
+  // ✅ On focus, only refresh in background if needed (non-blocking)
+  useFocusEffect(
+    useCallback(() => {
+      const taskStore = useTaskStore.getState();
+      const needsRefresh = taskStore.needsRefresh && taskStore.needsRefresh();
+      
+      if (needsRefresh) {
+        const timer = setTimeout(() => {
+          syncIfNeeded().catch(() => {});
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+    }, [])
+  );
+
+  // ✅ Pull to refresh - only time user waits
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await load();
-    setRefreshing(false);
-  }, [load]);
+    try {
+      await fetchTasks();
+      await Promise.all([loadRoutines(), loadGoals()]);
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchTasks, loadRoutines, loadGoals]);
 
+  // ✅ Memoized today's tasks - only recomputes when tasks change
   const todayTasks = useMemo(() => {
     const today = new Date();
     return tasks
@@ -85,23 +151,31 @@ export const HomeScreen: React.FC = () => {
         (t) =>
           t.dueDate &&
           isSameDay(new Date(t.dueDate), today) &&
-          !t.metadata?.isRoutineTask,
+          !t.metadata?.isRoutineTask &&
+          t.status !== TaskStatus.DONE
       )
       .slice(0, 5);
   }, [tasks]);
 
+  // ✅ Memoized completed tasks for streak calculation
+  const completedTasks = useMemo(() => {
+    return tasks.filter(t => t.status === TaskStatus.DONE && !t.metadata?.isRoutineTask);
+  }, [tasks]);
+
+  // ✅ Memoized streak stats - only recomputes when completed tasks change
   const streakStats = useMemo(
-    () => calculateCompletionStreak(tasks, t),
-    [tasks, t],
+    () => calculateCompletionStreak(completedTasks, t),
+    [completedTasks, t]
   );
 
+  // ✅ Memoized navigation handlers
   const toggleTaskComplete = useCallback(
     async (task: Task) => {
       setPendingAnalyticsContext({ taskCompleteSource: "today" });
       if (task.status === TaskStatus.DONE) await uncompleteTask(task.id);
       else await completeTask(task.id);
     },
-    [completeTask, uncompleteTask],
+    [completeTask, uncompleteTask]
   );
 
   const navigateToGoals = useCallback(() => {
@@ -111,24 +185,29 @@ export const HomeScreen: React.FC = () => {
 
   const navigateToFocus = useCallback(
     () => navigation.navigate("Focus"),
-    [navigation],
+    [navigation]
   );
+  
   const navigateToAlarms = useCallback(
     () => navigation.navigate("Alarms"),
-    [navigation],
+    [navigation]
   );
+  
   const navigateToRoutines = useCallback(
     () => navigation.navigate("Routines"),
-    [navigation],
+    [navigation]
   );
+  
   const navigateToWeeklyReview = useCallback(
     () => navigation.navigate("WeeklyReview"),
-    [navigation],
+    [navigation]
   );
+  
   const navigateToTasks = useCallback(
     () => navigation.navigate("Tasks", { screen: "TasksList" }),
-    [navigation],
+    [navigation]
   );
+  
   const navigateToTaskDetail = useCallback(
     (taskId: string) => {
       navigation.navigate("Tasks", {
@@ -136,9 +215,11 @@ export const HomeScreen: React.FC = () => {
         params: { taskId },
       });
     },
-    [navigation],
+    [navigation]
   );
 
+  // ✅ Check if data is ready to show
+  const isDataReady = isLoaded;
 
   return (
     <ScrollView
@@ -151,35 +232,36 @@ export const HomeScreen: React.FC = () => {
           tintColor={colors.primary}
         />
       }
+      showsVerticalScrollIndicator={false}
     >
-      <Text style={[styles.greeting, ]}>
+      <Text style={styles.greeting}>
         {greeting}
         {user?.name ? `, ${user.name.split(" ")[0]}` : ""}
       </Text>
 
-      <Text
-        style={[
-          styles.sub,
-          // ,
-         
-        ]}
-      >
+      <Text style={styles.sub}>
         {t("home.todayReady")}
       </Text>
 
       {/* Today's focus */}
       <Card elevated style={styles.focusCard}>
-        <Text style={[styles.sectionLabel, ]}>
+        <Text style={styles.sectionLabel}>
           {t("home.todaysFocusLabel")}
         </Text>
-        <Text style={[styles.focusTitle, ]}>
-          {t("home.focusTitle")}
+        <Text style={styles.focusTitle}>
+          {todayTasks.length > 0 
+            ? `${todayTasks.length} ${t('home.tasksToday')}` 
+            : t("home.noTasksToday")}
         </Text>
-        <Text style={[styles.focusMeta, ]}>{t("home.focusMeta")}</Text>
+        <Text style={styles.focusMeta}>
+          {todayTasks.length > 0 
+            ? t("home.focusMeta") 
+            : t("home.relaxAndPlan")}
+        </Text>
       </Card>
 
       {/* AI suggestion */}
-      <TouchableOpacity onPress={navigateToGoals}>
+      <TouchableOpacity onPress={navigateToGoals} activeOpacity={0.8}>
         <LinearGradient
           colors={[colors.gradientStart, colors.gradientEnd]}
           start={{ x: 0, y: 0 }}
@@ -188,7 +270,7 @@ export const HomeScreen: React.FC = () => {
         >
           <Icon name="star-shooting-outline" size={28} color="#fff" />
           <View style={styles.aiText}>
-            <PremiumLabel requiredPlan="pro" >
+            <PremiumLabel requiredPlan="pro">
               <Text style={styles.aiTitle}>{t("home.aiPlanner")}</Text>
             </PremiumLabel>
             <Text style={styles.aiBody}>{t("home.aiPlannerBody")}</Text>
@@ -233,7 +315,7 @@ export const HomeScreen: React.FC = () => {
       />
       <Card>
         {todayTasks.length === 0 ? (
-          <Text style={styles.focusMeta}>{t("home.noTasksToday")}</Text>
+          <Text style={styles.emptyText}>{t("home.noTasksToday")}</Text>
         ) : (
           todayTasks.map((task) => (
             <TaskListRow
@@ -262,8 +344,10 @@ export const HomeScreen: React.FC = () => {
         onAction={navigateToRoutines}
       />
       <Card>
-        {routines.length === 0 ? (
-          <Text style={styles.focusMeta}>{t("home.noActiveRoutines")}</Text>
+        {isLoadingRoutines ? (
+          <Text style={styles.loadingText}>{t("home.loading")}</Text>
+        ) : routines.length === 0 ? (
+          <Text style={styles.emptyText}>{t("home.noActiveRoutines")}</Text>
         ) : (
           routines.map((r) => (
             <RoutineRow
@@ -282,8 +366,10 @@ export const HomeScreen: React.FC = () => {
         onAction={navigateToGoals}
       />
       <Card>
-        {goals.length === 0 ? (
-          <Text style={styles.focusMeta}>{t("home.noGoals")}</Text>
+        {isLoadingGoals ? (
+          <Text style={styles.loadingText}>{t("home.loading")}</Text>
+        ) : goals.length === 0 ? (
+          <Text style={styles.emptyText}>{t("home.noGoals")}</Text>
         ) : (
           goals.map((g) => (
             <ProgressBar
@@ -311,6 +397,7 @@ export const HomeScreen: React.FC = () => {
   );
 };
 
+// ✅ Helper functions with memoization
 function dayKey(date: Date) {
   return format(startOfDay(date), "yyyy-MM-dd");
 }
@@ -326,11 +413,10 @@ function getTaskCompletionDate(task: Task): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function calculateCompletionStreak(tasks: Task[], t: TFunction) {
+function calculateCompletionStreak(completedTasks: Task[], t: TFunction) {
   const completedDayKeys = new Set<string>();
 
-  tasks.forEach((task) => {
-    if (task.metadata?.isRoutineTask) return;
+  completedTasks.forEach((task) => {
     const completedAt = getTaskCompletionDate(task);
     if (completedAt) {
       completedDayKeys.add(dayKey(completedAt));
@@ -361,12 +447,13 @@ function calculateCompletionStreak(tasks: Task[], t: TFunction) {
   return { currentStreak, weeklyCompletedDays, message };
 }
 
+// ✅ Memoized sub-components
 const QuickAction: React.FC<{
   icon: string;
   label: string;
   onPress: () => void;
 }> = React.memo(({ icon, label, onPress }) => (
-  <TouchableOpacity style={styles.quickItem} onPress={onPress}>
+  <TouchableOpacity style={styles.quickItem} onPress={onPress} activeOpacity={0.7}>
     <View style={styles.quickIcon}>
       <Icon name={icon} size={22} color={colors.primary} />
     </View>
@@ -374,16 +461,18 @@ const QuickAction: React.FC<{
   </TouchableOpacity>
 ));
 
+QuickAction.displayName = 'QuickAction';
+
 const SectionHeader: React.FC<{
   title: string;
   action: string;
   onAction: () => void;
 }> = React.memo(({ title, action, onAction }) => {
-    const { i18n } = useTranslation();
+  const { i18n } = useTranslation();
   
   return (
-    <View style={[styles.sectionHeader, {flexDirection: i18n.language === 'ar' ? 'row-reverse' : 'row' }]}>
-      <Text style={[styles.sectionTitle, ]}>{title} </Text>
+    <View style={[styles.sectionHeader, { flexDirection: i18n.language === 'ar' ? 'row-reverse' : 'row' }]}>
+      <Text style={styles.sectionTitle}>{title}</Text>
       <TouchableOpacity onPress={onAction}>
         <Text style={styles.sectionAction}>{action}</Text>
       </TouchableOpacity>
@@ -391,33 +480,35 @@ const SectionHeader: React.FC<{
   );
 });
 
+SectionHeader.displayName = 'SectionHeader';
+
 const RoutineRow: React.FC<{ name: string; streak: number }> = React.memo(
-  ({ name, streak }) => {
-     return (
-      <View style={styles.taskRow}>
-        <Icon name="repeat" size={20} color={colors.accent} />
-        <Text style={[styles.taskTitle, ]}>{name}</Text>
-        <Text style={styles.streakBadge}>{streak}d</Text>
-      </View>
-    );
-  },
+  ({ name, streak }) => (
+    <View style={styles.taskRow}>
+      <Icon name="repeat" size={20} color={colors.accent} />
+      <Text style={styles.taskTitle}>{name}</Text>
+      <Text style={styles.streakBadge}>{streak}d</Text>
+    </View>
+  )
 );
 
+RoutineRow.displayName = 'RoutineRow';
+
 const ProgressBar: React.FC<{ label: string; progress: number }> = React.memo(
-  ({ label, progress }) => {
-     return (
-      <View style={styles.progressWrap}>
-        <View style={styles.progressHeader}>
-          <Text style={[styles.taskTitle, ]}>{label}</Text>
-          <Text style={styles.progressPct}>{progress}%</Text>
-        </View>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${progress}%` }]} />
-        </View>
+  ({ label, progress }) => (
+    <View style={styles.progressWrap}>
+      <View style={styles.progressHeader}>
+        <Text style={styles.taskTitle}>{label}</Text>
+        <Text style={styles.progressPct}>{progress}%</Text>
       </View>
-    );
-  },
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: `${progress}%` }]} />
+      </View>
+    </View>
+  )
 );
+
+ProgressBar.displayName = 'ProgressBar';
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
@@ -531,4 +622,6 @@ const styles = StyleSheet.create({
   },
   streakNum: { ...typography.h3, color: colors.text },
   streakMeta: { ...typography.caption, color: colors.textSecondary },
+  emptyText: { ...typography.body, color: colors.textMuted, padding: spacing.sm },
+  loadingText: { ...typography.body, color: colors.textMuted, padding: spacing.sm },
 });

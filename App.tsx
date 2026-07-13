@@ -18,6 +18,7 @@ import { planoraTheme } from '@/theme/paperTheme';
 import { initSentry, wrapApp } from '@/analytics/sentry';
 import { initPostHog } from '@/analytics/posthog';
 import { colors } from '@/theme/tokens';
+import { appSync } from '@/services/sync/appSync';
 
 function App() {
   const initializeAuth = useAuthStore((s) => s.initializeAuth);
@@ -25,32 +26,45 @@ function App() {
 
   useEffect(() => {
     initSentry();
-    const startupTask = InteractionManager.runAfterInteractions(() => {
+    
+    const startupTask = InteractionManager.runAfterInteractions(async () => {
       initPostHog();
-      import('@/utils/alarmCleanup')
-        .then(({ clearAllAlarmTimerState }) => clearAllAlarmTimerState())
-        .catch(() => {});
-      import('@/services/AlarmFixService')
-        .then(({ alarmFixService }) => alarmFixService.initialize())
-        .catch(() => {});
-    });
+      
+      // Cleanup alarms
+      try {
+        const { clearAllAlarmTimerState } = await import('@/utils/alarmCleanup');
+        clearAllAlarmTimerState();
+      } catch (e) {}
+      
+      try {
+        const { alarmFixService } = await import('@/services/AlarmFixService');
+        alarmFixService.initialize();
+      } catch (e) {}
 
-    initializeAuth()
-      .then(() => import('@/services/offlineQueue'))
-      .then(({ processOfflineQueue }) => processOfflineQueue())
-      .catch(() => {});
+      // Initialize auth
+      await initializeAuth();
+      
+      // Initialize sync service (this will restore cached data and refresh if needed)
+      await appSync.initialize();
+      
+      // Process offline queue
+      try {
+        const { processOfflineQueue } = await import('@/services/offlineQueue');
+        processOfflineQueue();
+      } catch (e) {}
+    });
 
     return () => startupTask.cancel();
   }, [initializeAuth]);
 
   useEffect(() => {
     if (isAuthenticated) {
+      // Initialize push notifications
       import('@/services/pushNotificationService')
         .then(({ pushNotificationService }) => pushNotificationService.initialize())
         .catch(() => {});
-      import('@/services/offlineQueue')
-        .then(({ processOfflineQueue }) => processOfflineQueue())
-        .catch(() => {});
+      
+      // Fetch subscription data (non-critical)
       useSubscriptionStore.getState().fetchAIUsage().catch(() => {});
     }
   }, [isAuthenticated]);

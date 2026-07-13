@@ -47,6 +47,7 @@ export const GoalCreateScreen: React.FC = () => {
       if (route.params?.source === 'calendar') {
         setPendingAnalyticsContext({ goalCreateSource: 'calendar' });
       }
+      // ✅ createGoal now uses optimistic updates - instant UI response
       await createGoal({
         title: title.trim(),
         description: description.trim() || undefined,

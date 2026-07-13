@@ -13,7 +13,7 @@ import {
   Easing,
 } from 'react-native';
 import { AppIcon as Icon } from '@/components/ui/AppIcon';
-import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useGoalStore } from '@/store/goalStore';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
@@ -25,6 +25,7 @@ import { track, AnalyticsEvents } from '@/analytics/posthog';
 import { showAlert, showError, showSuccess, showConfirmDialog } from '@/components/ConfirmationDialog';
 import { DateTimePicker } from '@/components/ui/DateTimePicker';
 import { format } from 'date-fns';
+import { syncIfNeeded } from '@/services/sync/appSync';
 
 export const GoalDetailScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -34,20 +35,22 @@ export const GoalDetailScreen: React.FC = () => {
   const textDir = { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' } as const;
   const rowDir = { flexDirection: isArabic ? 'row-reverse' : 'row' } as const;
 
-  const {
-    currentGoal,
-    fetchGoal,
-    completeGoal,
-    pauseGoal,
-    resumeGoal,
-    cancelGoal,
-    createMilestone,
-    updateMilestone,
-    completeMilestone,
-    deleteMilestone,
-    generateAIPlan,
-    isLoading,
-  } = useGoalStore();
+  // Read from store - instant render from cache
+  const currentGoal = useGoalStore((s) => s.currentGoal);
+  const isLoading = useGoalStore((s) => s.isLoading);
+  const isLoaded = useGoalStore((s) => s.isLoaded);
+  
+  // Store actions
+  const fetchGoal = useGoalStore((s) => s.fetchGoal);
+  const completeGoal = useGoalStore((s) => s.completeGoal);
+  const pauseGoal = useGoalStore((s) => s.pauseGoal);
+  const resumeGoal = useGoalStore((s) => s.resumeGoal);
+  const cancelGoal = useGoalStore((s) => s.cancelGoal);
+  const createMilestone = useGoalStore((s) => s.createMilestone);
+  const updateMilestone = useGoalStore((s) => s.updateMilestone);
+  const completeMilestone = useGoalStore((s) => s.completeMilestone);
+  const deleteMilestone = useGoalStore((s) => s.deleteMilestone);
+  const generateAIPlan = useGoalStore((s) => s.generateAIPlan);
 
   const [refreshing, setRefreshing] = useState(false);
   const [milestoneModal, setMilestoneModal] = useState<'create' | 'edit' | null>(null);
@@ -56,20 +59,33 @@ export const GoalDetailScreen: React.FC = () => {
   const [mDesc, setMDesc] = useState('');
   const [mDate, setMDate] = useState<Date | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [isLoadingGoal, setIsLoadingGoal] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchGoal(goalId);
-    }, [goalId, fetchGoal])
-  );
+  const goal = currentGoal?.id === goalId ? currentGoal : null;
+
+  // ✅ Only fetch if goal doesn't exist in cache
+  useEffect(() => {
+    if (!goal && isLoaded) {
+      setIsLoadingGoal(true);
+      fetchGoal(goalId)
+        .catch(() => {})
+        .finally(() => {
+          setIsLoadingGoal(false);
+        });
+    } else {
+      // Silently check for updates in background
+      const timer = setTimeout(() => {
+        syncIfNeeded().catch(() => {});
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [goal, goalId, fetchGoal, isLoaded]);
 
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchGoal(goalId);
     setRefreshing(false);
   };
-
-  const goal = currentGoal?.id === goalId ? currentGoal : null;
 
   const openCreateMilestone = () => {
     setSelectedMilestone(null);
@@ -159,7 +175,8 @@ export const GoalDetailScreen: React.FC = () => {
     }
   };
 
-  if (!goal && isLoading) {
+  // ✅ Show loading only if goal doesn't exist and we're fetching it
+  if ((!goal && isLoadingGoal) || (!goal && !isLoaded)) {
     return (
       <View style={styles.center}>
         <ActivityIndicator color={colors.primary} />

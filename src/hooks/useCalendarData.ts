@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { InteractionManager } from "react-native";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   format,
   differenceInHours,
@@ -26,6 +25,7 @@ import {
   getTaskHour,
 } from "@/utils/calendarEngine";
 import { setPendingAnalyticsContext } from "@/analytics/pendingContext";
+import { syncIfNeeded, appSync } from "@/services/sync/appSync";
 
 export type { CalendarViewMode };
 
@@ -35,13 +35,15 @@ type CalendarRefreshOptions = {
 };
 
 export function useCalendarData() {
+  // Read directly from stores - these will have cached data
   const tasks = useTaskStore((s) => s.tasks);
-  const fetchTasks = useTaskStore((s) => s.fetchTasks);
-  const updateTask = useTaskStore((s) => s.updateTask);
   const goals = useGoalStore((s) => s.goals);
-  const fetchGoals = useGoalStore((s) => s.fetchGoals);
   const alarms = useAlarmStore((s) => s.alarms);
-  const fetchAlarms = useAlarmStore((s) => s.fetchAlarms);
+
+  // Get store actions
+  const taskStore = useTaskStore.getState();
+  const goalStore = useGoalStore.getState();
+  const alarmStore = useAlarmStore.getState();
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
@@ -49,6 +51,13 @@ export function useCalendarData() {
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  
+  // ✅ Add refs to prevent multiple sync calls
+  const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSyncingRef = useRef(false);
+  const lastSyncTimeRef = useRef(0);
+  const SYNC_DEBOUNCE_MS = 1000; // 1 second debounce
+  const SYNC_COOLDOWN_MS = 3000; // 3 seconds cooldown between syncs
 
   const loadRoutines = useCallback(async () => {
     try {
@@ -58,53 +67,104 @@ export function useCalendarData() {
       setRoutines([]);
     }
   }, []);
-// this hook recall everytime I go to calender screen, 
-// so I need to make sure it is not blocking the UI. 
-//  I will use a non-blocking refresh for this.
-  const refresh = useCallback(
-    async (options: CalendarRefreshOptions = {}) => {
-      const { blocking = true, includeAlarms = false } = options;
-      if (blocking) setIsLoading(true);
-      else setIsSyncing(true);
-      console.log("Refreshing calendar data...", blocking, isSyncing);
-      try {
-        await Promise.all([
-          fetchTasks({ skipAlarmSync: true }),
-          fetchGoals(1, 100),
-          loadRoutines(),
-        ]);
 
-        if (includeAlarms) {
-          await fetchAlarms(1, 500, true, 0, { scheduleNative: false });
-        }
+  // Load routines on mount
+  useEffect(() => {
+    loadRoutines().catch(() => {});
+  }, [loadRoutines]);
+
+  // ✅ Force refresh - called explicitly by user (pull to refresh)
+  const forceRefresh = useCallback(
+    async (options: CalendarRefreshOptions = {}) => {
+      const { includeAlarms = false } = options;
+
+      setIsLoading(true);
+      console.log("Force refreshing calendar data...");
+
+      try {
+        await appSync.refreshAll({ force: true, silent: false, includeAlarms });
+        await loadRoutines();
+        lastSyncTimeRef.current = Date.now();
       } finally {
-        if (blocking) setIsLoading(false);
-        else setIsSyncing(false);
+        setIsLoading(false);
       }
     },
-    [fetchTasks, fetchGoals, fetchAlarms, loadRoutines],
+    [loadRoutines],
   );
 
-  useEffect(() => {
-    const task = InteractionManager.runAfterInteractions(() => {
-      refresh({ blocking: false, includeAlarms: false }).catch(() => {});
-      fetchAlarms(1, 500, true, 0, { scheduleNative: false }).catch(() => {});
-    });
-    return () => task.cancel();
-  }, [fetchAlarms, refresh]);
+  // ✅ Background refresh with debounce and cooldown
+  const refreshInBackground = useCallback(async () => {
+    // Prevent concurrent syncs
+    if (isSyncingRef.current) {
+      console.log("Sync already in progress, skipping");
+      return;
+    }
 
+    // Check cooldown
+    const now = Date.now();
+    if (now - lastSyncTimeRef.current < SYNC_COOLDOWN_MS) {
+      console.log("Sync cooldown active, skipping");
+      return;
+    }
+
+    // Clear any pending sync timeout
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+      syncTimeoutRef.current = null;
+    }
+
+    // Debounce the sync
+    syncTimeoutRef.current = setTimeout(async () => {
+      try {
+        isSyncingRef.current = true;
+        setIsSyncing(true);
+        
+        console.log("Background refresh starting...");
+        await syncIfNeeded();
+        await loadRoutines();
+        lastSyncTimeRef.current = Date.now();
+        
+        console.log("Background refresh completed");
+      } catch (error) {
+        console.error("Background refresh failed:", error);
+      } finally {
+        isSyncingRef.current = false;
+        setIsSyncing(false);
+        syncTimeoutRef.current = null;
+      }
+    }, SYNC_DEBOUNCE_MS);
+  }, [loadRoutines]);
+
+  // ✅ Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+        syncTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  // Listen for routine deletions
   useEffect(() => {
     const unsubscribe = routineEvents.onDeleted((routineId) => {
       setRoutines((current) =>
         current.filter((routine) => routine.id !== routineId),
       );
-      fetchAlarms(1, 500, true, 0, { scheduleNative: false }).catch(() => {});
+      // Refresh alarms in background (with debounce)
+      if (alarmStore.needsRefresh && alarmStore.needsRefresh()) {
+        const now = Date.now();
+        if (now - lastSyncTimeRef.current > SYNC_COOLDOWN_MS) {
+          alarmStore.fetchAlarms(1, 500, true).catch(() => {});
+          lastSyncTimeRef.current = now;
+        }
+      }
     });
 
     return () => {
       unsubscribe();
     };
-  }, [fetchAlarms]);
+  }, [alarmStore]);
 
   const dateRange = useMemo(
     () => getCalendarDateRange(viewMode, currentDate, selectedDate),
@@ -219,9 +279,9 @@ export function useCalendarData() {
         calendarEventAction: "updated",
         taskCompleteSource: "calendar",
       });
-      await updateTask(realId, { status: newStatus });
+      await taskStore.updateTask(realId, { status: newStatus });
     },
-    [updateTask],
+    [taskStore],
   );
 
   const getRemindersOnDay = useCallback((_date: Date) => [], []);
@@ -260,7 +320,8 @@ export function useCalendarData() {
       getRemindersOnDay,
       getTaskHour,
       getTimeUntil,
-      refresh,
+      forceRefresh,
+      refreshInBackground,
     }),
     [
       currentDate,
@@ -278,7 +339,8 @@ export function useCalendarData() {
       completeCalendarTask,
       getRemindersOnDay,
       getTimeUntil,
-      refresh,
+      forceRefresh,
+      refreshInBackground,
     ],
   );
 }

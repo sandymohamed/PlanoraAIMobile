@@ -22,7 +22,16 @@ const CATEGORIES = ['Personal', 'Work', 'Health', 'Learning', 'Finance', 'Other'
 export const GoalEditScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { goalId } = useRoute<RouteProp<{ params: { goalId: string } }, 'params'>>().params;
-  const { currentGoal, fetchGoal, updateGoal, isLoading } = useGoalStore();
+  
+  // Read from store - instant render from cache
+  const currentGoal = useGoalStore((s) => s.currentGoal);
+  const isLoading = useGoalStore((s) => s.isLoading);
+  const isLoaded = useGoalStore((s) => s.isLoaded);
+  
+  // Store actions
+  const fetchGoal = useGoalStore((s) => s.fetchGoal);
+  const updateGoal = useGoalStore((s) => s.updateGoal);
+  
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language.startsWith('ar');
   const textDir = { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' } as const;
@@ -33,20 +42,31 @@ export const GoalEditScreen: React.FC = () => {
   const [priority, setPriority] = useState<GoalPriority>(GoalPriority.MEDIUM);
   const [category, setCategory] = useState('Personal');
   const [targetDate, setTargetDate] = useState<Date | null>(null);
+  const [isLoadingGoal, setIsLoadingGoal] = useState(false);
   const submitting = useRef(false);
 
+  const goal = currentGoal?.id === goalId ? currentGoal : null;
+
+  // ✅ Only fetch if goal doesn't exist in cache
   useEffect(() => {
-    fetchGoal(goalId);
-  }, [goalId, fetchGoal]);
+    if (!goal && isLoaded) {
+      setIsLoadingGoal(true);
+      fetchGoal(goalId)
+        .catch(() => {})
+        .finally(() => {
+          setIsLoadingGoal(false);
+        });
+    }
+  }, [goal, goalId, fetchGoal, isLoaded]);
 
   useEffect(() => {
-    if (!currentGoal || currentGoal.id !== goalId) return;
-    setTitle(currentGoal.title);
-    setDescription(currentGoal.description || '');
-    setPriority(currentGoal.priority);
-    setCategory(currentGoal.category);
-    setTargetDate(currentGoal.targetDate ? new Date(currentGoal.targetDate) : null);
-  }, [currentGoal, goalId]);
+    if (!goal) return;
+    setTitle(goal.title);
+    setDescription(goal.description || '');
+    setPriority(goal.priority);
+    setCategory(goal.category);
+    setTargetDate(goal.targetDate ? new Date(goal.targetDate) : null);
+  }, [goal]);
 
   const submit = async () => {
     if (submitting.current) return;
@@ -71,10 +91,19 @@ export const GoalEditScreen: React.FC = () => {
     }
   };
 
-  if (!currentGoal && isLoading) {
+  // ✅ Show loading only if goal doesn't exist and we're fetching it
+  if ((!goal && isLoadingGoal) || (!goal && !isLoaded)) {
     return (
       <View style={styles.center}>
         <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!goal) {
+    return (
+      <View style={styles.center}>
+        <Text style={[styles.error, textDir]}>{t('goals.screen.notFound')}</Text>
       </View>
     );
   }
@@ -168,4 +197,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   submitText: { ...typography.body, color: colors.background, fontWeight: '600' },
+  error: { ...typography.body, color: colors.error, padding: spacing.lg },
 });
