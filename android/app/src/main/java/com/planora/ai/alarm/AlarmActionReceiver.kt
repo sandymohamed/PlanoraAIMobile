@@ -1,4 +1,4 @@
-package com.mobile.alarm
+package com.planora.ai.alarm
 
 import android.content.BroadcastReceiver
 import android.content.Context

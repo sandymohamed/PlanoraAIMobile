@@ -1,4 +1,4 @@
-package com.mobile.alarm
+package com.planora.ai.alarm
 
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule

@@ -1,4 +1,4 @@
-package com.mobile.alarm
+package com.planora.ai.alarm
 
 import android.app.AlarmManager
 import android.app.PendingIntent

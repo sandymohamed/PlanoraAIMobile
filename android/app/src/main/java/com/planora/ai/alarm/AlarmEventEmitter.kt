@@ -1,4 +1,4 @@
-package com.mobile.alarm
+package com.planora.ai.alarm
 
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.WritableMap

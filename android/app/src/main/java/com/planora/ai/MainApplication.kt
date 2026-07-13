@@ -1,4 +1,4 @@
-package com.mobile
+package com.planora.ai
 
 import android.app.Application
 import com.facebook.react.PackageList
@@ -9,7 +9,7 @@ import com.facebook.react.ReactNativeHost
 import com.facebook.react.ReactPackage
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
-import com.mobile.alarm.AlarmPackage
+import com.planora.ai.alarm.AlarmPackage
 
 class MainApplication : Application(), ReactApplication {
 

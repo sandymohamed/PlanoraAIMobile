@@ -1,4 +1,4 @@
-package com.mobile.alarm
+package com.planora.ai.alarm
 
 import android.app.*
 import android.content.Context
@@ -13,7 +13,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.mobile.MainActivity
+import com.planora.ai.MainActivity
 
 /**
  * Foreground service that plays the alarm sound and vibration
@@ -23,8 +23,8 @@ class AlarmPlayerService : Service() {
 
   companion object {
     const val NOTIFICATION_ID = 1001
-    const val ACTION_STOP = "com.mobile.alarm.STOP"
-    const val ACTION_SNOOZE = "com.mobile.alarm.SNOOZE"
+    const val ACTION_STOP = "com.planora.ai.alarm.STOP"
+    const val ACTION_SNOOZE = "com.planora.ai.alarm.SNOOZE"
     
     private var instance: AlarmPlayerService? = null
     

@@ -1,4 +1,4 @@
-package com.mobile
+package com.planora.ai
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
