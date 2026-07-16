@@ -1,6 +1,7 @@
 import { Task, TaskPriority } from '@/types/task';
 import { CreateAlarmData } from '@/types/alarm';
 import { alarmService } from './alarmApiService';
+import { logger } from '@/utils/logger';
 
 class TaskAlarmService {
   /**
@@ -122,6 +123,7 @@ class TaskAlarmService {
    * Gets the alarm time for a task
    */
   getAlarmTime(task: Task): Date | null {
+    logger.debug(`************** Getting alarm time for task: ${task}`);
     if (!task.dueDate || !task.dueTime) {
       return null;
     }

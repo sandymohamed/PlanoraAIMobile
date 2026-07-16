@@ -1,9 +1,9 @@
-import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { apiClient } from '@/services/apiClient';
-import { logger } from '@/utils/logger';
-import { headlessNotificationHandler } from '@/services/headlessNotificationHandler';
-import { processOfflineQueue } from '@/services/offlineQueue';
+import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { apiClient } from "@/services/apiClient";
+import { logger } from "@/utils/logger";
+import { headlessNotificationHandler } from "@/services/headlessNotificationHandler";
+import { processOfflineQueue } from "@/services/offlineQueue";
 
 type NavigationTarget = {
   screen: string;
@@ -17,18 +17,18 @@ class PushNotificationService {
   private registered = false;
 
   async initialize(): Promise<void> {
-    if (this.registered || Platform.OS === 'web') return;
+    if (this.registered || Platform.OS === "web") return;
 
     headlessNotificationHandler.initialize();
 
     try {
-      const messaging = require('@react-native-firebase/messaging').default;
+      const messaging = require("@react-native-firebase/messaging").default;
       const authStatus = await messaging().requestPermission();
       const enabled =
         authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
         authStatus === messaging.AuthorizationStatus.PROVISIONAL;
       if (!enabled) {
-        logger.info('Push: notification permission not granted');
+        logger.info("Push: notification permission not granted");
         return;
       }
 
@@ -41,38 +41,45 @@ class PushNotificationService {
         await this.registerToken(newToken);
       });
 
-      messaging().onMessage(async (remoteMessage: { data?: Record<string, string> }) => {
-        const data = remoteMessage?.data ?? {};
-        if (data.type === 'TASK_REMINDER' || data.type === 'ROUTINE_REMINDER') {
-          await AsyncStorage.setItem('pending_navigation', JSON.stringify({
-            screen: data.screen || 'Tasks',
-            params: data.taskId ? { taskId: data.taskId } : undefined,
-          }));
-        }
-      });
+      messaging().onMessage(
+        async (remoteMessage: { data?: Record<string, string> }) => {
+          const data = remoteMessage?.data ?? {};
+          if (
+            data.type === "TASK_REMINDER" ||
+            data.type === "ROUTINE_REMINDER"
+          ) {
+            await AsyncStorage.setItem(
+              "pending_navigation",
+              JSON.stringify({
+                screen: data.screen || "Tasks",
+                params: data.taskId ? { taskId: data.taskId } : undefined,
+              }),
+            );
+          }
+        },
+      );
 
       this.registered = true;
       await processOfflineQueue();
-      logger.info('Push: FCM initialized');
-    } catch {
-      logger.debug('Push: FCM unavailable — install @react-native-firebase/messaging for production push');
+      logger.info("Push: FCM initialized");
+    } catch (error) {
       await processOfflineQueue();
     }
   }
 
   private async registerToken(token: string): Promise<void> {
-    await apiClient.post('/me/push-token', {
+    await apiClient.post("/me/push-token", {
       token,
-      platform: Platform.OS === 'ios' ? 'ios' : 'android',
+      platform: Platform.OS === "ios" ? "ios" : "android",
     });
-    logger.info('Push token registered');
+    logger.info("Push token registered");
   }
 
   /** Consume pending navigation from notification tap (call from RootNavigator). */
   async consumePendingNavigation(): Promise<NavigationTarget | null> {
-    const raw = await AsyncStorage.getItem('pending_navigation');
+    const raw = await AsyncStorage.getItem("pending_navigation");
     if (!raw) return null;
-    await AsyncStorage.removeItem('pending_navigation');
+    await AsyncStorage.removeItem("pending_navigation");
     try {
       return JSON.parse(raw) as NavigationTarget;
     } catch {

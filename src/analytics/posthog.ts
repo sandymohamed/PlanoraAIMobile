@@ -27,9 +27,6 @@ let initAttempted = false;
 function debugLog(message: string, payload?: unknown): void {
   if (!DEBUG_ANALYTICS) return;
   if (payload !== undefined) {
-    console.log(message, payload);
-  } else {
-    console.log(message);
   }
 }
 
@@ -44,11 +41,7 @@ function debugWarn(message: string, error?: unknown): void {
 
 function logConnected(): void {
   if (!DEBUG_ANALYTICS || !config.POSTHOG_API_KEY) return;
-  console.log('✅ PostHog connected successfully');
-  console.log('Host:');
-  console.log(config.POSTHOG_HOST);
-  console.log('Project:');
-  console.log(maskProjectKey(config.POSTHOG_API_KEY));
+
 }
 
 export async function initPostHog(): Promise<void> {
@@ -196,13 +189,7 @@ export function track(
 
   try {
     posthog.capture(event, payload);
-    if (DEBUG_ANALYTICS) {
-      console.log('--------------------------------');
-      console.log('[PostHog] Event');
-      console.log(event);
-      console.log('properties:');
-      console.log(payload);
-    }
+  
   } catch (error) {
     debugWarn('[PostHog] Capture failed', error);
   }
@@ -225,18 +212,6 @@ export function identify(
 
   try {
     posthog.identify(userId, payload);
-    if (DEBUG_ANALYTICS) {
-      console.log('--------------------------------');
-      console.log('[PostHog] Identify');
-      console.log('userId:');
-      console.log(userId);
-      if (Object.keys(payload).length > 0) {
-        for (const [key, value] of Object.entries(payload)) {
-          console.log(`${key}:`);
-          console.log(value);
-        }
-      }
-    }
   } catch (error) {
     debugWarn('[PostHog] Identify failed', error);
   }

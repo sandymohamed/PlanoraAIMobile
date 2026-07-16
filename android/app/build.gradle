@@ -1,7 +1,6 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
-apply plugin: "com.google.gms.google-services"
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -90,8 +89,8 @@ android {
         applicationId "com.planora.ai"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 9
-        versionName "1.0.9"
+        versionCode 1
+        versionName "1.0.0"
         multiDexEnabled true
         manifestPlaceholders = [usesCleartextTraffic: "true"]
     }
@@ -160,4 +159,8 @@ tasks.whenTaskAdded { task ->
         }
     }
 }
+
+// Must be at the bottom so AGP 8.x registers google-services generated resources
+// into mergeDebugResources (otherwise google_app_id never enters R.txt / the APK).
+apply plugin: "com.google.gms.google-services"
 

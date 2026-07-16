@@ -27,7 +27,10 @@ interface TaskState {
   searchQuery: string;
   sortBy: "createdAt" | "dueDate" | "priority" | "title" | "order";
   sortOrder: "asc" | "desc";
-  pendingOperations: Map<string, { type: "create" | "update" | "delete"; data: any }>;
+  pendingOperations: Map<
+    string,
+    { type: "create" | "update" | "delete"; data: any }
+  >;
 }
 
 interface TaskActions {
@@ -43,10 +46,10 @@ interface TaskActions {
     skipAlarmSync?: boolean;
     force?: boolean;
   }) => Promise<void>;
-  
+
   fetchTask: (id: string) => Promise<void>;
   refreshTasks: () => Promise<void>;
-  
+
   needsRefresh: (maxAgeMinutes?: number) => boolean;
   markStale: () => void;
 
@@ -62,7 +65,9 @@ interface TaskActions {
 
   setFilter: (filter: TaskFilter) => void;
   setSearchQuery: (query: string) => void;
-  setSortBy: (sortBy: "createdAt" | "dueDate" | "priority" | "title" | "order") => void;
+  setSortBy: (
+    sortBy: "createdAt" | "dueDate" | "priority" | "title" | "order",
+  ) => void;
   setSortOrder: (order: "asc" | "desc") => void;
   resetToCustomOrder: () => void;
   clearFilters: () => void;
@@ -98,7 +103,9 @@ export const useTaskStore = create<TaskStore>()(
       pendingOperations: new Map(),
 
       // Cache management
-      needsRefresh: (maxAgeMinutes: number = CACHE_CONFIG.TASKS_MAX_AGE_MINUTES) => {
+      needsRefresh: (
+        maxAgeMinutes: number = CACHE_CONFIG.TASKS_MAX_AGE_MINUTES,
+      ) => {
         const { lastFetched, isLoaded, isLoading } = get();
         if (isLoading) return false;
         if (!isLoaded) return true;
@@ -139,7 +146,12 @@ export const useTaskStore = create<TaskStore>()(
           set({ isLoading: true, error: null });
 
           const { skipAlarmSync, ...fetchParams } = params ?? {};
-          if (!params?.goalId && !params?.projectId && !params?.assigneeId && !params?.limit) {
+          if (
+            !params?.goalId &&
+            !params?.projectId &&
+            !params?.assigneeId &&
+            !params?.limit
+          ) {
             fetchParams.limit = 1000;
             fetchParams.page = 1;
           }
@@ -151,7 +163,9 @@ export const useTaskStore = create<TaskStore>()(
           logger.info(`Fetched ${serverTasks.length} tasks from server`);
 
           // Sort tasks by order field
-          const sortedServerTasks = serverTasks.sort((a, b) => (a.order || 0) - (b.order || 0));
+          const sortedServerTasks = serverTasks.sort(
+            (a, b) => (a.order || 0) - (b.order || 0),
+          );
 
           // Merge with existing tasks to preserve optimistic updates
           const currentTasks = get().tasks;
@@ -179,7 +193,9 @@ export const useTaskStore = create<TaskStore>()(
           });
 
           // Sort merged tasks by order
-          const sortedMergedTasks = mergedTasks.sort((a, b) => (a.order || 0) - (b.order || 0));
+          const sortedMergedTasks = mergedTasks.sort(
+            (a, b) => (a.order || 0) - (b.order || 0),
+          );
 
           set({
             tasks: sortedMergedTasks,
@@ -200,7 +216,10 @@ export const useTaskStore = create<TaskStore>()(
               // Only fetch if needs refresh
               if (alarmStore.needsRefresh && alarmStore.needsRefresh()) {
                 alarmStore.fetchAlarms(1, 100, true).catch((error: any) => {
-                  logger.error("Failed to fetch alarms after tasks loaded:", error);
+                  logger.error(
+                    "Failed to fetch alarms after tasks loaded:",
+                    error,
+                  );
                 });
               }
             } catch (error) {
@@ -226,7 +245,9 @@ export const useTaskStore = create<TaskStore>()(
           set((state) => ({
             currentTask: task,
             tasks: state.tasks.map((t) => (t.id === id ? task : t)),
-            filteredTasks: state.filteredTasks.map((t) => (t.id === id ? task : t)),
+            filteredTasks: state.filteredTasks.map((t) =>
+              t.id === id ? task : t,
+            ),
             isLoading: false,
           }));
         } catch (error: any) {
@@ -295,7 +316,9 @@ export const useTaskStore = create<TaskStore>()(
           // Replace optimistic with real task
           set((state) => ({
             tasks: state.tasks.map((t) => (t.id === tempId ? task : t)),
-            filteredTasks: state.filteredTasks.map((t) => (t.id === tempId ? task : t)),
+            filteredTasks: state.filteredTasks.map((t) =>
+              t.id === tempId ? task : t,
+            ),
             isLoading: false,
           }));
 
@@ -310,17 +333,28 @@ export const useTaskStore = create<TaskStore>()(
 
           if (task.dueDate) {
             try {
+              // Import alarm store dynamically to avoid circular dependency
               const { useAlarmStore } = await import("./alarmStore");
+              // Use setTimeout to delay refresh slightly, giving backend time to create alarm
               setTimeout(() => {
-                const alarmStore = useAlarmStore.getState();
-                if (alarmStore.needsRefresh && alarmStore.needsRefresh()) {
-                  alarmStore.fetchAlarms(1, 1000, true).catch((err) => {
-                    logger.warn("Failed to refresh alarms after task creation:", err);
+                // Fetch with high limit and enabled=true to get all enabled alarms including the new one
+                useAlarmStore
+                  .getState()
+                  .fetchAlarms(1, 1000, true)
+                  .catch((err) => {
+                    logger.warn(
+                      "Failed to refresh alarms after task creation:",
+                      err,
+                    );
+                    // Don't throw - this is a background operation
                   });
-                }
-              }, 1000);
+              }, 1000); // Wait 1 second for backend to process
             } catch (error) {
-              logger.warn("Failed to refresh alarms after task creation:", error);
+              logger.warn(
+                "Failed to refresh alarms after task creation:",
+                error,
+              );
+              // Don't throw - alarm refresh failure shouldn't break task creation
             }
           }
         } catch (error: any) {
@@ -350,27 +384,37 @@ export const useTaskStore = create<TaskStore>()(
           ) as UpdateTaskData;
 
           const task = await taskService.updateTask(id, filteredData);
-
-          const shouldRefreshAlarms = data.dueDate !== undefined || data.dueTime !== undefined;
+          // ✅ Refresh alarms if dueDate or dueTime was updated
+          const shouldRefreshAlarms =
+            data.dueDate !== undefined || data.dueTime !== undefined;
           if (shouldRefreshAlarms) {
             try {
+              // Import alarm store dynamically to avoid circular dependency
               const { useAlarmStore } = await import("./alarmStore");
+              // Use setTimeout to delay refresh slightly, giving backend time to update alarm
               setTimeout(() => {
+                // Fetch with high limit and enabled=true to get all enabled alarms including the updated one
                 useAlarmStore
                   .getState()
                   .fetchAlarms(1, 1000, true)
                   .catch((err) => {
-                    logger.warn("Failed to refresh alarms after task update:", err);
+                    logger.warn(
+                      "Failed to refresh alarms after task update:",
+                      err,
+                    );
+                    // Don't throw - this is a background operation
                   });
-              }, 1000);
+              }, 1000); // Wait 1 second for backend to process
             } catch (error) {
               logger.warn("Failed to refresh alarms after task update:", error);
+              // Don't throw - alarm refresh failure shouldn't break task update
             }
           }
 
           set((state) => ({
             tasks: state.tasks.map((t) => (t.id === id ? task : t)),
-            currentTask: state.currentTask?.id === id ? task : state.currentTask,
+            currentTask:
+              state.currentTask?.id === id ? task : state.currentTask,
             isLoading: false,
           }));
 
@@ -399,7 +443,8 @@ export const useTaskStore = create<TaskStore>()(
 
           set((state) => ({
             tasks: state.tasks.filter((t) => t.id !== id),
-            currentTask: state.currentTask?.id === id ? null : state.currentTask,
+            currentTask:
+              state.currentTask?.id === id ? null : state.currentTask,
             isLoading: false,
           }));
 
@@ -426,7 +471,8 @@ export const useTaskStore = create<TaskStore>()(
 
           set((state) => ({
             tasks: state.tasks.map((t) => (t.id === id ? task : t)),
-            currentTask: state.currentTask?.id === id ? task : state.currentTask,
+            currentTask:
+              state.currentTask?.id === id ? task : state.currentTask,
           }));
 
           get().applyFilters();
@@ -452,7 +498,8 @@ export const useTaskStore = create<TaskStore>()(
 
           set((state) => ({
             tasks: state.tasks.map((t) => (t.id === id ? task : t)),
-            currentTask: state.currentTask?.id === id ? task : state.currentTask,
+            currentTask:
+              state.currentTask?.id === id ? task : state.currentTask,
           }));
 
           get().applyFilters();
@@ -478,7 +525,8 @@ export const useTaskStore = create<TaskStore>()(
 
           set((state) => ({
             tasks: state.tasks.map((t) => (t.id === id ? task : t)),
-            currentTask: state.currentTask?.id === id ? task : state.currentTask,
+            currentTask:
+              state.currentTask?.id === id ? task : state.currentTask,
           }));
 
           get().applyFilters();
@@ -539,7 +587,9 @@ export const useTaskStore = create<TaskStore>()(
         get().applyFilters();
       },
 
-      setSortBy: (sortBy: "createdAt" | "dueDate" | "priority" | "title" | "order") => {
+      setSortBy: (
+        sortBy: "createdAt" | "dueDate" | "priority" | "title" | "order",
+      ) => {
         set({ sortBy });
         get().applyFilters();
       },
@@ -574,20 +624,28 @@ export const useTaskStore = create<TaskStore>()(
           filtered = filtered.filter(
             (task) =>
               task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              task.description?.toLowerCase().includes(searchQuery.toLowerCase()),
+              task.description
+                ?.toLowerCase()
+                .includes(searchQuery.toLowerCase()),
           );
         }
 
         if (filter.status && filter.status?.length > 0) {
-          filtered = filtered.filter((task) => filter.status!.includes(task.status));
+          filtered = filtered.filter((task) =>
+            filter.status!.includes(task.status),
+          );
         }
 
         if (filter.priority && filter.priority?.length > 0) {
-          filtered = filtered.filter((task) => filter.priority!.includes(task.priority));
+          filtered = filtered.filter((task) =>
+            filter.priority!.includes(task.priority),
+          );
         }
 
         if (filter.projectId) {
-          filtered = filtered.filter((task) => task.projectId === filter.projectId);
+          filtered = filtered.filter(
+            (task) => task.projectId === filter.projectId,
+          );
         }
 
         if (filter.goalId !== undefined && filter.goalId !== null) {
@@ -595,7 +653,9 @@ export const useTaskStore = create<TaskStore>()(
         }
 
         if (filter.assigneeId) {
-          filtered = filtered.filter((task) => task.assigneeId === filter.assigneeId);
+          filtered = filtered.filter(
+            (task) => task.assigneeId === filter.assigneeId,
+          );
         }
 
         if (filter.dueDate) {
@@ -675,7 +735,10 @@ export const useTaskStore = create<TaskStore>()(
       updateTaskLocal: (id: string, data: Partial<Task>) => {
         set((state) => ({
           tasks: state.tasks.map((t) => (t.id === id ? { ...t, ...data } : t)),
-          currentTask: state.currentTask?.id === id ? { ...state.currentTask, ...data } : state.currentTask,
+          currentTask:
+            state.currentTask?.id === id
+              ? { ...state.currentTask, ...data }
+              : state.currentTask,
         }));
         get().applyFilters();
       },

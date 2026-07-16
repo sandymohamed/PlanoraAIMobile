@@ -12,7 +12,9 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath ("com.google.gms:google-services:4.3.15")
+        // RNFB v24 requires 4.4.4; 4.3.15 does not register generated Firebase
+        // string resources into AGP 8.11's resource merge (google_app_id missing from R.txt).
+        classpath("com.google.gms:google-services:4.4.4")
         classpath("com.android.tools.build:gradle")
         classpath("com.facebook.react:react-native-gradle-plugin")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")

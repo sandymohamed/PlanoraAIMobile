@@ -36,8 +36,9 @@ class HeadlessNotificationHandler {
 
       this.registered = true;
       logger.info('HeadlessNotificationHandler: FCM handlers registered');
-    } catch {
-      logger.debug('HeadlessNotificationHandler: FCM not installed');
+    } catch (error) {
+
+      logger.error('HeadlessNotificationHandler: FCM not installed',error);
     }
   }
 

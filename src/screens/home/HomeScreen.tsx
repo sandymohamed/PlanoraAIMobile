@@ -250,7 +250,7 @@ export const HomeScreen: React.FC = () => {
         </Text>
         <Text style={styles.focusTitle}>
           {todayTasks.length > 0 
-            ? `${todayTasks.length} ${t('home.tasksToday')}` 
+            ? `${todayTasks.length} ${t('home.todaysTasks')}` 
             : t("home.noTasksToday")}
         </Text>
         <Text style={styles.focusMeta}>

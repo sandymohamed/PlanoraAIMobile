@@ -409,19 +409,19 @@
       "1d": "1d"
     },
     "screen": {
-      "title": "Routines",
+      "title": "Habbits",
       "subtitle": "Recurring habits with reset and reminders",
-      "emptyTitle": "No routines",
+      "emptyTitle": "No Habbits yet",
       "emptyMessage": "Build a daily or weekly habit loop.",
-      "createRoutine": "Create routine",
+      "createRoutine": "Create habit",
       "off": "OFF",
       "schedule": "{{time}} · {{frequency}}{{days}}",
       "daysSuffix": " · days {{days}}",
       "reset": "Reset",
       "delete": "Delete",
-      "resetTitle": "Reset routine",
+      "resetTitle": "Reset habit",
       "resetMessage": "Reset all sub-task completion for this period?",
-      "deleteTitle": "Delete routine"
+      "deleteTitle": "Delete habit"
     },
     "form": {
       "title": "Title",
@@ -432,8 +432,8 @@
       "dayOfMonth": "Day of month (1-31)",
       "remindBefore": "Remind before",
       "titleRequired": "Title is required",
-      "createRoutine": "Create routine",
-      "saveRoutine": "Save routine"
+      "createRoutine": "Create habit",
+      "saveRoutine": "Save habit"
     }
   },
   "paywall": {
@@ -453,7 +453,7 @@
       },
       "analytics": {
         "title": "Advanced Analytics",
-        "subtitle": "Deeper insight into goals, routines, and where your time goes."
+        "subtitle": "Deeper insight into goals, babits, and where your time goes."
       },
       "reports": {
         "title": "Smart Productivity Reports",
@@ -489,6 +489,7 @@
     "todaysFocusLabel": "TODAY'S FOCUS",
     "focusTitle": "Complete your top 3 tasks",
     "focusMeta": "Tap Tasks to see what's due",
+    "relaxAndPlan":"Relax and plan your day",
     "aiPlanner": "AI Coach",
     "aiPlannerBody": "Review your active goal and let AI refine this week's plan.",
     "focus": "Focus",

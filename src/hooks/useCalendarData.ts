@@ -79,7 +79,6 @@ export function useCalendarData() {
       const { includeAlarms = false } = options;
 
       setIsLoading(true);
-      console.log("Force refreshing calendar data...");
 
       try {
         await appSync.refreshAll({ force: true, silent: false, includeAlarms });
@@ -96,14 +95,12 @@ export function useCalendarData() {
   const refreshInBackground = useCallback(async () => {
     // Prevent concurrent syncs
     if (isSyncingRef.current) {
-      console.log("Sync already in progress, skipping");
       return;
     }
 
     // Check cooldown
     const now = Date.now();
     if (now - lastSyncTimeRef.current < SYNC_COOLDOWN_MS) {
-      console.log("Sync cooldown active, skipping");
       return;
     }
 
@@ -119,14 +116,11 @@ export function useCalendarData() {
         isSyncingRef.current = true;
         setIsSyncing(true);
         
-        console.log("Background refresh starting...");
         await syncIfNeeded();
         await loadRoutines();
         lastSyncTimeRef.current = Date.now();
         
-        console.log("Background refresh completed");
       } catch (error) {
-        console.error("Background refresh failed:", error);
       } finally {
         isSyncingRef.current = false;
         setIsSyncing(false);
@@ -152,13 +146,13 @@ export function useCalendarData() {
         current.filter((routine) => routine.id !== routineId),
       );
       // Refresh alarms in background (with debounce)
-      if (alarmStore.needsRefresh && alarmStore.needsRefresh()) {
+      // if (alarmStore.needsRefresh && alarmStore.needsRefresh()) {
         const now = Date.now();
         if (now - lastSyncTimeRef.current > SYNC_COOLDOWN_MS) {
           alarmStore.fetchAlarms(1, 500, true).catch(() => {});
           lastSyncTimeRef.current = now;
         }
-      }
+      // }
     });
 
     return () => {

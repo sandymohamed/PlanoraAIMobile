@@ -58,17 +58,17 @@ class ApiClient {
         const token = await useAuthStore.getState().getToken();
         if (token) conf.headers.Authorization = `Bearer ${token}`;
       }
-      if (LOG) {
-        console.log(`[Planora API] → ${conf.method?.toUpperCase()} ${conf.url}`, conf.data ?? '');
-      }
+      // if (LOG) {
+      //   console.log(`[Planora API] → ${conf.method?.toUpperCase()} ${conf.url}`, conf.data ?? '');
+      // }
       return conf;
     });
 
     this.client.interceptors.response.use(
       (r) => {
-        if (LOG) {
-          console.log(`[Planora API] ← ${r.status} ${r.config.url}`, r.data);
-        }
+        // if (LOG) {
+        //   console.log(`[Planora API] ← ${r.status} ${r.config.url}`, r.data);
+        // }
         return r;
       },
       async (error: AxiosError) => {
@@ -108,7 +108,7 @@ class ApiClient {
         if (isNetworkError && !cfg._networkRetry) {
           cfg._networkRetry = true;
           await new Promise<void>((resolve) => setTimeout(() => resolve(), 500));
-          if (LOG) console.log(`[Planora API] ↻ retry ${cfg.method?.toUpperCase()} ${cfg.url}`);
+          // if (LOG) console.log(`[Planora API] ↻ retry ${cfg.method?.toUpperCase()} ${cfg.url}`);
           return this.client(cfg);
         }
 
@@ -121,7 +121,7 @@ class ApiClient {
         if (isTransientDb && !cfg._serviceRetry) {
           cfg._serviceRetry = true;
           await new Promise<void>((resolve) => setTimeout(() => resolve(), 800));
-          if (LOG) console.log(`[Planora API] ↻ retry (db) ${cfg.method?.toUpperCase()} ${cfg.url}`);
+          // if (LOG) console.log(`[Planora API] ↻ retry (db) ${cfg.method?.toUpperCase()} ${cfg.url}`);
           return this.client(cfg);
         }
 
@@ -195,11 +195,11 @@ class ApiClient {
     const url = `${config.API_ROOT_URL}/health`;
     try {
       const res = await axios.get(url, { timeout: 8000 });
-      if (LOG) console.log('[Planora] health OK', res.data);
+      // if (LOG) console.log('[Planora] health OK', res.data);
       return { ok: true, detail: JSON.stringify(res.data) };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      if (LOG) console.warn('[Planora] health FAIL', msg);
+      // if (LOG) console.warn('[Planora] health FAIL', msg);
       return { ok: false, detail: msg };
     }
   }
