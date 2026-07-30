@@ -255,7 +255,7 @@ export const FocusScreen: React.FC = () => {
           </Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{Math.round(stats.focusedSeconds / 60)}{t('focusScreen.min')}</Text>
+          <Text style={styles.statValue}> {Math.round(stats.focusedSeconds / 60)}{t('focusScreen.min')} </Text>
           <Text style={[styles.statLabel, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
             {t('focusScreen.focusedToday')}
           </Text>

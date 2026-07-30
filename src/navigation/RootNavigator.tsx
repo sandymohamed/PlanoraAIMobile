@@ -1,3 +1,4 @@
+// src/navigation/RootNavigator.tsx
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { useTranslation } from 'react-i18next';

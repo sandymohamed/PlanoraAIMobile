@@ -60,6 +60,7 @@
     "settings": "Settings",
     "editProfile": "Edit profile",
     "changePassword": "Change password",
+    "deleteAccount": "Delete account",
     "notifications": "Notifications",
     "privacy": "Privacy",
     "termsOfService": "Terms of Service",
@@ -183,6 +184,7 @@
     "supportSection": "Support",
     "editProfile": "Edit profile",
     "changePassword": "Change password",
+    "deleteAccount": "Delete account",
     "notifications": "Notifications",
     "privacy": "Privacy",
     "termsOfService": "Terms of Service",
@@ -201,6 +203,55 @@
     "goalRemindersDesc": "Updates about your goal deadlines and milestones",
     "dueDateReminders": "Due date reminders",
     "dueDateRemindersDesc": "A nudge when something is due today or overdue"
+  },
+  
+  "deleteAccount": {
+    "title": "Account Management",
+    "warning": "These actions are permanent and cannot be undone",
+    "deleteAccount": {
+      "title": "Delete Account",
+      "description": "Permanently delete your account and all associated data. This action is irreversible.",
+      "items": {
+        "tasks": "All tasks, goals, and Habits",
+        "projects": "All projects and activities",
+        "profile": "Your profile and account"
+      },
+      "button": "Delete Account",
+      "confirm": {
+        "title": "Delete Account",
+        "message": "Are you sure you want to permanently delete your account?\n\nThis action will:\n• Delete all your tasks, goals, and habits\n• This cannot be undone!",
+        "cancel": "Cancel",
+        "confirm": "Delete Account"
+      },
+      "success": {
+        "title": "Account Deleted",
+        "message": "Your account has been permanently deleted."
+      },
+      "error": "Failed to delete account"
+    },
+    "deleteData": {
+      "title": "Delete All Data",
+      "description": "Delete all your data while keeping your account active.",
+      "items": {
+        "tasks": "All tasks, goals, and Habits",
+        "projects": "All projects and activities",
+        "account": "Your account is preserved"
+      },
+      "button": "Delete Data",
+      "confirm": {
+        "title": "Delete All Data",
+        "message": "Are you sure you want to delete all your data?\n\nThis will:\n• Delete all tasks, goals, and habits\n• Your account will be preserved\n\nThis cannot be undone!",
+        "cancel": "Cancel",
+        "confirm": "Delete Data"
+      },
+      "success": {
+        "title": "Data Deleted",
+        "message": "All your data has been deleted. Your account is preserved."
+      },
+      "error": "Failed to delete data"
+    },
+    "footer": "Your data is handled securely. For any questions, contact support.",
+    "back": "Back"
   },
   "alarms": {
     "savedTitle": "Alarm saved",
@@ -269,12 +320,18 @@
   },
   "focusScreen": {
     "title": "Focus",
-    "subtitle": "Rings even when your screen is off or the app is closed.",
+    "subtitle": "Rings even when your screen is off or the app is closed, but you have to stay to complete session",
     "sessionsToday": "Sessions today",
     "focusedToday": "Focused today",
     "modes": {
-      "pomodoro": { "label": "Pomodoro", "tagline": "Classic 25-minute focus block" },
-      "deep": { "label": "Deep work", "tagline": "Long, uninterrupted deep session" }
+      "pomodoro": {
+        "label": "Pomodoro",
+        "tagline": "Classic 25-minute focus block"
+      },
+      "deep": {
+        "label": "Deep work",
+        "tagline": "Long, uninterrupted deep session"
+      }
     },
     "inFocus": "In focus",
     "paused": "Paused",
@@ -489,7 +546,7 @@
     "todaysFocusLabel": "TODAY'S FOCUS",
     "focusTitle": "Complete your top 3 tasks",
     "focusMeta": "Tap Tasks to see what's due",
-    "relaxAndPlan":"Relax and plan your day",
+    "relaxAndPlan": "Relax and plan your day",
     "aiPlanner": "AI Coach",
     "aiPlannerBody": "Review your active goal and let AI refine this week's plan.",
     "focus": "Focus",

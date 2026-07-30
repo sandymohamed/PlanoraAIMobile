@@ -19,6 +19,7 @@ class RoutineServiceClass {
     try {
       const response = await apiClient.get<ApiResponse<Routine[]>>('/routines');
 
+      logger.info('Get user routines response:', response); 
       if (!response.success) {
         throw new Error(response.error || 'Failed to get routines');
       }
@@ -34,7 +35,7 @@ class RoutineServiceClass {
   async getRoutineById(routineId: string): Promise<Routine> {
     try {
       const response = await apiClient.get<ApiResponse<Routine>>(`/routines/${routineId}`);
-
+console.log('Get routine by ID response:', response);
       if (!response.success) {
         throw new Error(response.error || 'Failed to get routine');
       }

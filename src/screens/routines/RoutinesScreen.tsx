@@ -22,8 +22,11 @@ import { getApiErrorMessage } from '@/utils/apiError';
 import { showError, showConfirmDialog } from '@/components/ConfirmationDialog';
 import { useScreenAnalytics } from '@/hooks/useScreenAnalytics';
 import { AnalyticsEvents } from '@/analytics/posthog';
+import formatTime from '@/utils/formatTime';
 
 type Nav = NativeStackNavigationProp<RoutinesStackParamList, 'RoutinesList'>;
+
+
 
 export const RoutinesScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
@@ -42,6 +45,7 @@ export const RoutinesScreen: React.FC = () => {
     loadingRef.current = true;
     try {
       const data = await routineService.getUserRoutines();
+      console.log('Loaded routines:', data);
       setRoutines(data);
     } catch (e) {
       showError(t('common.error'), getApiErrorMessage(e));
@@ -177,7 +181,8 @@ export const RoutinesScreen: React.FC = () => {
                   </View>
                   <Text style={[styles.schedule, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
                     {t('routines.screen.schedule', {
-                      time: routine.schedule.time || '—',
+                      // time: routine.schedule.time || '—',
+                      time: routine?.nextOccurrenceAt ? formatTime(routine?.nextOccurrenceAt): '—',
                       frequency: t(`routines.frequency.${routine.frequency}`),
                       days: routine.schedule.days?.length
                         ? t('routines.screen.daysSuffix', {

@@ -24,6 +24,7 @@ export const SettingsScreen: React.FC = () => {
     () => [
       { icon: 'account-edit-outline', label: t('settings.editProfile'), route: 'EditProfile' },
       { icon: 'lock-outline', label: t('settings.changePassword'), route: 'ChangePassword' },
+      { icon: 'delete-outline', label: t('settings.deleteAccount'), route: 'DeleteAccount' },
       { icon: 'bell-outline', label: t('settings.notifications'), route: 'NotificationSettings' },
       { icon: 'shield-account-outline', label: t('settings.privacy'), route: 'PrivacySettings' },
       {

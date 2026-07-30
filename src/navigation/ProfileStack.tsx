@@ -6,6 +6,7 @@ import { SettingsScreen } from "@/screens/settings/SettingsScreen";
 import { LanguageSettingsScreen } from "@/screens/settings/LanguageSettingsScreen";
 import { EditProfileScreen } from "@/screens/profile/EditProfileScreen";
 import { ChangePasswordScreen } from "@/screens/profile/ChangePasswordScreen";
+import { DeleteAccountScreen } from "@/screens/profile/DeleteAccountScreen";
 import { NotificationSettingsScreen } from "@/screens/profile/NotificationSettingsScreen";
 import { PrivacySettingsScreen } from "@/screens/profile/PrivacySettingsScreen";
 import { PrivacyPolicyScreen } from "@/screens/profile/PrivacyPolicyScreen";
@@ -22,6 +23,7 @@ export type ProfileStackParamList = {
   LanguageSettings: undefined;
   EditProfile: undefined;
   ChangePassword: undefined;
+  DeleteAccount: undefined;
   NotificationSettings: undefined;
   PrivacySettings: undefined;
   DataExport: undefined;
@@ -74,10 +76,16 @@ export const ProfileStack: React.FC = () => {
         options={{ title: t("navigation.changePassword") }}
       />
       <Stack.Screen
+        name="DeleteAccount"
+        component={DeleteAccountScreen}
+        options={{ title: t("navigation.deleteAccount") }}
+      />
+      {/* TODO : review what does this acually do */}
+      <Stack.Screen
         name="NotificationSettings"
         component={NotificationSettingsScreen}
         options={{ title: t("navigation.notifications") }}
-      />
+      /> 
       <Stack.Screen
         name="PrivacySettings"
         component={PrivacySettingsScreen}

@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import { CreateRoutineData, RoutineFrequency } from "@/types/routine";
 import { colors, spacing, typography } from "@/theme/tokens";
 import { DateTimePicker } from "@/components/ui/DateTimePicker";
+import formatTime from "@/utils/formatTime";
 
 const DAY_VALUES = [0, 1, 2, 3, 4, 5, 6];
 const FREQUENCIES: RoutineFrequency[] = ["DAILY", "WEEKLY", "MONTHLY"];
@@ -25,12 +26,6 @@ interface RoutineFormProps {
 
 // Utility function to convert local time to UTC
 const convertLocalToUTC = (localTime: string, timezone: string): string => {
-  console.log(
-    "Converting local time to UTC:",
-    localTime,
-    "timezone:",
-    timezone,
-  );
   const [hours, minutes] = localTime.split(":").map(Number);
 
   // ✅ FIX: Use the correct method to get timezone offset
@@ -71,57 +66,7 @@ const convertLocalToUTC = (localTime: string, timezone: string): string => {
   const utcMinutes = localDate.getUTCMinutes();
 
   const result = `${String(utcHours).padStart(2, "0")}:${String(utcMinutes).padStart(2, "0")}`;
-  console.log("Converted UTC time:", result);
   return result;
-};
-
-// Helper function to get timezone offset in minutes
-const getTimezoneOffset = (timezone: string, date: Date): number => {
-  try {
-    // Get the date parts in the target timezone
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone: timezone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-
-    const parts = formatter.formatToParts(date);
-    const dateParts: Record<string, number> = {};
-    parts.forEach((part) => {
-      if (part.type !== "literal") {
-        dateParts[part.type] = parseInt(part.value, 10);
-      }
-    });
-
-    // Get the UTC date parts
-    const utcDate = new Date(date);
-    const utcParts = {
-      year: utcDate.getUTCFullYear(),
-      month: utcDate.getUTCMonth() + 1,
-      day: utcDate.getUTCDate(),
-      hour: utcDate.getUTCHours(),
-      minute: utcDate.getUTCMinutes(),
-    };
-
-    // Calculate the offset
-    const localDate = new Date(
-      dateParts.year,
-      dateParts.month - 1,
-      dateParts.day,
-      dateParts.hour,
-      dateParts.minute,
-    );
-
-    const offset = (localDate.getTime() - utcDate.getTime()) / 60000;
-    return offset;
-  } catch (error) {
-    console.warn("Failed to get timezone offset, using default UTC", error);
-    return 0;
-  }
 };
 
 export const RoutineForm: React.FC<RoutineFormProps> = ({
@@ -138,7 +83,11 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
     initial?.frequency || "DAILY",
   );
   const [localTime, setLocalTime] = useState(
-    initial?.schedule?.time || "08:00",
+    formatTime(
+      initial?.nextOccurrenceAt
+        ? initial?.nextOccurrenceAt
+        : "2026-07-19T08:40:00.000Z",
+    ) || "08:00",
   );
   const [days, setDays] = useState<number[]>(
     initial?.schedule?.days || [1, 2, 3, 4, 5],
@@ -167,10 +116,8 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
   };
 
   const handleSave = async () => {
-    console.log("RoutineForm: handleSave ", title, submitting.current);
     // if (submitting.current || loading) return;
     if (!title.trim()) {
-      console.log("RoutineForm: handleSave title is empty");
       setError(t("routines.form.titleRequired"));
       return;
     }
@@ -178,18 +125,11 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
 
     // Convert local time to UTC before sending to backend
     const utcTime = convertLocalToUTC(localTime, userTimezone);
-    console.log(
-      "RoutineForm: handleSave utcTime",
-      utcTime,
-      "localTime",
-      localTime,
-      "userTimezone",
-      userTimezone,
-    );
+
     const schedule: CreateRoutineData["schedule"] = {
       time: utcTime, // Send UTC time to backend
     };
-    console.log("RoutineForm: handleSave schedule", schedule);
+
     if (frequency === "WEEKLY") schedule.days = days;
     if (frequency === "MONTHLY") schedule.day = parseInt(monthDay, 10) || 1;
 
@@ -204,7 +144,6 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
       });
     } catch (error) {
       submitting.current = false;
-      console.log("Failed to submit routine form", error);
     } finally {
       submitting.current = false;
     }

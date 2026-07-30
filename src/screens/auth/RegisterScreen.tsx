@@ -108,7 +108,9 @@ export const RegisterScreen: React.FC<{ navigation: { navigate: (screen: string)
         onChangeText={setPassword}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      
       <Button label={t('auth.createAccount')} loading={loading} onPress={handleRegister} />
+     
       {emailTaken ? (
         <Button label={t('auth.signInInstead')} variant="ghost" onPress={() => navigation.navigate('Login')} />
       ) : null}

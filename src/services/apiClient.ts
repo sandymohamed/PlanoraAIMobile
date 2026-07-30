@@ -1,19 +1,19 @@
-import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
-import { config } from '@/config/env';
-import { useAuthStore } from '@/store/authStore';
-import { captureException } from '@/analytics/sentry';
+import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from "axios";
+import { useAuthStore } from "@/store/authStore";
+import { captureException } from "@/analytics/sentry";
+import { getApiBaseUrl, getApiRootUrl } from "@/config/remoteConfig";
 
 const LOG = __DEV__;
 
 /** Auth routes must not trigger 401 → refresh → logout loops */
 const AUTH_SKIP_RETRY_PATHS = [
-  '/auth/login',
-  '/auth/signup',
-  '/auth/refresh',
-  '/auth/logout',
-  '/auth/forgot-password',
-  '/auth/verify-otp',
-  '/auth/reset-password',
+  "/auth/login",
+  "/auth/signup",
+  "/auth/refresh",
+  "/auth/logout",
+  "/auth/forgot-password",
+  "/auth/verify-otp",
+  "/auth/reset-password",
 ];
 
 export type PlanoraRequestConfig = AxiosRequestConfig & {
@@ -31,7 +31,10 @@ function isAuthSkipPath(url?: string): boolean {
 class ApiClient {
   private client: AxiosInstance;
   private isRefreshing = false;
-  private queue: Array<{ resolve: (t?: string) => void; reject: (e: unknown) => void }> = [];
+  private queue: Array<{
+    resolve: (t?: string) => void;
+    reject: (e: unknown) => void;
+  }> = [];
 
   private flushQueue(error?: unknown, token?: string) {
     this.queue.forEach((pending) => {
@@ -43,9 +46,9 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: config.API_BASE_URL,
+      baseURL: getApiBaseUrl(),
       timeout: 20000,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
     });
     this.setupInterceptors();
   }
@@ -76,7 +79,7 @@ class ApiClient {
           console.warn(
             `[Planora API] ✗ ${error.config?.method?.toUpperCase()} ${error.config?.url}`,
             error.response?.status,
-            error.response?.data ?? error.message
+            error.response?.data ?? error.message,
           );
         }
         const original = error.config;
@@ -91,7 +94,7 @@ class ApiClient {
           captureException(error, {
             method: original.method?.toUpperCase(),
             url: original.url,
-            status: status ?? 'network_error',
+            status: status ?? "network_error",
           });
         }
 
@@ -103,11 +106,15 @@ class ApiClient {
         };
         const isNetworkError =
           !error.response &&
-          (error.code === 'ERR_NETWORK' || error.message === 'Network Error' || error.message.includes('Network'));
+          (error.code === "ERR_NETWORK" ||
+            error.message === "Network Error" ||
+            error.message.includes("Network"));
 
         if (isNetworkError && !cfg._networkRetry) {
           cfg._networkRetry = true;
-          await new Promise<void>((resolve) => setTimeout(() => resolve(), 500));
+          await new Promise<void>((resolve) =>
+            setTimeout(() => resolve(), 500),
+          );
           // if (LOG) console.log(`[Planora API] ↻ retry ${cfg.method?.toUpperCase()} ${cfg.url}`);
           return this.client(cfg);
         }
@@ -115,12 +122,15 @@ class ApiClient {
         const errBody = error.response?.data as { code?: string } | undefined;
         const isTransientDb =
           error.response?.status === 503 ||
-          errBody?.code === 'SERVICE_UNAVAILABLE' ||
-          (error.response?.status === 400 && errBody?.code === 'DATABASE_ERROR');
+          errBody?.code === "SERVICE_UNAVAILABLE" ||
+          (error.response?.status === 400 &&
+            errBody?.code === "DATABASE_ERROR");
 
         if (isTransientDb && !cfg._serviceRetry) {
           cfg._serviceRetry = true;
-          await new Promise<void>((resolve) => setTimeout(() => resolve(), 800));
+          await new Promise<void>((resolve) =>
+            setTimeout(() => resolve(), 800),
+          );
           // if (LOG) console.log(`[Planora API] ↻ retry (db) ${cfg.method?.toUpperCase()} ${cfg.url}`);
           return this.client(cfg);
         }
@@ -157,7 +167,9 @@ class ApiClient {
         if (ok) {
           const token = await useAuthStore.getState().getToken();
           if (!token) {
-            const missingTokenError = new Error('Token refresh succeeded without an access token');
+            const missingTokenError = new Error(
+              "Token refresh succeeded without an access token",
+            );
             this.flushQueue(missingTokenError);
             await useAuthStore.getState().clearSession();
             throw missingTokenError;
@@ -168,9 +180,11 @@ class ApiClient {
           return this.client(cfg);
         }
         this.flushQueue(error);
-        await useAuthStore.getState().clearSession({ reason: 'session_expired' });
+        await useAuthStore
+          .getState()
+          .clearSession({ reason: "session_expired" });
         throw error;
-      }
+      },
     );
   }
 
@@ -187,12 +201,15 @@ class ApiClient {
     return this.client.patch<T>(url, data, config).then((r) => r.data);
   }
   delete<T>(url: string, config?: AxiosRequestConfig) {
-    return this.client.delete<T>(url, config).then((r) => r.data);
+    return this.client.delete<T>(url, config).then((r) => {
+      console.log(`[Planora API] DELETE ${url} →`, r.data);
+      return r.data;
+    });
   }
 
   /** Ping backend /health (no auth). */
   async pingHealth(): Promise<{ ok: boolean; detail: string }> {
-    const url = `${config.API_ROOT_URL}/health`;
+    const url = `${getApiRootUrl()}/health`;
     try {
       const res = await axios.get(url, { timeout: 8000 });
       // if (LOG) console.log('[Planora] health OK', res.data);

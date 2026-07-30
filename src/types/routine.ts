@@ -42,7 +42,8 @@ export interface CreateRoutineData {
   frequency: RoutineFrequency;
   schedule: RoutineSchedule;
   timezone?: string;
-  reminderBefore?: string; // e.g., "30m", "2h", "2d", "1w"
+  reminderBefore?: string; // e.g., "30m", "2h", "2d", "1w",
+  nextOccurrenceAt?: string;
 }
 
 export interface UpdateRoutineData extends Partial<CreateRoutineData> {
