@@ -210,8 +210,8 @@ export function routinesToCalendarTasks(
   const now = new Date();
   const enabledRoutineAlarmTitles = new Set(
     alarms
-      .filter((alarm) => alarm.enabled && alarm.title.startsWith('Routine: '))
-      .map((alarm) => alarm.title.replace(/^Routine:\s*/, '').trim().toLowerCase())
+      .filter((alarm) => alarm.enabled && alarm.title.startsWith('Habit: '))
+      .map((alarm) => alarm.title.replace(/^Habit:\s*/, '').trim().toLowerCase())
   );
 
   routines
@@ -446,7 +446,7 @@ export interface BuildCalendarItemsInput {
 export function buildCalendarItems(input: BuildCalendarItemsInput): Task[] {
   const { tasks, goals, routines, alarms, rangeStart, rangeEnd } = input;
   const regular = tasks.filter((t) => !t.metadata?.isRoutineTask);
-  const visibleAlarms = alarms.filter((alarm) => !alarm.title.startsWith('Routine: '));
+  const visibleAlarms = alarms.filter((alarm) => !alarm.title.startsWith('Habit: '));
 
   const expandedTasks: Task[] = [];
   regular.forEach((t) => {

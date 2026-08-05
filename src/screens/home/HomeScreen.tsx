@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { format, isSameDay, startOfDay, subDays } from "date-fns";
 import {
   View,
@@ -32,28 +38,31 @@ import { setPendingAnalyticsContext } from "@/analytics/pendingContext";
 import { AdBanner } from "@/features/ads";
 import { PremiumLabel } from "@/components/premium/PremiumBadge";
 import { syncIfNeeded } from "@/services/sync/appSync";
+import { alarmPermissionService } from "@/services/AlarmPermissionService";
+import { Linking } from "react-native";
+
 
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { t, i18n } = useTranslation();
-
+  const isArabic = i18n.language.startsWith("ar");
   // ✅ Read from store directly - instant data
   const user = useAuthStore((s) => s.user);
   const tasks = useTaskStore((s) => s.tasks);
   const isLoaded = useTaskStore((s) => s.isLoaded);
-  
+
   // ✅ Store actions
   const fetchTasks = useTaskStore((s) => s.fetchTasks);
   const completeTask = useTaskStore((s) => s.completeTask);
   const uncompleteTask = useTaskStore((s) => s.uncompleteTask);
-  
+
   // ✅ Local state for non-store data
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [isLoadingRoutines, setIsLoadingRoutines] = useState(false);
   const [isLoadingGoals, setIsLoadingGoals] = useState(false);
-  
+
   // ✅ Refs to prevent double loading
   const loadRoutinesRef = useRef(false);
   const loadGoalsRef = useRef(false);
@@ -72,7 +81,7 @@ export const HomeScreen: React.FC = () => {
   const loadRoutines = useCallback(async () => {
     if (loadRoutinesRef.current) return;
     loadRoutinesRef.current = true;
-    
+
     try {
       setIsLoadingRoutines(true);
       const r = await routineService.getUserRoutines();
@@ -87,7 +96,7 @@ export const HomeScreen: React.FC = () => {
   const loadGoals = useCallback(async () => {
     if (loadGoalsRef.current) return;
     loadGoalsRef.current = true;
-    
+
     try {
       setIsLoadingGoals(true);
       const gRes = await goalService.getGoals({ limit: 5 });
@@ -105,7 +114,7 @@ export const HomeScreen: React.FC = () => {
     if (!isLoaded) {
       fetchTasks().catch(() => {});
     }
-    
+
     // Load routines and goals in background
     const task = InteractionManager.runAfterInteractions(() => {
       loadRoutines();
@@ -120,14 +129,26 @@ export const HomeScreen: React.FC = () => {
     useCallback(() => {
       const taskStore = useTaskStore.getState();
       const needsRefresh = taskStore.needsRefresh && taskStore.needsRefresh();
-      
+
       if (needsRefresh) {
         const timer = setTimeout(() => {
           syncIfNeeded().catch(() => {});
         }, 500);
         return () => clearTimeout(timer);
       }
-    }, [])
+    }, []),
+  );
+  const [permissionsGranted, setPermissionsGranted] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      const checkPermissions = async () => {
+        const perms = await alarmPermissionService.checkAllPermissions();
+        setPermissionsGranted(perms.allGranted);
+      };
+
+      checkPermissions().catch(() => {});
+    }, []),
   );
 
   // ✅ Pull to refresh - only time user waits
@@ -137,7 +158,7 @@ export const HomeScreen: React.FC = () => {
       await fetchTasks();
       await Promise.all([loadRoutines(), loadGoals()]);
     } catch (error) {
-      console.error('Refresh failed:', error);
+      console.error("Refresh failed:", error);
     } finally {
       setRefreshing(false);
     }
@@ -152,20 +173,22 @@ export const HomeScreen: React.FC = () => {
           t.dueDate &&
           isSameDay(new Date(t.dueDate), today) &&
           !t.metadata?.isRoutineTask &&
-          t.status !== TaskStatus.DONE
+          t.status !== TaskStatus.DONE,
       )
       .slice(0, 5);
   }, [tasks]);
 
   // ✅ Memoized completed tasks for streak calculation
   const completedTasks = useMemo(() => {
-    return tasks.filter(t => t.status === TaskStatus.DONE && !t.metadata?.isRoutineTask);
+    return tasks.filter(
+      (t) => t.status === TaskStatus.DONE && !t.metadata?.isRoutineTask,
+    );
   }, [tasks]);
 
   // ✅ Memoized streak stats - only recomputes when completed tasks change
   const streakStats = useMemo(
     () => calculateCompletionStreak(completedTasks, t),
-    [completedTasks, t]
+    [completedTasks, t],
   );
 
   // ✅ Memoized navigation handlers
@@ -175,7 +198,7 @@ export const HomeScreen: React.FC = () => {
       if (task.status === TaskStatus.DONE) await uncompleteTask(task.id);
       else await completeTask(task.id);
     },
-    [completeTask, uncompleteTask]
+    [completeTask, uncompleteTask],
   );
 
   const navigateToGoals = useCallback(() => {
@@ -185,29 +208,29 @@ export const HomeScreen: React.FC = () => {
 
   const navigateToFocus = useCallback(
     () => navigation.navigate("Focus"),
-    [navigation]
+    [navigation],
   );
-  
+
   const navigateToAlarms = useCallback(
     () => navigation.navigate("Alarms"),
-    [navigation]
+    [navigation],
   );
-  
+
   const navigateToRoutines = useCallback(
     () => navigation.navigate("Routines"),
-    [navigation]
+    [navigation],
   );
-  
+
   const navigateToWeeklyReview = useCallback(
     () => navigation.navigate("WeeklyReview"),
-    [navigation]
+    [navigation],
   );
-  
+
   const navigateToTasks = useCallback(
     () => navigation.navigate("Tasks", { screen: "TasksList" }),
-    [navigation]
+    [navigation],
   );
-  
+
   const navigateToTaskDetail = useCallback(
     (taskId: string) => {
       navigation.navigate("Tasks", {
@@ -215,7 +238,7 @@ export const HomeScreen: React.FC = () => {
         params: { taskId },
       });
     },
-    [navigation]
+    [navigation],
   );
 
   // ✅ Check if data is ready to show
@@ -239,24 +262,71 @@ export const HomeScreen: React.FC = () => {
         {user?.name ? `, ${user.name.split(" ")[0]}` : ""}
       </Text>
 
-      <Text style={styles.sub}>
-        {t("home.todayReady")}
-      </Text>
+      <Text style={styles.sub}>{t("home.todayReady")}</Text>
+
+
+
+<TouchableOpacity
+  onPress={async () => {
+    console.log("Opening settings...");
+    try {
+      await Linking.openSettings();
+      console.log("Done");
+    } catch (e) {
+      console.log("Failed", e);
+    }
+  }}
+>
+  <Text>Open Settings</Text>
+</TouchableOpacity>
+
+
+      {!permissionsGranted && (
+        <TouchableOpacity
+          style={[
+            styles.permBanner,
+            { flexDirection: isArabic ? "row-reverse" : "row" },
+          ]}
+          onPress={() => alarmPermissionService.requestAllPermissions()}
+        >
+          <Icon name="shield-check-outline" size={18} color={colors.primary} />
+          <View style={styles.permBody}>
+            <Text
+              style={[
+                styles.permText,
+                {
+                  textAlign: isArabic ? "right" : "left",
+                  writingDirection: isArabic ? "rtl" : "ltr",
+                },
+              ]}
+            >
+              {t("alarms.verifyPermissions")}
+            </Text>
+            <Text
+              style={[
+                styles.permSub,
+                {
+                  textAlign: isArabic ? "right" : "left",
+                  writingDirection: isArabic ? "rtl" : "ltr",
+                },
+              ]}
+            >
+              {t("alarms.verifyPermissionsDesc")}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      )}
 
       {/* Today's focus */}
       <Card elevated style={styles.focusCard}>
-        <Text style={styles.sectionLabel}>
-          {t("home.todaysFocusLabel")}
-        </Text>
+        <Text style={styles.sectionLabel}>{t("home.todaysFocusLabel")}</Text>
         <Text style={styles.focusTitle}>
-          {todayTasks.length > 0 
-            ? `${todayTasks.length} ${t('home.todaysTasks')}` 
+          {todayTasks.length > 0
+            ? `${todayTasks.length} ${t("home.todaysTasks")}`
             : t("home.noTasksToday")}
         </Text>
         <Text style={styles.focusMeta}>
-          {todayTasks.length > 0 
-            ? t("home.focusMeta") 
-            : t("home.relaxAndPlan")}
+          {todayTasks.length > 0 ? t("home.focusMeta") : t("home.relaxAndPlan")}
         </Text>
       </Card>
 
@@ -266,7 +336,10 @@ export const HomeScreen: React.FC = () => {
           colors={[colors.gradientStart, colors.gradientEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.aiCard, { flexDirection: i18n.language === 'ar' ? 'row-reverse' : 'row' }]}
+          style={[
+            styles.aiCard,
+            { flexDirection: i18n.language === "ar" ? "row-reverse" : "row" },
+          ]}
         >
           <Icon name="star-shooting-outline" size={28} color="#fff" />
           <View style={styles.aiText}>
@@ -276,7 +349,7 @@ export const HomeScreen: React.FC = () => {
             <Text style={styles.aiBody}>{t("home.aiPlannerBody")}</Text>
           </View>
           <Icon
-            name={i18n.language === 'ar' ? 'chevron-left' : 'chevron-right'}
+            name={i18n.language === "ar" ? "chevron-left" : "chevron-right"}
             size={24}
             color="rgba(255,255,255,0.8)"
           />
@@ -453,7 +526,11 @@ const QuickAction: React.FC<{
   label: string;
   onPress: () => void;
 }> = React.memo(({ icon, label, onPress }) => (
-  <TouchableOpacity style={styles.quickItem} onPress={onPress} activeOpacity={0.7}>
+  <TouchableOpacity
+    style={styles.quickItem}
+    onPress={onPress}
+    activeOpacity={0.7}
+  >
     <View style={styles.quickIcon}>
       <Icon name={icon} size={22} color={colors.primary} />
     </View>
@@ -461,7 +538,7 @@ const QuickAction: React.FC<{
   </TouchableOpacity>
 ));
 
-QuickAction.displayName = 'QuickAction';
+QuickAction.displayName = "QuickAction";
 
 const SectionHeader: React.FC<{
   title: string;
@@ -469,9 +546,14 @@ const SectionHeader: React.FC<{
   onAction: () => void;
 }> = React.memo(({ title, action, onAction }) => {
   const { i18n } = useTranslation();
-  
+
   return (
-    <View style={[styles.sectionHeader, { flexDirection: i18n.language === 'ar' ? 'row-reverse' : 'row' }]}>
+    <View
+      style={[
+        styles.sectionHeader,
+        { flexDirection: i18n.language === "ar" ? "row-reverse" : "row" },
+      ]}
+    >
       <Text style={styles.sectionTitle}>{title}</Text>
       <TouchableOpacity onPress={onAction}>
         <Text style={styles.sectionAction}>{action}</Text>
@@ -480,7 +562,7 @@ const SectionHeader: React.FC<{
   );
 });
 
-SectionHeader.displayName = 'SectionHeader';
+SectionHeader.displayName = "SectionHeader";
 
 const RoutineRow: React.FC<{ name: string; streak: number }> = React.memo(
   ({ name, streak }) => (
@@ -489,10 +571,10 @@ const RoutineRow: React.FC<{ name: string; streak: number }> = React.memo(
       <Text style={styles.taskTitle}>{name}</Text>
       <Text style={styles.streakBadge}>{streak}d</Text>
     </View>
-  )
+  ),
 );
 
-RoutineRow.displayName = 'RoutineRow';
+RoutineRow.displayName = "RoutineRow";
 
 const ProgressBar: React.FC<{ label: string; progress: number }> = React.memo(
   ({ label, progress }) => (
@@ -505,10 +587,10 @@ const ProgressBar: React.FC<{ label: string; progress: number }> = React.memo(
         <View style={[styles.progressFill, { width: `${progress}%` }]} />
       </View>
     </View>
-  )
+  ),
 );
 
-ProgressBar.displayName = 'ProgressBar';
+ProgressBar.displayName = "ProgressBar";
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
@@ -520,6 +602,21 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.lg,
   },
+
+  title: { ...typography.h1, color: colors.text },
+
+  permBanner: {
+    alignItems: "center",
+    gap: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: colors.primarySoft,
+    borderRadius: 8,
+    marginBottom: spacing.md,
+  },
+  permBody: { flex: 1 },
+  permText: { ...typography.body, color: colors.primary, fontWeight: "600" },
+  permSub: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
+
   focusCard: { marginBottom: spacing.md },
   sectionLabel: {
     ...typography.label,
@@ -622,6 +719,14 @@ const styles = StyleSheet.create({
   },
   streakNum: { ...typography.h3, color: colors.text },
   streakMeta: { ...typography.caption, color: colors.textSecondary },
-  emptyText: { ...typography.body, color: colors.textMuted, padding: spacing.sm },
-  loadingText: { ...typography.body, color: colors.textMuted, padding: spacing.sm },
+  emptyText: {
+    ...typography.body,
+    color: colors.textMuted,
+    padding: spacing.sm,
+  },
+  loadingText: {
+    ...typography.body,
+    color: colors.textMuted,
+    padding: spacing.sm,
+  },
 });

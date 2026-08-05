@@ -1,3 +1,4 @@
+//src/services/NotificationService
 import { logger } from '@/utils/logger';
 
 /** Stub — native alarms via ReliableAlarmService; push notifications optional in Phase 4+. */

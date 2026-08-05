@@ -80,8 +80,7 @@ class AppSyncService {
 
     const needsRefresh = 
       (taskStore.needsRefresh && taskStore.needsRefresh()) ||
-      (goalStore.needsRefresh && goalStore.needsRefresh()) ||
-      (alarmStore.needsRefresh && alarmStore.needsRefresh());
+      (goalStore.needsRefresh && goalStore.needsRefresh());
 
     if (needsRefresh) {
       logger.info("Cache expired, refreshing data...");
@@ -185,7 +184,7 @@ class AppSyncService {
     }
 
     const alarmStore = useAlarmStore.getState();
-    if (!force && alarmStore.needsRefresh && !alarmStore.needsRefresh()) {
+    if (!force ) {
       logger.info("Alarm cache is fresh, skipping");
       return;
     }
@@ -200,7 +199,7 @@ class AppSyncService {
 
     if (taskStore.markStale) taskStore.markStale();
     if (goalStore.markStale) goalStore.markStale();
-    if (alarmStore.markStale) alarmStore.markStale();
+    // if (alarmStore.markStale) alarmStore.markStale();
 
     logger.info("All data marked as stale");
   }

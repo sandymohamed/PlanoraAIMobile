@@ -163,6 +163,7 @@ interface GoalActions {
   updateGoalLocal: (id: string, data: Partial<Goal>) => void;
   removeGoal: (id: string) => void;
   updateGoalProgress: (id: string, progress: number) => void;
+  reset: () => void;
 }
 
 type GoalStore = GoalState & GoalActions;
@@ -1098,6 +1099,24 @@ export const useGoalStore = create<GoalStore>()(
           });
         }
         return progressHistory;
+      },
+
+      reset: () => {
+        set({
+          goals: [],
+          filteredGoals: [],
+          currentGoal: null,
+          isLoading: false,
+          isLoaded: false,
+          lastFetched: null,
+          error: null,
+          searchQuery: "",
+          statusFilter: [],
+          priorityFilter: [],
+          categoryFilter: [],
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        });
       },
 
       // Analytics

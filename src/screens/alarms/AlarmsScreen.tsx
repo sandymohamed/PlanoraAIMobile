@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -49,13 +49,19 @@ export const AlarmsScreen: React.FC = () => {
   useScreenAnalytics(AnalyticsEvents.ALARMS_OPENED);
 
   // Hide one-time alarms that have already rung — only keep alarms that will ring in the future.
-  const visibleAlarms = alarms;
-  //  alarms.filter((a) => !isAlarmExpired(a));
+  const visibleAlarms = alarms.filter((a) => !isAlarmExpired(a));
+  const [permissionsGranted, setPermissionsGranted] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
+      const checkPermissions = async () => {
+        const perms = await alarmPermissionService.checkAllPermissions();
+        setPermissionsGranted(perms.allGranted);
+      };
+
+      checkPermissions().catch(() => {});
       alarmFixService.initialize().catch(() => {});
-      alarmPermissionService.showPermissionSetupDialog().catch(() => {});
+      // alarmPermissionService.showPermissionSetupDialog().catch(() => {});
       // Fetch, then permanently delete expired one-time alarms so they don't pile up in the DB.
       fetchAlarms(1, 100, undefined)
         .then(() => cleanupExpiredAlarms())
@@ -123,45 +129,45 @@ export const AlarmsScreen: React.FC = () => {
           >
             {t("alarms.screen.subtitle")}
           </Text>
-
-          <TouchableOpacity
-            style={[
-              styles.permBanner,
-              { flexDirection: isArabic ? "row-reverse" : "row" },
-            ]}
-            onPress={() => alarmPermissionService.requestAllPermissions()}
-          >
-            <Icon
-              name="shield-check-outline"
-              size={18}
-              color={colors.primary}
-            />
-            <View style={styles.permBody}>
-              <Text
-                style={[
-                  styles.permText,
-                  {
-                    textAlign: isArabic ? "right" : "left",
-                    writingDirection: isArabic ? "rtl" : "ltr",
-                  },
-                ]}
-              >
-                {t("alarms.verifyPermissions")}
-              </Text>
-              <Text
-                style={[
-                  styles.permSub,
-                  {
-                    textAlign: isArabic ? "right" : "left",
-                    writingDirection: isArabic ? "rtl" : "ltr",
-                  },
-                ]}
-              >
-                {t("alarms.verifyPermissionsDesc")}
-              </Text>
-            </View>
-          </TouchableOpacity>
-
+          {!permissionsGranted && (
+            <TouchableOpacity
+              style={[
+                styles.permBanner,
+                { flexDirection: isArabic ? "row-reverse" : "row" },
+              ]}
+              onPress={() => alarmPermissionService.requestAllPermissions()}
+            >
+              <Icon
+                name="shield-check-outline"
+                size={18}
+                color={colors.primary}
+              />
+              <View style={styles.permBody}>
+                <Text
+                  style={[
+                    styles.permText,
+                    {
+                      textAlign: isArabic ? "right" : "left",
+                      writingDirection: isArabic ? "rtl" : "ltr",
+                    },
+                  ]}
+                >
+                  {t("alarms.verifyPermissions")}
+                </Text>
+                <Text
+                  style={[
+                    styles.permSub,
+                    {
+                      textAlign: isArabic ? "right" : "left",
+                      writingDirection: isArabic ? "rtl" : "ltr",
+                    },
+                  ]}
+                >
+                  {t("alarms.verifyPermissionsDesc")}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
           {groupAlarmsByRecurrence(visibleAlarms).map((group) => (
             <View key={group.key}>
               <Text

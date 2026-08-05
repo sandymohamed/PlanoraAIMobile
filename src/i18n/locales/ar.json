@@ -201,8 +201,8 @@
     "taskRemindersDesc": "تذكيرك قبل موعد استحقاق المهمة",
     "goalReminders": "تذكيرات الأهداف",
     "goalRemindersDesc": "تحديثات عن مواعيد أهدافك ومعالمك",
-    "dueDateReminders": "تذكيرات مواعيد الاستحقاق",
-    "dueDateRemindersDesc": "تنبيه عندما يحين موعد مهمة أو يتأخر"
+    "dueDateReminders": "تذكيرات مواعيد العادات",
+    "dueDateRemindersDesc": "تنبيه عندما يحين موعد العادات أو يتأخر"
   },
   "deleteAccount": {
     "title": "إدارة الحساب",

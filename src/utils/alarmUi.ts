@@ -23,6 +23,7 @@ export function isAlarmExpired(alarm: Alarm): boolean {
 }
 
 export function groupAlarmsByRecurrence(alarms: Alarm[]): { key: string; label: string; items: Alarm[] }[] {
+ console.log("groupAlarmsByRecurrence: ", alarms);
   const order = ['none', 'daily', 'weekdays', 'weekends', 'weekly'];
   const labels: Record<string, string> = {
     none: 'One-time',

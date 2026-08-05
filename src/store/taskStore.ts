@@ -81,6 +81,7 @@ interface TaskActions {
   addTask: (task: Task) => void;
   updateTaskLocal: (id: string, data: Partial<Task>) => void;
   removeTask: (id: string) => void;
+  reset: () => void;
 }
 
 type TaskStore = TaskState & TaskActions;
@@ -323,8 +324,10 @@ export const useTaskStore = create<TaskStore>()(
           }));
 
           get().applyFilters();
+          logger.info("Task created successfully:", { task });
 
           const createSource = consumePendingAnalytics("taskCreateSource");
+          logger.info("Task created with source:", { createSource });
           track(AnalyticsEvents.TASK_CREATED, {
             source: createSource || "manual",
           });
@@ -419,8 +422,14 @@ export const useTaskStore = create<TaskStore>()(
           }));
 
           get().applyFilters();
+          logger.info(
+            " ********************************** Task Update before consumePendingAnalytics:",
+          );
+
           track(AnalyticsEvents.TASK_UPDATED);
           const calendarAction = consumePendingAnalytics("calendarEventAction");
+          logger.info("Update task calendar action:", { calendarAction });
+
           if (calendarAction === "updated") {
             track(AnalyticsEvents.CALENDAR_EVENT_UPDATED, { entity: "task" });
           }
@@ -447,6 +456,11 @@ export const useTaskStore = create<TaskStore>()(
               state.currentTask?.id === id ? null : state.currentTask,
             isLoading: false,
           }));
+          const { useAlarmStore } = require("./alarmStore");
+          useAlarmStore
+            .getState()
+            .fetchAlarms(1, 1000, true)
+            .catch(() => {});
 
           get().applyFilters();
           track(AnalyticsEvents.TASK_DELETED);
@@ -741,6 +755,23 @@ export const useTaskStore = create<TaskStore>()(
               : state.currentTask,
         }));
         get().applyFilters();
+      },
+
+      reset: () => {
+        set({
+          tasks: [],
+          filteredTasks: [],
+          currentTask: null,
+          isLoading: false,
+          isLoaded: false,
+          lastFetched: null,
+          error: null,
+          filter: {},
+          searchQuery: "",
+          sortBy: "order",
+          sortOrder: "asc",
+          pendingOperations: new Map(),
+        });
       },
 
       removeTask: (id: string) => {

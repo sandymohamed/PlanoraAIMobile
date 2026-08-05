@@ -185,6 +185,7 @@ export class ReliableAlarmService {
       // Stop any currently playing alarm first
       await this.stopAlarm();
 
+      await nativeAlarmBridge.cancelAllAlarms();
       // Get all alarm storage keys to extract alarm IDs
       const keys = await AsyncStorage.getAllKeys();
       const alarmStorageKeys = keys.filter(key => 

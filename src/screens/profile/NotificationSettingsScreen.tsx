@@ -51,6 +51,9 @@ export const NotificationSettingsScreen: React.FC = () => {
   const update = async (key: keyof NotificationPrefs, value: boolean) => {
     const next = { ...prefs, [key]: value };
     setPrefs(next);
+    console.log(`Updating notification setting: ${key} = ${value}`);
+    console.log('Next notification settings:', next);
+
     await apiClient.put('/me/notification-settings', next);
   };
 

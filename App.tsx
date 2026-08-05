@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { InteractionManager, LogBox, StatusBar, Text } from "react-native";
 import "@/i18n";
 
+import { AppState, AppStateStatus } from "react-native";
+import { alarmPermissionService } from "@/services/AlarmPermissionService";
 LogBox.ignoreLogs(["Legacy Architecture", "NativeEventEmitter"]);
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -16,6 +18,7 @@ import { initSentry, wrapApp } from "@/analytics/sentry";
 import { initPostHog } from "@/analytics/posthog";
 import { colors } from "@/theme/tokens";
 import { initializeRemoteConfig } from "@/config/remoteConfig";
+import { logger } from "@/utils/logger";
 
 function App() {
   const initializeAuth = useAuthStore((s) => s.initializeAuth);
@@ -23,27 +26,27 @@ function App() {
 
   const [ready, setReady] = useState(false);
 
-useEffect(() => {
-  let mounted = true;
+  useEffect(() => {
+    let mounted = true;
 
-  async function bootstrap() {
-    try {
-      await initializeRemoteConfig();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      if (mounted) {
-        setReady(true);
+    async function bootstrap() {
+      try {
+        await initializeRemoteConfig();
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (mounted) {
+          setReady(true);
+        }
       }
     }
-  }
 
-  bootstrap();
+    bootstrap();
 
-  return () => {
-    mounted = false;
-  };
-}, []);
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     initSentry();
@@ -66,20 +69,54 @@ useEffect(() => {
   }, [initializeAuth]);
 
   useEffect(() => {
+    logger.info("App: user is authenticated, initializing services...", {
+      isAuthenticated,
+    });
     if (isAuthenticated) {
+      logger.info("App: user is authenticated, initializing services...", {
+        isAuthenticated,
+      });
       import("@/services/pushNotificationService")
         .then(({ pushNotificationService }) =>
           pushNotificationService.initialize(),
         )
-        .catch(() => {});
+        .catch((err) => {
+          logger.error(`PushNotificationService init failed: ${err}`);
+        })
+        .finally(() => {
+          logger.info("PushNotificationService init completed");
+        });
+
       import("@/services/offlineQueue")
         .then(({ processOfflineQueue }) => processOfflineQueue())
-        .catch(() => {});
+        .catch((err) => {
+          logger.error(`Offline queue processing failed: ${err}`);
+        });
       useSubscriptionStore
         .getState()
         .fetchAIUsage()
         .catch(() => {});
     }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const checkPermissions = () => {
+      alarmPermissionService.showPermissionSetupDialog().catch(() => {});
+    };
+
+    // Every app launch
+    checkPermissions();
+
+    // Every resume
+    const sub = AppState.addEventListener("change", (state: AppStateStatus) => {
+      if (state === "active") {
+        checkPermissions();
+      }
+    });
+
+    return () => sub.remove();
   }, [isAuthenticated]);
 
   return (

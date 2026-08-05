@@ -1,15 +1,17 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import remoteConfig from '@react-native-firebase/remote-config';
-import { logger } from '@/utils/logger';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import remoteConfig from "@react-native-firebase/remote-config";
+import { logger } from "@/utils/logger";
 
 const DEFAULT_API_BASE =
-  'https://planorabackend-production-d233.up.railway.app/api/v1';
+  // 'https://planorabackend-production-d233.up.railway.app/api/v1';
+  "http://192.168.1.15:3001/api/v1";
 
 const DEFAULT_API_ROOT =
-  'https://planorabackend-production-d233.up.railway.app';
+  // 'https://planorabackend-production-d233.up.railway.app';
+  "http://192.168.1.15:3001";
 
-const API_BASE_KEY = 'remote_api_base_url';
-const API_ROOT_KEY = 'remote_api_root_url';
+const API_BASE_KEY = "remote_api_base_url";
+const API_ROOT_KEY = "remote_api_root_url";
 
 let apiBaseUrl = DEFAULT_API_BASE;
 let apiRootUrl = DEFAULT_API_ROOT;
@@ -37,14 +39,13 @@ export async function initializeRemoteConfig() {
     // 3. Fetch latest values
     const updated = await remoteConfig().fetchAndActivate();
 
+    console.log("updated: ", updated);
     if (updated) {
       const newBase =
-        remoteConfig().getValue('api_base_url').asString() ||
-        DEFAULT_API_BASE;
+        remoteConfig().getValue("api_base_url").asString() || DEFAULT_API_BASE;
 
       const newRoot =
-        remoteConfig().getValue('api_root_url').asString() ||
-        DEFAULT_API_ROOT;
+        remoteConfig().getValue("api_root_url").asString() || DEFAULT_API_ROOT;
 
       apiBaseUrl = newBase;
       apiRootUrl = newRoot;
@@ -53,12 +54,11 @@ export async function initializeRemoteConfig() {
         [API_BASE_KEY, newBase],
         [API_ROOT_KEY, newRoot],
       ]);
-
     } else {
-      logger.info('Remote config already up to date');
+      logger.info("Remote config already up to date");
     }
   } catch (error) {
-    logger.warn('Remote Config failed, using cached/default URLs', error);
+    logger.warn("Remote Config failed, using cached/default URLs", error);
   }
 }
 
@@ -69,3 +69,6 @@ export function getApiBaseUrl() {
 export function getApiRootUrl() {
   return apiRootUrl;
 }
+
+console.log("getApiBaseUrl: ", getApiBaseUrl());
+console.log("getApiRootUrl: ", getApiRootUrl());

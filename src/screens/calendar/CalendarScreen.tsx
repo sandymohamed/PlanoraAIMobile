@@ -184,8 +184,7 @@ export const CalendarScreen: React.FC = () => {
 
       const needsRefresh =
         (taskStore.needsRefresh && taskStore.needsRefresh()) ||
-        (goalStore.needsRefresh && goalStore.needsRefresh()) ||
-        (alarmStore.needsRefresh && alarmStore.needsRefresh());
+        (goalStore.needsRefresh && goalStore.needsRefresh());
 
       if (needsRefresh) {
         const timer = setTimeout(() => {
@@ -206,8 +205,7 @@ export const CalendarScreen: React.FC = () => {
 
       const needsRefresh =
         (taskStore.needsRefresh && taskStore.needsRefresh()) ||
-        (goalStore.needsRefresh && goalStore.needsRefresh()) ||
-        (alarmStore.needsRefresh && alarmStore.needsRefresh());
+        (goalStore.needsRefresh && goalStore.needsRefresh());
 
       if (needsRefresh && !isFirstRender.current) {
         const timer = setTimeout(() => {

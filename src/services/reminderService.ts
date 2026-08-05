@@ -26,6 +26,7 @@ class ReminderServiceClass {
   }): Promise<ApiResponse<Reminder[]>> {
     try {
       const queryParams = new URLSearchParams();
+      logger.info('Get reminders queryParams:', queryParams);
       if (params?.page) queryParams.append('page', params.page.toString());
       if (params?.limit) queryParams.append('limit', params.limit.toString());
       if (params?.targetType) queryParams.append('targetType', params.targetType);
@@ -34,6 +35,8 @@ class ReminderServiceClass {
       const response = await apiClient.get<ApiResponse<Reminder[]>>(
         `/reminders${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
       );
+
+      logger.info('Get reminders response:', response);
 
       if (!response.success) {
         throw new Error(response.error || 'Failed to get reminders');
