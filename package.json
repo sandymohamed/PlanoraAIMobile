@@ -22,6 +22,7 @@
     "install:analytics": "npm install @sentry/react-native posthog-react-native --legacy-peer-deps --no-audit"
   },
   "dependencies": {
+    "@notifee/react-native": "^9.1.8",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/datetimepicker": "^8.6.0",
     "@react-native-firebase/app": "^24.0.0",
@@ -53,9 +54,6 @@
     "react-native-video": "^6.19.0",
     "xlsx": "^0.18.5",
     "zustand": "^5.0.8"
-  },
-  "optionalDependencies": {
-    "@notifee/react-native": "^7.9.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

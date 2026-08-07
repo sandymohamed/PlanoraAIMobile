@@ -57,6 +57,7 @@ export async function processOfflineQueue(): Promise<{
   failed: number;
 }> {
   const token = await useAuthStore.getState().getToken();
+  console.log("Offline queue: processing", { token });
   if (!token) return { processed: 0, failed: 0 };
 
   const queue = await loadQueue();

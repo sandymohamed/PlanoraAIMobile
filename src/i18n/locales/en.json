@@ -466,9 +466,9 @@
       "1d": "1d"
     },
     "screen": {
-      "title": "Habbits",
+      "title": "Habits",
       "subtitle": "Recurring habits with reset and reminders",
-      "emptyTitle": "No Habbits yet",
+      "emptyTitle": "No Habits yet",
       "emptyMessage": "Build a daily or weekly habit loop.",
       "createRoutine": "Create habit",
       "off": "OFF",

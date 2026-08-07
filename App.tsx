@@ -19,6 +19,9 @@ import { initPostHog } from "@/analytics/posthog";
 import { colors } from "@/theme/tokens";
 import { initializeRemoteConfig } from "@/config/remoteConfig";
 import { logger } from "@/utils/logger";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ActiveAlarmBanner } from "@/components/ActiveAlarmBanner";
+import { reliableAlarmService } from "@/services/ReliableAlarmService";
 
 function App() {
   const initializeAuth = useAuthStore((s) => s.initializeAuth);
@@ -119,6 +122,60 @@ function App() {
     return () => sub.remove();
   }, [isAuthenticated]);
 
+  const [activeAlarm, setActiveAlarm] = useState<any>(null);
+  const [activeAlarmId, setActiveAlarmId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadActiveAlarm = async () => {
+      try {
+        const [alarmStr, alarmIdStr] = await Promise.all([
+          AsyncStorage.getItem("active_alarm"),
+          AsyncStorage.getItem("active_alarm_id"),
+        ]);
+
+        console.log("Active alarm raw:", alarmStr);
+        console.log("Active alarm ID:", alarmIdStr);
+
+        if (!mounted) return;
+
+        if (alarmStr && alarmStr !== "undefined" && alarmStr !== "null") {
+          try {
+            const parsed = JSON.parse(alarmStr);
+
+            setActiveAlarm(parsed);
+            setActiveAlarmId(alarmIdStr);
+
+            console.log("Active alarm parsed:", parsed);
+          } catch (error) {
+            logger.error("Failed to parse active alarm", error);
+            setActiveAlarm(null);
+          }
+        } else {
+          setActiveAlarm(null);
+          setActiveAlarmId(null);
+        }
+      } catch (error) {
+        logger.error("Failed to load active alarm", error);
+      }
+    };
+
+    loadActiveAlarm();
+
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        loadActiveAlarm();
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+
+  }, [activeAlarmId]);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
@@ -126,6 +183,27 @@ function App() {
           <StatusBar
             barStyle="light-content"
             backgroundColor={colors.background}
+          />
+          <ActiveAlarmBanner
+            alarm={activeAlarm}
+            alarmId={activeAlarmId}
+            onStop={async () => {
+              if (!activeAlarmId) return;
+
+              await reliableAlarmService.stopAlarm();
+
+              setActiveAlarm(null);
+              setActiveAlarmId(null);
+            }}
+            onSnooze={async () => {
+              if (!activeAlarmId) return;
+
+              // Eventually use your alarmStore.snoozeAlarm()
+              console.log("Snooze:", activeAlarmId);
+            }}
+            onPress={() => {
+              // Navigate to Alarms screen later
+            }}
           />
           <RootNavigator />
           <ConfirmDialogHost />
