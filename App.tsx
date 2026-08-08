@@ -1,8 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { InteractionManager, LogBox, StatusBar, Text } from "react-native";
 import "@/i18n";
 
-import { AppState, AppStateStatus } from "react-native";
+import {
+  AppState,
+  AppStateStatus,
+  InteractionManager,
+  LogBox,
+  StatusBar,
+  Text,
+  NativeEventEmitter,
+  NativeModules,
+} from "react-native";
 import { alarmPermissionService } from "@/services/AlarmPermissionService";
 LogBox.ignoreLogs(["Legacy Architecture", "NativeEventEmitter"]);
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -28,6 +36,10 @@ function App() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const [ready, setReady] = useState(false);
+  const [activeAlarm, setActiveAlarm] = useState<{
+    alarmId: string;
+    title: string;
+  } | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -122,59 +134,93 @@ function App() {
     return () => sub.remove();
   }, [isAuthenticated]);
 
-  const [activeAlarm, setActiveAlarm] = useState<any>(null);
-  const [activeAlarmId, setActiveAlarmId] = useState<string | null>(null);
-
   useEffect(() => {
-    let mounted = true;
+    const { AlarmModule } = NativeModules;
 
-    const loadActiveAlarm = async () => {
-      try {
-        const [alarmStr, alarmIdStr] = await Promise.all([
-          AsyncStorage.getItem("active_alarm"),
-          AsyncStorage.getItem("active_alarm_id"),
-        ]);
+    if (!AlarmModule) {
+      console.warn("AlarmModule is not available");
+      return;
+    }
 
-        console.log("Active alarm raw:", alarmStr);
-        console.log("Active alarm ID:", alarmIdStr);
+    const eventEmitter = new NativeEventEmitter(AlarmModule);
 
-        if (!mounted) return;
+    const firedSubscription = eventEmitter.addListener(
+      "AlarmFired",
+      (event: { alarmId: string; title: string }) => {
+        console.log("🔔 AlarmFired received:", event);
 
-        if (alarmStr && alarmStr !== "undefined" && alarmStr !== "null") {
-          try {
-            const parsed = JSON.parse(alarmStr);
+        setActiveAlarm({
+          alarmId: event.alarmId,
+          title: event.title,
+        });
+      },
+    );
 
-            setActiveAlarm(parsed);
-            setActiveAlarmId(alarmIdStr);
+    const stopSubscription = eventEmitter.addListener(
+      "AlarmStop",
+      (event: { alarmId: string }) => {
+        console.log("🛑 AlarmStop received:", event);
 
-            console.log("Active alarm parsed:", parsed);
-          } catch (error) {
-            logger.error("Failed to parse active alarm", error);
-            setActiveAlarm(null);
-          }
-        } else {
-          setActiveAlarm(null);
-          setActiveAlarmId(null);
-        }
-      } catch (error) {
-        logger.error("Failed to load active alarm", error);
-      }
-    };
+        setActiveAlarm(null);
+      },
+    );
 
-    loadActiveAlarm();
+    const snoozeSubscription = eventEmitter.addListener(
+      "AlarmSnooze",
+      (event: { alarmId: string }) => {
+        console.log("😴 AlarmSnooze received:", event);
 
-    const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") {
-        loadActiveAlarm();
-      }
-    });
+        setActiveAlarm(null);
+      },
+    );
 
     return () => {
-      mounted = false;
-      subscription.remove();
+      firedSubscription.remove();
+      stopSubscription.remove();
+      snoozeSubscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    const checkActiveAlarm = async () => {
+      try {
+        const { AlarmModule } = NativeModules;
+
+        if (!AlarmModule?.getActiveAlarm) {
+          console.warn("AlarmModule.getActiveAlarm is not available");
+          return;
+        }
+
+        const alarm = await AlarmModule.getActiveAlarm();
+
+        console.log("🔎 Active native alarm:", alarm);
+
+        if (alarm?.isRinging && alarm.alarmId) {
+          setActiveAlarm({
+            alarmId: alarm.alarmId,
+            title: alarm.title || "Alarm",
+          });
+        } else {
+          setActiveAlarm(null);
+        }
+      } catch (error) {
+        console.error("Failed to check active alarm:", error);
+      }
     };
 
-  }, [activeAlarmId]);
+    checkActiveAlarm();
+
+    const subscription = AppState.addEventListener(
+      "change",
+      (state: AppStateStatus) => {
+        if (state === "active") {
+          checkActiveAlarm();
+        }
+      },
+    );
+
+    return () => subscription.remove();
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -184,27 +230,38 @@ function App() {
             barStyle="light-content"
             backgroundColor={colors.background}
           />
-          <ActiveAlarmBanner
-            alarm={activeAlarm}
-            alarmId={activeAlarmId}
-            onStop={async () => {
-              if (!activeAlarmId) return;
 
-              await reliableAlarmService.stopAlarm();
+          {activeAlarm && (
+            <ActiveAlarmBanner
+              alarm={activeAlarm}
+              onStop={async () => {
+                try {
+                  await reliableAlarmService.stopAlarm();
+                  setActiveAlarm(null);
+                } catch (error) {
+                  console.error("Failed to stop alarm:", error);
+                }
+              }}
+              onSnooze={async () => {
+                try {
+                  const { useAlarmStore } = await import("@/store/alarmStore");
 
-              setActiveAlarm(null);
-              setActiveAlarmId(null);
-            }}
-            onSnooze={async () => {
-              if (!activeAlarmId) return;
+                  await useAlarmStore
+                    .getState()
+                    .snoozeAlarm(activeAlarm.alarmId, 5);
 
-              // Eventually use your alarmStore.snoozeAlarm()
-              console.log("Snooze:", activeAlarmId);
-            }}
-            onPress={() => {
-              // Navigate to Alarms screen later
-            }}
-          />
+                  setActiveAlarm(null);
+                } catch (error) {
+                  console.error("Failed to snooze alarm:", error);
+                }
+              }}
+              onPress={() => {
+                // Navigation can be added here later.
+                console.log("Opening alarm:", activeAlarm.alarmId);
+              }}
+            />
+          )}
+
           <RootNavigator />
           <ConfirmDialogHost />
           <ActionSheetHost />

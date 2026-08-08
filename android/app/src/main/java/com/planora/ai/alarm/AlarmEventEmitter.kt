@@ -38,7 +38,7 @@ object AlarmEventEmitter {
   /**
    * Send alarm fired event to React Native (for UI updates)
    */
-  fun sendAlarmFiredEvent(alarmId: String, title: String) {
+  /** fun sendAlarmFiredEvent(alarmId: String, title: String) {
     try {
       val context = reactContext ?: return
       val params: WritableMap = Arguments.createMap().apply {
@@ -52,8 +52,43 @@ object AlarmEventEmitter {
     } catch (e: Exception) {
       android.util.Log.e("AlarmEventEmitter", "Error sending alarm fired event: ${e.message}", e)
     }
-  }
+  } */
   
+  fun sendAlarmFiredEvent(alarmId: String, title: String) {
+    try {
+        val context = reactContext ?: run {
+            android.util.Log.d(
+                "AlarmEventEmitter",
+                "React context unavailable. Alarm remains available through AlarmModule."
+            )
+            return
+        }
+
+        val params: WritableMap = Arguments.createMap().apply {
+            putString("alarmId", alarmId)
+            putString("title", title)
+            putString("action", "fired")
+        }
+
+        context
+            .getJSModule(
+                DeviceEventManagerModule.RCTDeviceEventEmitter::class.java
+            )
+            .emit("AlarmFired", params)
+
+        android.util.Log.d(
+            "AlarmEventEmitter",
+            "AlarmFired event sent: $alarmId - $title"
+        )
+    } catch (e: Exception) {
+        android.util.Log.e(
+            "AlarmEventEmitter",
+            "Error sending alarm fired event: ${e.message}",
+            e
+        )
+    }
+}
+
   /**
    * Send stop event to React Native
    */

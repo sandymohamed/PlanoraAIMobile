@@ -31,13 +31,28 @@ class AlarmPlayerService : Service() {
     fun stopAlarm() {
       instance?.stopAlarmInternal()
     }
+
+    fun getActiveAlarm(): Map<String, Any?>? {
+      val service = instance ?: return null
+
+      if (!service.isRinging || service.alarmId == null) {
+        return null
+      }
+
+      return mapOf(
+        "isRinging" to service.isRinging,
+        "alarmId" to service.alarmId,
+        "title" to service.alarmTitle,
+      )
+    }
+
   }
 
   private var ringtone: Ringtone? = null
   private var vibrator: Vibrator? = null
-  private var isRinging = false
-  private var alarmId: String? = null
-  private var alarmTitle: String? = null
+   var isRinging = false
+   var alarmId: String? = null
+   var alarmTitle: String? = null
 
   override fun onCreate() {
     super.onCreate()

@@ -39,8 +39,6 @@ import { AdBanner } from "@/features/ads";
 import { PremiumLabel } from "@/components/premium/PremiumBadge";
 import { syncIfNeeded } from "@/services/sync/appSync";
 import { alarmPermissionService } from "@/services/AlarmPermissionService";
-import { Linking } from "react-native";
-
 
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -263,22 +261,6 @@ export const HomeScreen: React.FC = () => {
       </Text>
 
       <Text style={styles.sub}>{t("home.todayReady")}</Text>
-
-
-
-<TouchableOpacity
-  onPress={async () => {
-    console.log("Opening settings...");
-    try {
-      await Linking.openSettings();
-      console.log("Done");
-    } catch (e) {
-      console.log("Failed", e);
-    }
-  }}
->
-  <Text>Open Settings</Text>
-</TouchableOpacity>
 
 
       {!permissionsGranted && (

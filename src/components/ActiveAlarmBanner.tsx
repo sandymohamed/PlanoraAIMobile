@@ -1,36 +1,26 @@
+import { colors, shadows } from "@/theme/tokens";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { colors } from "@/theme/tokens";
 
-type ActiveAlarmBannerProps = {
-  alarm: any;
-  alarmId?: string | null;
-  onStop: () => void;
-  onSnooze: () => void;
-  onPress: () => void;
-};
+interface ActiveAlarm {
+  alarmId: string;
+  title: string;
+}
 
-export const ActiveAlarmBanner: React.FC<ActiveAlarmBannerProps> = ({
+interface ActiveAlarmBannerProps {
+  alarm: ActiveAlarm;
+  onStop: () => void | Promise<void>;
+  onSnooze: () => void | Promise<void>;
+  onPress?: () => void;
+}
+
+export function ActiveAlarmBanner({
   alarm,
-  alarmId,
   onStop,
   onSnooze,
   onPress,
-}) => {
-  if (!alarm && !alarmId) {
-    console.log("ActiveAlarmBanner: no active alarm to display");
-    return null;
-  }
-
-  const title = alarm?.title || "Alarm";
-  const time = alarm?.time
-    ? new Date(alarm.time).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : null;
-
+}: ActiveAlarmBannerProps) {
+  console.log("Rendering ActiveAlarmBanner with alarm:", alarm);
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -39,75 +29,55 @@ export const ActiveAlarmBanner: React.FC<ActiveAlarmBannerProps> = ({
         style={styles.content}
       >
         <View style={styles.iconContainer}>
-          <Icon
-            name="alarm"
-            size={24}
-            color={colors.primary}
-          />
+          <Text style={styles.icon}>⏰</Text>
         </View>
 
         <View style={styles.info}>
-          <Text style={styles.label}>Alarm is ringing</Text>
+          <Text style={styles.label}>ALARM</Text>
 
-          <Text
-            style={styles.title}
-            numberOfLines={1}
-          >
-            {title}
+          <Text style={styles.title} numberOfLines={1}>
+            {alarm.title}
           </Text>
 
-          {time && (
-            <Text style={styles.time}>
-              {time}
-            </Text>
-          )}
+          <Text style={styles.status}>Alarm is ringing</Text>
         </View>
       </TouchableOpacity>
 
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.snoozeButton}
-          onPress={onSnooze}
-        >
-          <Icon
-            name="clock-outline"
-            size={18}
-            color={colors.text}
-          />
-
-          <Text style={styles.snoozeText}>
-            Snooze
-          </Text>
-        </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.stopButton}
+          activeOpacity={0.8}
           onPress={onStop}
+          style={[styles.button, styles.stopButton]}
         >
-          <Icon
-            name="stop"
-            size={18}
-            color={colors.background}
-          />
-
-          <Text style={styles.stopText}>
-            Stop
-          </Text>
+          <Text style={styles.stopText}>Stop</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={onSnooze}
+          style={[styles.button, styles.snoozeButton]}
+        >
+          <Text style={styles.snoozeText}>Snooze</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: 12,
-    marginTop: 12,
+    position: "absolute",
+    top: 12,
+    left: 12,
+    right: 12,
+    zIndex: 9999,
     borderRadius: 16,
-    padding: 12,
-    backgroundColor: colors.surface,
+    padding: 14,
+    backgroundColor: colors.surfaceElevated,
+
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: colors.border,
+    ...shadows.card,
   },
 
   content: {
@@ -121,8 +91,12 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.background,
+    backgroundColor: "#FFF4E5",
     marginRight: 12,
+  },
+
+  icon: {
+    fontSize: 22,
   },
 
   info: {
@@ -130,9 +104,10 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 12,
-    color: colors.primary,
-    fontWeight: "600",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1,
+    color: "#888888",
     marginBottom: 2,
   },
 
@@ -142,49 +117,51 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
 
-  time: {
-    marginTop: 2,
+  status: {
     fontSize: 12,
     color: colors.textSecondary,
+    marginTop: 2,
   },
 
   actions: {
     flexDirection: "row",
-    marginTop: 12,
     gap: 8,
+    marginTop: 12,
+  },
+
+  button: {
+    height: 48,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   snoozeButton: {
-    flex: 1,
-    height: 42,
-    borderRadius: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    backgroundColor: colors.background,
-  },
-
-  snoozeText: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: "600",
+    width: 96,
+    height: 48,
+    backgroundColor: colors.warning,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
 
   stopButton: {
     flex: 1,
-    height: 42,
-    borderRadius: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
+
+    borderRadius: 999,
     backgroundColor: colors.primary,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+  },
+
+  snoozeText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.text,
   },
 
   stopText: {
-    color: colors.background,
     fontSize: 14,
     fontWeight: "700",
+    color: colors.text,
   },
 });
