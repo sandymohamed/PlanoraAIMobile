@@ -28,7 +28,9 @@ export const RoutineEditScreen: React.FC = () => {
           description: r.description,
           frequency: r.frequency,
           schedule: r.schedule,
+          timezone: r.timezone,
           reminderBefore: r.reminderBefore,
+          nextOccurrenceAt: r.nextOccurrenceAt,
         })
       )
       .catch((e) => showError(t('common.error'), getApiErrorMessage(e)));

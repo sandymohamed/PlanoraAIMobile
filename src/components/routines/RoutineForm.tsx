@@ -25,49 +25,49 @@ interface RoutineFormProps {
 }
 
 // Utility function to convert local time to UTC
-const convertLocalToUTC = (localTime: string, timezone: string): string => {
-  const [hours, minutes] = localTime.split(":").map(Number);
+// const convertLocalToUTC = (localTime: string, timezone: string): string => {
+//   const [hours, minutes] = localTime.split(":").map(Number);
 
-  // ✅ FIX: Use the correct method to get timezone offset
-  const now = new Date();
+//   // ✅ FIX: Use the correct method to get timezone offset
+//   const now = new Date();
 
-  // Get the timezone offset in minutes (negative for UTC+)
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+//   // Get the timezone offset in minutes (negative for UTC+)
+//   const formatter = new Intl.DateTimeFormat("en-US", {
+//     timeZone: timezone,
+//     year: "numeric",
+//     month: "2-digit",
+//     day: "2-digit",
+//     hour: "2-digit",
+//     minute: "2-digit",
+//     hour12: false,
+//   });
 
-  const parts = formatter.formatToParts(now);
-  const dateParts: Record<string, number> = {};
-  parts.forEach((part) => {
-    if (part.type !== "literal") {
-      dateParts[part.type] = parseInt(part.value, 10);
-    }
-  });
+//   const parts = formatter.formatToParts(now);
+//   const dateParts: Record<string, number> = {};
+//   parts.forEach((part) => {
+//     if (part.type !== "literal") {
+//       dateParts[part.type] = parseInt(part.value, 10);
+//     }
+//   });
 
-  // Create a date object in the user's timezone
-  const localDate = new Date(
-    dateParts.year,
-    dateParts.month - 1,
-    dateParts.day,
-    hours,
-    minutes,
-    0,
-    0,
-  );
+//   // Create a date object in the user's timezone
+//   const localDate = new Date(
+//     dateParts.year,
+//     dateParts.month - 1,
+//     dateParts.day,
+//     hours,
+//     minutes,
+//     0,
+//     0,
+//   );
 
-  // ✅ Get UTC hours and minutes directly from the local date
-  const utcHours = localDate.getUTCHours();
-  const utcMinutes = localDate.getUTCMinutes();
+//   // ✅ Get UTC hours and minutes directly from the local date
+//   const utcHours = localDate.getUTCHours();
+//   const utcMinutes = localDate.getUTCMinutes();
 
-  const result = `${String(utcHours).padStart(2, "0")}:${String(utcMinutes).padStart(2, "0")}`;
-  return result;
-};
+//   const result = `${String(utcHours).padStart(2, "0")}:${String(utcMinutes).padStart(2, "0")}`;
+//   return result;
+// };
 
 export const RoutineForm: React.FC<RoutineFormProps> = ({
   initial,
@@ -75,6 +75,7 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
   submitLabel,
   loading,
 }) => {
+  console.log("RoutineForm initial:", initial);
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language.startsWith("ar");
   const [title, setTitle] = useState(initial?.title || "");
@@ -123,11 +124,8 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
     }
     submitting.current = true;
 
-    // Convert local time to UTC before sending to backend
-    const utcTime = convertLocalToUTC(localTime, userTimezone);
-
     const schedule: CreateRoutineData["schedule"] = {
-      time: utcTime, // Send UTC time to backend
+      time: localTime, 
     };
 
     if (frequency === "WEEKLY") schedule.days = days;
