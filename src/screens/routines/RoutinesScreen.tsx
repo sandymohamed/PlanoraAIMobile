@@ -23,6 +23,7 @@ import { showError, showConfirmDialog } from '@/components/ConfirmationDialog';
 import { useScreenAnalytics } from '@/hooks/useScreenAnalytics';
 import { AnalyticsEvents } from '@/analytics/posthog';
 import formatTime from '@/utils/formatTime';
+import { formatDueDateTime, formatDueLabel } from '@/utils/taskUi';
 
 type Nav = NativeStackNavigationProp<RoutinesStackParamList, 'RoutinesList'>;
 
@@ -190,6 +191,9 @@ export const RoutinesScreen: React.FC = () => {
                           })
                         : '',
                     })}
+                  </Text>
+                  <Text style={[styles.schedule, { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' }]}>
+                    {formatDueDateTime(routine.nextOccurrenceAt)}
                   </Text>
                 </TouchableOpacity>
                 {routine.routineTasks?.map((task) => (

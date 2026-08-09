@@ -45,6 +45,7 @@ const TaskListRowComponent: React.FC<Props> = ({
   compact = false,
   dismissOnComplete = true,
 }) => {
+  console.log("Rendering TaskListRow for task:", task);
   const isDone = task.status === TaskStatus.DONE;
   const overdue = isTaskOverdue(task);
   const dueLabel = formatDueLabel(task.dueDate, task.dueTime, { overdue });

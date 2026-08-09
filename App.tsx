@@ -134,52 +134,52 @@ function App() {
     return () => sub.remove();
   }, [isAuthenticated]);
 
-  useEffect(() => {
-    const { AlarmModule } = NativeModules;
+useEffect(() => {
+  const { AlarmModule } = NativeModules;
 
-    if (!AlarmModule) {
-      console.warn("AlarmModule is not available");
-      return;
-    }
+  if (!AlarmModule) {
+    console.warn("AlarmModule is not available");
+    return;
+  }
 
-    const eventEmitter = new NativeEventEmitter(AlarmModule);
+  const eventEmitter = new NativeEventEmitter(AlarmModule);
 
-    const firedSubscription = eventEmitter.addListener(
-      "AlarmFired",
-      (event: { alarmId: string; title: string }) => {
-        console.log("🔔 AlarmFired received:", event);
+  const firedSubscription = eventEmitter.addListener(
+    "AlarmFired",
+    (event: { alarmId: string; title: string }) => {
+      console.log("🔔 AlarmFired received:", event);
 
-        setActiveAlarm({
-          alarmId: event.alarmId,
-          title: event.title,
-        });
-      },
-    );
+      setActiveAlarm({
+        alarmId: event.alarmId,
+        title: event.title,
+      });
+    },
+  );
 
-    const stopSubscription = eventEmitter.addListener(
-      "AlarmStop",
-      (event: { alarmId: string }) => {
-        console.log("🛑 AlarmStop received:", event);
+  const stopSubscription = eventEmitter.addListener(
+    "AlarmStop",
+    (event: { alarmId: string }) => {
+      console.log("🛑 AlarmStop received:", event);
 
-        setActiveAlarm(null);
-      },
-    );
+      setActiveAlarm(null);
+    },
+  );
 
-    const snoozeSubscription = eventEmitter.addListener(
-      "AlarmSnooze",
-      (event: { alarmId: string }) => {
-        console.log("😴 AlarmSnooze received:", event);
+  const snoozeSubscription = eventEmitter.addListener(
+    "AlarmSnooze",
+    (event: { alarmId: string }) => {
+      console.log("😴 AlarmSnooze received:", event);
 
-        setActiveAlarm(null);
-      },
-    );
+      setActiveAlarm(null);
+    },
+  );
 
-    return () => {
-      firedSubscription.remove();
-      stopSubscription.remove();
-      snoozeSubscription.remove();
-    };
-  }, []);
+  return () => {
+    firedSubscription.remove();
+    stopSubscription.remove();
+    snoozeSubscription.remove();
+  };
+}, []);
 
   useEffect(() => {
     const checkActiveAlarm = async () => {
@@ -232,35 +232,36 @@ function App() {
           />
 
           {activeAlarm && (
-            <ActiveAlarmBanner
-              alarm={activeAlarm}
-              onStop={async () => {
-                try {
-                  await reliableAlarmService.stopAlarm();
-                  setActiveAlarm(null);
-                } catch (error) {
-                  console.error("Failed to stop alarm:", error);
-                }
-              }}
-              onSnooze={async () => {
-                try {
-                  const { useAlarmStore } = await import("@/store/alarmStore");
+  <ActiveAlarmBanner
+    alarm={activeAlarm}
+    onStop={async () => {
+      try {
+        await reliableAlarmService.stopAlarm();
+        
+        setActiveAlarm(null);
+      } catch (error) {
+        console.error("Failed to stop alarm:", error);
+      }
+    }}
+    onSnooze={async () => {
+      try {
+        const { useAlarmStore } = await import("@/store/alarmStore");
 
-                  await useAlarmStore
-                    .getState()
-                    .snoozeAlarm(activeAlarm.alarmId, 5);
+        await useAlarmStore
+          .getState()
+          .snoozeAlarm(activeAlarm.alarmId, 5);
 
-                  setActiveAlarm(null);
-                } catch (error) {
-                  console.error("Failed to snooze alarm:", error);
-                }
-              }}
-              onPress={() => {
-                // Navigation can be added here later.
-                console.log("Opening alarm:", activeAlarm.alarmId);
-              }}
-            />
-          )}
+        setActiveAlarm(null);
+      } catch (error) {
+        console.error("Failed to snooze alarm:", error);
+      }
+    }}
+    onPress={() => {
+      // Navigation can be added here later.
+      console.log("Opening alarm:", activeAlarm.alarmId);
+    }}
+  />
+)}
 
           <RootNavigator />
           <ConfirmDialogHost />

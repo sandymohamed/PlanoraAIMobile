@@ -36,6 +36,8 @@ interface DateTimePickerProps {
 
 const QUICK_ACTIONS: QuickAction[] = ['today', 'tomorrow', 'weekend', 'nextWeek'];
 
+
+
 function dateForQuickAction(action: QuickAction) {
   const now = new Date();
   switch (action) {
@@ -116,6 +118,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language.startsWith('ar');
+const [selectedQuickAction, setSelectedQuickAction] = useState<QuickAction | null>(null);
 
   const [iosPickerMode, setIosPickerMode] = useState<'date' | 'time' | null>(null);
   const pickerAnim = useRef(new Animated.Value(0)).current;
@@ -203,13 +206,20 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
             return (
               <TouchableOpacity
                 key={action}
-                style={[styles.quickChip,]}
-                onPress={() => handleQuickAction(action)}
+                style={[
+                  styles.quickChip,
+                  selectedQuickAction === action
+                    ? { borderWidth: 2, borderColor: colors.primary }
+                    : undefined,
+                ]}
+                onPress={() => {
+                  setSelectedQuickAction(action);
+                  handleQuickAction(action)}}
                 activeOpacity={0.85}
                 accessibilityRole="button"
                 accessibilityLabel={t('common.setQuickDate', { date: actionLabel })}
               >
-                <Text style={[styles.quickText, directionalTextStyle()]}>{actionLabel}</Text>
+           <Text style={[styles.quickText, directionalTextStyle()]}> {actionLabel}</Text>
               </TouchableOpacity>
             );
           })}

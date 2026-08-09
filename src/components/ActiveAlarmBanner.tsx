@@ -21,6 +21,9 @@ export function ActiveAlarmBanner({
   onPress,
 }: ActiveAlarmBannerProps) {
   console.log("Rendering ActiveAlarmBanner with alarm:", alarm);
+
+  // const isFocusTimer = alarm.alarmId === "focus_timer";
+  const isFocusTimer = false;
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -44,7 +47,6 @@ export function ActiveAlarmBanner({
       </TouchableOpacity>
 
       <View style={styles.actions}>
-
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={onStop}
@@ -52,13 +54,15 @@ export function ActiveAlarmBanner({
         >
           <Text style={styles.stopText}>Stop</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={onSnooze}
-          style={[styles.button, styles.snoozeButton]}
-        >
-          <Text style={styles.snoozeText}>Snooze</Text>
-        </TouchableOpacity>
+        {!isFocusTimer && (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={onSnooze}
+            style={[styles.button, styles.snoozeButton]}
+          >
+            <Text style={styles.snoozeText}>Snooze</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
