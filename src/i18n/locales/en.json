@@ -108,6 +108,9 @@
       "overdue": "Overdue · {{date}}"
     },
     "details": {
+      "noTasks":"No tasks yet",
+      "noTasksMessage":"Add your first task to start planning your day.",
+      "addTask": "Add task",
       "editTask": "Edit task",
       "deleteTask": "Delete task",
       "markIncomplete": "Mark incomplete",
@@ -195,16 +198,9 @@
     "about": "About"
   },
   "notificationSettings": {
-    "pushNotifications": "Push notifications",
-    "pushNotificationsDesc": "Alerts on your phone for tasks, goals, and reminders",
-    "taskReminders": "Task reminders",
-    "taskRemindersDesc": "Get reminded before a task is due",
-    "goalReminders": "Goal reminders",
-    "goalRemindersDesc": "Updates about your goal deadlines and milestones",
-    "dueDateReminders": "Habits reminders",
-    "dueDateRemindersDesc": "A nudge when something is due today or overdue"
+    "notificationsAndAlarms": "Notifications & Alarms",
+    "notificationsAndAlarmsDesc": "Receive push notifications and allow scheduled alarms for tasks, goals, habits, and routines. Turning this off will stop all scheduled alarms and prevent notification alerts from being delivered."
   },
-  
   "deleteAccount": {
     "title": "Account Management",
     "warning": "These actions are permanent and cannot be undone",
@@ -258,6 +254,8 @@
     "openPermissions": "Fix permissions",
     "verifyPermissions": "Allow alarms on this phone",
     "verifyPermissionsDesc": "Planora needs notification and exact-alarm access so alarms ring on time",
+    "notificationsDisabled": "Alarms are disabled",
+    "notificationsDisabledDesc": "Scheduled alarms won't ring because notifications are turned off. Tap here to enable notifications and alarms.",
     "screen": {
       "title": "Alarms & timers",
       "subtitle": "Snooze from the alarm notification when it rings (+5 min)",
@@ -343,6 +341,7 @@
     "sessionComplete": "Session complete",
     "sessionCompleteMessage": "{{mode}} block done — nice work staying in flow.",
     "stopAlarm": "Stop alarm",
+    "done": "Done",
     "backgroundAlarmTitle": "Background alarm unavailable",
     "backgroundAlarmMessage": "Grant exact alarm + notification permissions so the timer can ring when the screen is off."
   },

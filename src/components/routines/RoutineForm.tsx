@@ -75,7 +75,6 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
   submitLabel,
   loading,
 }) => {
-  console.log("RoutineForm initial:", initial);
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language.startsWith("ar");
   const [title, setTitle] = useState(initial?.title || "");

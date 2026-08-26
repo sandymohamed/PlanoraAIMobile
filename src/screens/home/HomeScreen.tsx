@@ -39,11 +39,22 @@ import { AdBanner } from "@/features/ads";
 import { PremiumLabel } from "@/components/premium/PremiumBadge";
 import { syncIfNeeded } from "@/services/sync/appSync";
 import { alarmPermissionService } from "@/services/AlarmPermissionService";
+import { chevronForwardIcon, writingDirection } from "@/utils/rtl";
+import { useRTL } from "@/hooks/useRTL";
 
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language.startsWith("ar");
+
+    const {
+      navigateNext,
+      arrowBack,
+      directionalTextStyle: dirText,
+      rowDirection,
+    } = useRTL();
+
+
   // ✅ Read from store directly - instant data
   const user = useAuthStore((s) => s.user);
   const tasks = useTaskStore((s) => s.tasks);
@@ -262,7 +273,6 @@ export const HomeScreen: React.FC = () => {
 
       <Text style={styles.sub}>{t("home.todayReady")}</Text>
 
-
       {!permissionsGranted && (
         <TouchableOpacity
           style={[
@@ -321,6 +331,7 @@ export const HomeScreen: React.FC = () => {
           style={[
             styles.aiCard,
             { flexDirection: i18n.language === "ar" ? "row-reverse" : "row" },
+            //  { flexDirection: rowDirection() },
           ]}
         >
           <Icon name="star-shooting-outline" size={28} color="#fff" />
@@ -332,6 +343,7 @@ export const HomeScreen: React.FC = () => {
           </View>
           <Icon
             name={i18n.language === "ar" ? "chevron-left" : "chevron-right"}
+            // name={navigateNext()}
             size={24}
             color="rgba(255,255,255,0.8)"
           />

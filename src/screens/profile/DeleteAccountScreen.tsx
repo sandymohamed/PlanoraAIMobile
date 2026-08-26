@@ -76,8 +76,6 @@ export const DeleteAccountScreen: React.FC = () => {
     try {
       const response = await apiClient.delete<ApiResponse>('/me');
       
-      console.log('Delete account response:', response);
-
       if (response.success) {
         showSuccess(
           t('deleteAccount.deleteAccount.success.title'),

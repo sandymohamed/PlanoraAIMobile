@@ -174,9 +174,9 @@ export const TasksScreen: React.FC = () => {
 
   const listEmpty = useMemo(() => (
     <EmptyState
-      title="No tasks yet"
-      message="Add your first task to start planning your day."
-      actionLabel="Add task"
+      title={t(`tasks.details.noTasks`)}
+      message={t(`tasks.details.noTasksMessage`)}
+      actionLabel={t(`tasks.details.addTask`)}
       onAction={handleCreate}
     />
   ), [handleCreate]);

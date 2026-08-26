@@ -29,8 +29,6 @@ import {
   subDays,
   isSameDay,
   isSameMonth,
-  startOfDay,
-  endOfDay,
 } from "date-fns";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useTranslation } from "react-i18next";
@@ -48,19 +46,16 @@ import { setPendingAnalyticsContext } from "@/analytics/pendingContext";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTaskStore } from "@/store/taskStore";
 import { useGoalStore } from "@/store/goalStore";
-import { useAlarmStore } from "@/store/alarmStore";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const WEEK_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const VIEW_MODES: CalendarViewMode[] = ["month", "week", "day", "agenda"];
 const HOUR_SLOTS = Array.from({ length: 24 }, (_, h) => h);
-const DAY_NAMES_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 // Memoized event accent function
 const eventAccent = (task: Task): string => {
   if (task.metadata?.isGoalMilestone || task.metadata?.isGoalTarget)
     return colors.accent;
-  if (task.metadata?.isRoutineTask) return "#7C4DFF";
+  if (task.metadata?.isRoutineTask) return "#FBBF24";
   if (task.metadata?.isAlarm) return "#FF7043";
   return priorityColor(task.priority);
 };
@@ -180,7 +175,6 @@ export const CalendarScreen: React.FC = () => {
       // Only sync if data is stale
       const taskStore = useTaskStore.getState();
       const goalStore = useGoalStore.getState();
-      const alarmStore = useAlarmStore.getState();
 
       const needsRefresh =
         (taskStore.needsRefresh && taskStore.needsRefresh()) ||
@@ -201,7 +195,6 @@ export const CalendarScreen: React.FC = () => {
       // Only check for stale data on focus, but don't trigger sync unnecessarily
       const taskStore = useTaskStore.getState();
       const goalStore = useGoalStore.getState();
-      const alarmStore = useAlarmStore.getState();
 
       const needsRefresh =
         (taskStore.needsRefresh && taskStore.needsRefresh()) ||
@@ -472,7 +465,6 @@ export const CalendarScreen: React.FC = () => {
         <Text style={styles.emptyDay}>{t("calendar.noEventsPeriod")}</Text>
       );
     }
-
     return (
       <FlatList
         data={cal.agendaItems}

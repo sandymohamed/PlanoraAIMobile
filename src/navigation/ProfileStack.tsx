@@ -80,7 +80,6 @@ export const ProfileStack: React.FC = () => {
         component={DeleteAccountScreen}
         options={{ title: t("navigation.deleteAccount") }}
       />
-      {/* TODO : review what does this acually do */}
       <Stack.Screen
         name="NotificationSettings"
         component={NotificationSettingsScreen}

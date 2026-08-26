@@ -13,10 +13,6 @@ class HeadlessNotificationHandler {
   private registered = false;
 
   initialize(): void {
-    console.log("HeadlessNotificationHandler: initialize", {
-      registered: this.registered,
-      platform: Platform.OS,
-    });
     if (this.registered || Platform.OS !== "android") return;
 
     try {
@@ -24,21 +20,12 @@ class HeadlessNotificationHandler {
 
       messaging().setBackgroundMessageHandler(
         async (remoteMessage: { data?: RemotePayload }) => {
-          console.log(
-            "HeadlessNotificationHandler: setBackgroundMessageHandler",
-            JSON.stringify(remoteMessage, null, 2),
-          );
-
           await this.handlePayload(remoteMessage?.data ?? {}, "background");
         },
       );
 
       messaging().onNotificationOpenedApp(
         async (remoteMessage: { data?: RemotePayload }) => {
-          console.log(
-            "HeadlessNotificationHandler: onNotificationOpenedApp",
-            remoteMessage,
-          );
           await this.handlePayload(remoteMessage?.data ?? {}, "opened").catch(
             () => {},
           );

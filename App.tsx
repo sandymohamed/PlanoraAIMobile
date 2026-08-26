@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import "@/i18n";
-
+import { initializeI18n } from "@/i18n";
 import {
   AppState,
   AppStateStatus,
@@ -25,11 +24,11 @@ import { planoraTheme } from "@/theme/paperTheme";
 import { initSentry, wrapApp } from "@/analytics/sentry";
 import { initPostHog } from "@/analytics/posthog";
 import { colors } from "@/theme/tokens";
-import { initializeRemoteConfig } from "@/config/remoteConfig";
+import { getApiBaseUrl, initializeRemoteConfig } from "@/config/remoteConfig";
 import { logger } from "@/utils/logger";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ActiveAlarmBanner } from "@/components/ActiveAlarmBanner";
 import { reliableAlarmService } from "@/services/ReliableAlarmService";
+import { apiClient } from "@/services/apiClient";
 
 function App() {
   const initializeAuth = useAuthStore((s) => s.initializeAuth);
@@ -41,27 +40,31 @@ function App() {
     title: string;
   } | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
+useEffect(() => {
+  let mounted = true;
 
-    async function bootstrap() {
-      try {
-        await initializeRemoteConfig();
-      } catch (e) {
-        console.error(e);
-      } finally {
-        if (mounted) {
-          setReady(true);
-        }
+  async function bootstrap() {
+    try {
+      await initializeI18n();
+
+      await initializeRemoteConfig();
+
+      apiClient.updateBaseUrl();
+    } catch (error) {
+      console.error("App bootstrap failed:", error);
+    } finally {
+      if (mounted) {
+        setReady(true);
       }
     }
+  }
 
-    bootstrap();
+  bootstrap();
 
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  return () => {
+    mounted = false;
+  };
+}, []);
 
   useEffect(() => {
     initSentry();
@@ -84,9 +87,6 @@ function App() {
   }, [initializeAuth]);
 
   useEffect(() => {
-    logger.info("App: user is authenticated, initializing services...", {
-      isAuthenticated,
-    });
     if (isAuthenticated) {
       logger.info("App: user is authenticated, initializing services...", {
         isAuthenticated,
@@ -134,52 +134,46 @@ function App() {
     return () => sub.remove();
   }, [isAuthenticated]);
 
-useEffect(() => {
-  const { AlarmModule } = NativeModules;
+  useEffect(() => {
+    const { AlarmModule } = NativeModules;
 
-  if (!AlarmModule) {
-    console.warn("AlarmModule is not available");
-    return;
-  }
+    if (!AlarmModule) {
+      console.warn("AlarmModule is not available");
+      return;
+    }
 
-  const eventEmitter = new NativeEventEmitter(AlarmModule);
+    const eventEmitter = new NativeEventEmitter(AlarmModule);
 
-  const firedSubscription = eventEmitter.addListener(
-    "AlarmFired",
-    (event: { alarmId: string; title: string }) => {
-      console.log("🔔 AlarmFired received:", event);
+    const firedSubscription = eventEmitter.addListener(
+      "AlarmFired",
+      (event: { alarmId: string; title: string }) => {
+        setActiveAlarm({
+          alarmId: event.alarmId,
+          title: event.title,
+        });
+      },
+    );
 
-      setActiveAlarm({
-        alarmId: event.alarmId,
-        title: event.title,
-      });
-    },
-  );
+    const stopSubscription = eventEmitter.addListener(
+      "AlarmStop",
+      (event: { alarmId: string }) => {
+        setActiveAlarm(null);
+      },
+    );
 
-  const stopSubscription = eventEmitter.addListener(
-    "AlarmStop",
-    (event: { alarmId: string }) => {
-      console.log("🛑 AlarmStop received:", event);
+    const snoozeSubscription = eventEmitter.addListener(
+      "AlarmSnooze",
+      (event: { alarmId: string }) => {
+        setActiveAlarm(null);
+      },
+    );
 
-      setActiveAlarm(null);
-    },
-  );
-
-  const snoozeSubscription = eventEmitter.addListener(
-    "AlarmSnooze",
-    (event: { alarmId: string }) => {
-      console.log("😴 AlarmSnooze received:", event);
-
-      setActiveAlarm(null);
-    },
-  );
-
-  return () => {
-    firedSubscription.remove();
-    stopSubscription.remove();
-    snoozeSubscription.remove();
-  };
-}, []);
+    return () => {
+      firedSubscription.remove();
+      stopSubscription.remove();
+      snoozeSubscription.remove();
+    };
+  }, []);
 
   useEffect(() => {
     const checkActiveAlarm = async () => {
@@ -192,8 +186,6 @@ useEffect(() => {
         }
 
         const alarm = await AlarmModule.getActiveAlarm();
-
-        console.log("🔎 Active native alarm:", alarm);
 
         if (alarm?.isRinging && alarm.alarmId) {
           setActiveAlarm({
@@ -222,6 +214,10 @@ useEffect(() => {
     return () => subscription.remove();
   }, []);
 
+  if (!ready) {
+    return null;
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
@@ -232,36 +228,36 @@ useEffect(() => {
           />
 
           {activeAlarm && (
-  <ActiveAlarmBanner
-    alarm={activeAlarm}
-    onStop={async () => {
-      try {
-        await reliableAlarmService.stopAlarm();
-        
-        setActiveAlarm(null);
-      } catch (error) {
-        console.error("Failed to stop alarm:", error);
-      }
-    }}
-    onSnooze={async () => {
-      try {
-        const { useAlarmStore } = await import("@/store/alarmStore");
+            <ActiveAlarmBanner
+              alarm={activeAlarm}
+              onStop={async () => {
+                try {
+                  await reliableAlarmService.stopAlarm();
 
-        await useAlarmStore
-          .getState()
-          .snoozeAlarm(activeAlarm.alarmId, 5);
+                  setActiveAlarm(null);
+                } catch (error) {
+                  console.error("Failed to stop alarm:", error);
+                }
+              }}
+              onSnooze={async () => {
+                try {
+                  const { useAlarmStore } = await import("@/store/alarmStore");
 
-        setActiveAlarm(null);
-      } catch (error) {
-        console.error("Failed to snooze alarm:", error);
-      }
-    }}
-    onPress={() => {
-      // Navigation can be added here later.
-      console.log("Opening alarm:", activeAlarm.alarmId);
-    }}
-  />
-)}
+                  await useAlarmStore
+                    .getState()
+                    .snoozeAlarm(activeAlarm.alarmId, 5);
+
+                  setActiveAlarm(null);
+                } catch (error) {
+                  console.error("Failed to snooze alarm:", error);
+                }
+              }}
+              onPress={() => {
+                // Navigation can be added here later.
+                console.log("Opening alarm:", activeAlarm.alarmId);
+              }}
+            />
+          )}
 
           <RootNavigator />
           <ConfirmDialogHost />

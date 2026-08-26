@@ -30,9 +30,12 @@ import { format } from "date-fns";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { useScreenAnalytics } from "@/hooks/useScreenAnalytics";
 import { AnalyticsEvents } from "@/analytics/posthog";
+import { useAuthStore } from "@/store/authStore";
+import { apiClient } from "@/services/apiClient";
 
 export const AlarmsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language.startsWith("ar");
   const {
@@ -45,6 +48,41 @@ export const AlarmsScreen: React.FC = () => {
     deleteAlarm,
     cleanupExpiredAlarms,
   } = useAlarmStore();
+
+  const [isAlarmsEnabled, setIsAlarmsEnabled] = useState<boolean | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let mounted = true;
+
+      const loadNotificationSettings = async () => {
+        try {
+          const res = await apiClient.get<{
+            success: boolean;
+            data: {
+              pushNotifications?: boolean;
+            };
+          }>("/me/notification-settings");
+
+          if (mounted) {
+            setIsAlarmsEnabled(res.data?.pushNotifications !== false);
+          }
+        } catch (error) {
+          console.error("Failed to load notification settings:", error);
+
+          if (mounted) {
+            setIsAlarmsEnabled(null);
+          }
+        }
+      };
+
+      loadNotificationSettings();
+
+      return () => {
+        mounted = false;
+      };
+    }, []),
+  );
 
   useScreenAnalytics(AnalyticsEvents.ALARMS_OPENED);
 
@@ -129,6 +167,7 @@ export const AlarmsScreen: React.FC = () => {
           >
             {t("alarms.screen.subtitle")}
           </Text>
+
           {!permissionsGranted && (
             <TouchableOpacity
               style={[
@@ -164,6 +203,52 @@ export const AlarmsScreen: React.FC = () => {
                   ]}
                 >
                   {t("alarms.verifyPermissionsDesc")}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
+          {isAlarmsEnabled === false && (
+            <TouchableOpacity
+              style={[
+                styles.disBanner,
+                {
+                  flexDirection: isArabic ? "row-reverse" : "row",
+                },
+              ]}
+              onPress={() =>
+                navigation.navigate("Main", {
+                  screen: "Profile",
+                  params: {
+                    screen: "NotificationSettings",
+                  },
+                })
+              }
+            >
+              <Icon name="bell-off-outline" size={24} color={"#fff"} />
+
+              <View style={styles.dismBody}>
+                <Text
+                  style={[
+                    styles.disText,
+                    {
+                      textAlign: isArabic ? "right" : "left",
+                      writingDirection: isArabic ? "rtl" : "ltr",
+                    },
+                  ]}
+                >
+                  {t("alarms.notificationsDisabled")}
+                </Text>
+
+                <Text
+                  style={[
+                    styles.permSub,
+                    {
+                      textAlign: isArabic ? "right" : "left",
+                      writingDirection: isArabic ? "rtl" : "ltr",
+                    },
+                  ]}
+                >
+                  {t("alarms.notificationsDisabledDesc")}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -299,7 +384,17 @@ const styles = StyleSheet.create({
   },
   permBody: { flex: 1 },
   permText: { ...typography.body, color: colors.primary, fontWeight: "600" },
-  permSub: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
+  disBanner: {
+    alignItems: "center",
+    gap: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: "#e47f7f",
+    borderRadius: 8,
+    marginBottom: spacing.md,
+  },
+  dismBody: { flex: 1 },
+  disText: { ...typography.body, color: "#760404", fontWeight: "600" },
+  permSub: { ...typography.caption, color: "#fff", marginTop: 2 },
   section: {
     ...typography.label,
     color: colors.textMuted,

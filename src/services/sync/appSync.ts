@@ -76,7 +76,6 @@ class AppSyncService {
 
     const taskStore = useTaskStore.getState();
     const goalStore = useGoalStore.getState();
-    const alarmStore = useAlarmStore.getState();
 
     const needsRefresh = 
       (taskStore.needsRefresh && taskStore.needsRefresh()) ||

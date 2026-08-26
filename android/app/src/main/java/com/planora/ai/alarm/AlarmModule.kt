@@ -192,7 +192,100 @@ class AlarmModule(reactContext: ReactApplicationContext) :
       promise.reject("ALARM_ERROR", "Failed to cancel alarm: ${e.message}", e)
     }
   }
+/**
+ * Cancel all scheduled alarms.
+ *
+ * This cancels every AlarmManager PendingIntent that was previously
+ * scheduled by this module and removes all stored alarm records from
+ * SharedPreferences.
+ */
+@ReactMethod
+fun cancelAllAlarms(promise: Promise) {
+    try {
+        val alarmManager =
+            reactApplicationContext.getSystemService(
+                Context.ALARM_SERVICE
+            ) as AlarmManager
 
+        val pendingIntentFlags =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                PendingIntent.FLAG_UPDATE_CURRENT or
+                    PendingIntent.FLAG_IMMUTABLE
+            } else {
+                PendingIntent.FLAG_UPDATE_CURRENT
+            }
+
+        val editor = prefs.edit()
+
+        var cancelledCount = 0
+
+        // Copy entries because we'll modify SharedPreferences while iterating.
+        val alarmEntries = prefs.all
+            .filter { (key, _) ->
+                key.startsWith("alarm_")
+            }
+
+        for ((key, value) in alarmEntries) {
+            try {
+                val alarmId = key.removePrefix("alarm_")
+
+                val intent =
+                    Intent(
+                        reactApplicationContext,
+                        AlarmReceiver::class.java
+                    )
+
+                val pendingIntent =
+                    PendingIntent.getBroadcast(
+                        reactApplicationContext,
+                        alarmId.hashCode(),
+                        intent,
+                        pendingIntentFlags
+                    )
+
+                alarmManager.cancel(pendingIntent)
+                pendingIntent.cancel()
+
+                editor.remove(key)
+
+                cancelledCount++
+
+                android.util.Log.d(
+                    "AlarmModule",
+                    "🛑 Cancelled alarm: $alarmId"
+                )
+            } catch (e: Exception) {
+                android.util.Log.e(
+                    "AlarmModule",
+                    "❌ Failed to cancel stored alarm: $key",
+                    e
+                )
+            }
+        }
+
+        // Remove all stored alarm records.
+        editor.apply()
+
+        android.util.Log.d(
+            "AlarmModule",
+            "✅ All native alarms cancelled. Count: $cancelledCount"
+        )
+
+        promise.resolve(cancelledCount)
+    } catch (e: Exception) {
+        android.util.Log.e(
+            "AlarmModule",
+            "❌ Failed to cancel all alarms: ${e.message}",
+            e
+        )
+
+        promise.reject(
+            "ALARM_ERROR",
+            "Failed to cancel all alarms: ${e.message}",
+            e
+        )
+    }
+}
   /**
    * Open system ringtone picker
    */

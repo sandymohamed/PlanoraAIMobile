@@ -19,7 +19,8 @@
     "android:build": "cd android && gradlew.bat -I init-ssl.gradle app:assembleDebug -PreactNativeDevServerPort=8081",
     "lint": "eslint . --ext .ts,.tsx",
     "install:fast": "npm install --legacy-peer-deps --no-audit --no-fund --prefer-offline",
-    "install:analytics": "npm install @sentry/react-native posthog-react-native --legacy-peer-deps --no-audit"
+    "install:analytics": "npm install @sentry/react-native posthog-react-native --legacy-peer-deps --no-audit",
+    "android:release": "cd android && gradlew.bat -I init-ssl.gradle app:bundleRelease"
   },
   "dependencies": {
     "@notifee/react-native": "^9.1.8",

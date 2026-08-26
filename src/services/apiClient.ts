@@ -53,6 +53,11 @@ class ApiClient {
     this.setupInterceptors();
   }
 
+  public updateBaseUrl() {
+    const newBaseUrl = getApiBaseUrl();
+
+    this.client.defaults.baseURL = newBaseUrl;
+  }
   private setupInterceptors() {
     this.client.interceptors.request.use(async (conf) => {
       const cfg = conf as PlanoraRequestConfig;
@@ -78,6 +83,7 @@ class ApiClient {
         if (LOG) {
           console.warn(
             `[Planora API] ✗ ${error.config?.method?.toUpperCase()} ${error.config?.url}`,
+            error,
             error.response?.status,
             error.response?.data ?? error.message,
           );
@@ -200,9 +206,8 @@ class ApiClient {
   patch<T>(url: string, data?: unknown, config?: AxiosRequestConfig) {
     return this.client.patch<T>(url, data, config).then((r) => r.data);
   }
-  delete<T>(url: string, config?: AxiosRequestConfig) {
+  delete<T>(url: string, config?: PlanoraRequestConfig) {
     return this.client.delete<T>(url, config).then((r) => {
-      console.log(`[Planora API] DELETE ${url} →`, r.data);
       return r.data;
     });
   }
@@ -221,5 +226,4 @@ class ApiClient {
     }
   }
 }
-
 export const apiClient = new ApiClient();

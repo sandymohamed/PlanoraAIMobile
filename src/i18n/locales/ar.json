@@ -124,6 +124,9 @@
       }
     },
     "details": {
+      "noTasks": "لا يوجد مهام بعد",
+      "noTasksMessage": "أضف أول مهمه لك لتبدأ التخطيط",
+      "addTask": "أضف مهمة",
       "editTask": "تعديل المهمة",
       "deleteTask": "حذف المهمة",
       "markIncomplete": "تحديد كغير مكتملة",
@@ -195,14 +198,8 @@
     "about": "حول التطبيق"
   },
   "notificationSettings": {
-    "pushNotifications": "الإشعارات الفورية",
-    "pushNotificationsDesc": "تنبيهات على هاتفك للمهام والأهداف والتذكيرات",
-    "taskReminders": "تذكيرات المهام",
-    "taskRemindersDesc": "تذكيرك قبل موعد استحقاق المهمة",
-    "goalReminders": "تذكيرات الأهداف",
-    "goalRemindersDesc": "تحديثات عن مواعيد أهدافك ومعالمك",
-    "dueDateReminders": "تذكيرات مواعيد العادات",
-    "dueDateRemindersDesc": "تنبيه عندما يحين موعد العادات أو يتأخر"
+    "notificationsAndAlarms": "الإشعارات والمنبّهات",
+    "notificationsAndAlarmsDesc": "استقبل الإشعارات واسمح بتشغيل المنبّهات المجدولة للمهام والأهداف والعادات والروتين. سيؤدي إيقاف هذا الخيار إلى إيقاف جميع المنبّهات المجدولة ومنع وصول تنبيهات الإشعارات."
   },
   "deleteAccount": {
     "title": "إدارة الحساب",
@@ -257,6 +254,8 @@
     "openPermissions": "إصلاح الأذونات",
     "verifyPermissions": "السماح بالمنبهات على هذا الهاتف",
     "verifyPermissionsDesc": "يحتاج Planora إلى الإشعارات ومنبهات دقيقة ليعمل المنبه في الوقت المحدد",
+    "notificationsDisabled": "المنبّهات متوقفة",
+    "notificationsDisabledDesc": "لن تعمل المنبّهات المجدولة لأن الإشعارات متوقفة. اضغط هنا لتفعيل الإشعارات والمنبّهات.",
     "screen": {
       "title": "المنبهات والمؤقتات",
       "subtitle": "غفوة من إشعار المنبه عند الرنين (+5 د)",
@@ -342,6 +341,7 @@
     "sessionComplete": "اكتملت الجلسة",
     "sessionCompleteMessage": "انتهت جلسة {{mode}} — أحسنت في الحفاظ على التركيز.",
     "stopAlarm": "إيقاف المنبه",
+    "done": "اتمام",
     "backgroundAlarmTitle": "منبه الخلفية غير متاح",
     "backgroundAlarmMessage": "امنح أذونات المنبه الدقيق والإشعارات ليرن المؤقت عند إيقاف الشاشة."
   },

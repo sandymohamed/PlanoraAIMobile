@@ -1,74 +1,99 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import remoteConfig from "@react-native-firebase/remote-config";
-import { logger } from "@/utils/logger";
-
-const DEFAULT_API_BASE =
-  // 'https://planorabackend-production-d233.up.railway.app/api/v1';
-  "http://192.168.1.15:3001/api/v1";
-
-const DEFAULT_API_ROOT =
-  // 'https://planorabackend-production-d233.up.railway.app';
-  "http://192.168.1.15:3001";
 
 const API_BASE_KEY = "remote_api_base_url";
 const API_ROOT_KEY = "remote_api_root_url";
 
-let apiBaseUrl = DEFAULT_API_BASE;
-let apiRootUrl = DEFAULT_API_ROOT;
+let apiBaseUrl = "https://planorabackend-production-520d.up.railway.app/api/v1";
+let apiRootUrl = "https://planorabackend-production-520d.up.railway.app/";
 
-export async function initializeRemoteConfig() {
+export async function initializeRemoteConfig(): Promise<void> {
   try {
-    // 1. Load cached values immediately
-    const cachedBase = await AsyncStorage.getItem(API_BASE_KEY);
-    const cachedRoot = await AsyncStorage.getItem(API_ROOT_KEY);
+    // ---------------------------------------------------------
+    // Testing: clear old cached values so they cannot interfere
+    // ---------------------------------------------------------
 
-    if (cachedBase) apiBaseUrl = cachedBase;
-    if (cachedRoot) apiRootUrl = cachedRoot;
+    await AsyncStorage.multiRemove([API_BASE_KEY, API_ROOT_KEY]);
 
-    // 2. Configure Remote Config
-    await remoteConfig().setDefaults({
-      api_base_url: DEFAULT_API_BASE,
-      api_root_url: DEFAULT_API_ROOT,
-    });
+    // ---------------------------------------------------------
+    // Firebase Remote Config
+    // ---------------------------------------------------------
 
-    // Fetch at most once every hour
     await remoteConfig().setConfigSettings({
-      minimumFetchIntervalMillis: 60 * 60 * 1000,
+      minimumFetchIntervalMillis: 0,
     });
 
-    // 3. Fetch latest values
+    console.log("Fetching Firebase Remote Config...");
+
     const updated = await remoteConfig().fetchAndActivate();
 
-    console.log("updated: ", updated);
-    if (updated) {
-      const newBase =
-        remoteConfig().getValue("api_base_url").asString() || DEFAULT_API_BASE;
+    // ---------------------------------------------------------
+    // Read values directly from Firebase
+    // ---------------------------------------------------------
 
-      const newRoot =
-        remoteConfig().getValue("api_root_url").asString() || DEFAULT_API_ROOT;
 
-      apiBaseUrl = newBase;
-      apiRootUrl = newRoot;
+    const remoteBase = remoteConfig()
+      .getValue("api_base_url")
+      .asString();
 
-      await AsyncStorage.multiSet([
-        [API_BASE_KEY, newBase],
-        [API_ROOT_KEY, newRoot],
-      ]);
-    } else {
-      logger.info("Remote config already up to date");
+    const remoteRoot = remoteConfig()
+      .getValue("api_root_url")
+      .asString();
+
+
+    // ---------------------------------------------------------
+    // Do NOT silently fallback while testing
+    // ---------------------------------------------------------
+
+    if (!remoteBase) {
+      throw new Error("Firebase Remote Config: api_base_url is empty");
     }
+
+    if (!remoteRoot) {
+      throw new Error("Firebase Remote Config: api_root_url is empty");
+    }
+
+    if (
+      !remoteBase.startsWith("http://") &&
+      !remoteBase.startsWith("https://")
+    ) {
+      throw new Error(
+        `Firebase Remote Config: api_base_url is invalid: ${remoteBase}`,
+      );
+    }
+
+    if (
+      !remoteRoot.startsWith("http://") &&
+      !remoteRoot.startsWith("https://")
+    ) {
+      throw new Error(
+        `Firebase Remote Config: api_root_url is invalid: ${remoteRoot}`,
+      );
+    }
+
+    apiBaseUrl = remoteBase.replace(/\/+$/, "");
+    apiRootUrl = remoteRoot.replace(/\/+$/, "");
+
+    // ---------------------------------------------------------
+    // Cache the confirmed Firebase values
+    // ---------------------------------------------------------
+
+    await AsyncStorage.multiSet([
+      [API_BASE_KEY, apiBaseUrl],
+      [API_ROOT_KEY, apiRootUrl],
+    ]);
+
   } catch (error) {
-    logger.warn("Remote Config failed, using cached/default URLs", error);
+    console.error("Remote Config initialization failed:", error);
+
+    throw error;
   }
 }
 
-export function getApiBaseUrl() {
+export function getApiBaseUrl(): string {
   return apiBaseUrl;
 }
 
-export function getApiRootUrl() {
+export function getApiRootUrl(): string {
   return apiRootUrl;
 }
-
-console.log("getApiBaseUrl: ", getApiBaseUrl());
-console.log("getApiRootUrl: ", getApiRootUrl());

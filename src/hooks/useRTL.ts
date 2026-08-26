@@ -1,6 +1,6 @@
-import { useTranslation } from 'react-i18next';
-import { I18nManager } from 'react-native';
-import { isRTLLanguage } from '@/i18n';
+import { useTranslation } from "react-i18next";
+import { I18nManager } from "react-native";
+import { isRTLLanguage } from "@/i18n";
 import {
   arrowBackIcon,
   arrowForwardIcon,
@@ -18,20 +18,24 @@ import {
   textAlignCenter,
   writingDirection,
   iconPlacement,
-} from '@/utils/rtl';
+} from "@/utils/rtl";
 
 export function useRTL() {
   const { i18n } = useTranslation();
-  const rtl = isRTLLanguage(i18n.language) || I18nManager.isRTL;
-   return {
+
+  // const rtl = isRTLLanguage(i18n.language) || I18nManager.isRTL;
+  const rtl = isRTLLanguage(i18n.language);
+
+  
+  return {
     isRTL: rtl,
     rowDirection,
-    textAlign: () => (rtl ? 'right' : 'left') as 'left' | 'right',
+    textAlign: () => (rtl ? "right" : "left") as "left" | "right",
     textAlignCenter,
-    writingDirection: () => (rtl ? 'rtl' : 'ltr') as 'rtl' | 'ltr',
+    writingDirection: () => (rtl ? "rtl" : "ltr") as "rtl" | "ltr",
     directionalTextStyle: () => ({
-      textAlign: (rtl ? 'right' : 'left') as 'left' | 'right',
-      writingDirection: (rtl ? 'rtl' : 'ltr') as 'rtl' | 'ltr',
+      textAlign: (rtl ? "right" : "left") as "left" | "right",
+      writingDirection: (rtl ? "rtl" : "ltr") as "rtl" | "ltr",
     }),
     marginStart,
     marginEnd,

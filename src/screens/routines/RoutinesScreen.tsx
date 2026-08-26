@@ -14,6 +14,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { routineService } from "@/services/routineService";
 import { useAlarmStore } from "@/store/alarmStore";
+import { useTaskStore } from "@/store/taskStore";
 import { Routine } from "@/types/routine";
 import { RoutinesStackParamList } from "@/navigation/RoutinesStack";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -31,6 +32,7 @@ export const RoutinesScreen: React.FC = () => {
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language.startsWith("ar");
   const fetchAlarms = useAlarmStore((s) => s.fetchAlarms);
+  const markStale = useTaskStore((s) => s.markStale);
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -43,7 +45,6 @@ export const RoutinesScreen: React.FC = () => {
     loadingRef.current = true;
     try {
       const data = await routineService.getUserRoutines();
-      console.log("Loaded routines:", data);
       setRoutines(data);
     } catch (e) {
       showError(t("common.error"), getApiErrorMessage(e));
@@ -63,12 +64,8 @@ export const RoutinesScreen: React.FC = () => {
     setRefreshing(true);
     await loadRoutines();
 
-    const { useAlarmStore } = await import("../../store/alarmStore");
+    fetchAlarms(1, 1000, true);
 
-    useAlarmStore
-      .getState()
-      .fetchAlarms(1, 1000, true)
-      .catch(() => {});
     setRefreshing(false);
   };
 
@@ -79,13 +76,7 @@ export const RoutinesScreen: React.FC = () => {
         taskId,
         !completed,
       );
-
-      const { useAlarmStore } = await import("../../store/alarmStore");
-
-      useAlarmStore
-        .getState()
-        .fetchAlarms(1, 1000, true)
-        .catch(() => {});
+      fetchAlarms(1, 1000, true);
 
       setRoutines((current) =>
         current.map((routine) =>
@@ -151,17 +142,11 @@ export const RoutinesScreen: React.FC = () => {
         try {
           await routineService.deleteRoutine(routine.id);
 
-          const { useAlarmStore } = await import("../../store/alarmStore");
-
-          useAlarmStore
-            .getState()
-            .fetchAlarms(1, 1000, true)
-            .catch(() => {});
-
           setRoutines((current) =>
             current.filter((item) => item.id !== routine.id),
           );
           fetchAlarms(1, 1000, true).catch(() => {});
+          markStale();
         } catch (e) {
           setRoutines(previous);
           showError(t("common.error"), getApiErrorMessage(e));

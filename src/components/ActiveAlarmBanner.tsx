@@ -22,8 +22,8 @@ export function ActiveAlarmBanner({
 }: ActiveAlarmBannerProps) {
   console.log("Rendering ActiveAlarmBanner with alarm:", alarm);
 
-  // const isFocusTimer = alarm.alarmId === "focus_timer";
-  const isFocusTimer = false;
+  const isFocusTimer = alarm.alarmId === "focus_timer";
+
   return (
     <View style={styles.container}>
       <TouchableOpacity

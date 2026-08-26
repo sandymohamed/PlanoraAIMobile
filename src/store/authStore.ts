@@ -8,14 +8,13 @@ import { logger } from "@/utils/logger";
 import { track, trackFailure, AnalyticsEvents } from "@/analytics/posthog";
 import { identifyCurrentUser } from "@/analytics/identifyUser";
 import { alarmService } from "@/services/alarmApiService";
-import { logAllStorage } from "@/utils/debugStorage";
 import { useTaskStore } from "./taskStore";
 import { useGoalStore } from "./goalStore";
 import { useAlarmStore } from "./alarmStore";
 import { reliableAlarmService } from "@/features/alarms/ReliableAlarmService";
 import { pushNotificationService } from "@/services/pushNotificationService";
 
-interface User {
+export interface User {
   id: string;
   email: string;
   name?: string;
@@ -134,15 +133,12 @@ export const useAuthStore = create<AuthState>()(
           });
           const { user, tokens } = parseAuthPayload(res);
           await storeTokens(tokens);
-          logger.info("[Planora Auth] login OK");
           set({ user, isAuthenticated: true });
           track(AnalyticsEvents.USER_LOGGED_IN, { method: "email" });
           identifyCurrentUser();
 
-          logAllStorage("login");
           // Fetch alarms after successful registration
           const alarms = await alarmService.getAlarms();
-          console.log("Scheduled alarms", alarms);
         } catch (error) {
           trackFailure(AnalyticsEvents.LOGIN_FAILED, error, {
             method: "email",
@@ -152,7 +148,6 @@ export const useAuthStore = create<AuthState>()(
       },
 
       register: async (email, password, name) => {
-        logger.info("[Planora Auth] signup");
         try {
           const res = await apiClient.post<
             ApiEnvelope<{ user: User; tokens: AuthTokens }>
@@ -170,10 +165,8 @@ export const useAuthStore = create<AuthState>()(
           track(AnalyticsEvents.SIGNUP_COMPLETED, { method: "email" });
           identifyCurrentUser();
 
-          logAllStorage("register");
           // Fetch alarms after successful registration
           const alarms = await alarmService.getAlarms();
-          console.log("Scheduled alarms", alarms);
         } catch (error) {
           trackFailure(AnalyticsEvents.SIGNUP_FAILED, error, {
             method: "email",

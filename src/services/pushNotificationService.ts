@@ -9,7 +9,6 @@ import { Alert } from "react-native";
 import type { FirebaseMessagingTypes } from "@react-native-firebase/messaging";
 import notifee, { AndroidImportance } from "@notifee/react-native";
 
-
 type NavigationTarget = {
   screen: string;
   params?: Record<string, string>;
@@ -22,9 +21,6 @@ class PushNotificationService {
   private initialized = false;
 
   async initialize(): Promise<void> {
-    console.log(
-      `***** PushNotificationService this.initialized : ${this.initialized}, Platform.OS: ${Platform.OS}`,
-    );
     if (this.initialized || Platform.OS === "web") return;
 
     headlessNotificationHandler.initialize();
@@ -82,8 +78,6 @@ class PushNotificationService {
                   : { taskId: data.targetId },
               }),
             );
-          } else {
-            console.log("Foreground notification", data);
           }
         },
       );
@@ -100,7 +94,6 @@ class PushNotificationService {
       token,
       platform: Platform.OS === "ios" ? "ios" : "android",
     });
-    console.log("Push token initialized");
   }
 
   async deleteToken(): Promise<void> {
@@ -118,6 +111,7 @@ class PushNotificationService {
 
       await apiClient.delete("/me/push-token", {
         data: { token },
+        skipAuthRetry: true,
       });
 
       await messaging().deleteToken();
@@ -135,7 +129,7 @@ class PushNotificationService {
 
     if (!raw) return null;
     await AsyncStorage.removeItem("pending_navigation");
-    
+
     try {
       return JSON.parse(raw) as NavigationTarget;
     } catch (err) {

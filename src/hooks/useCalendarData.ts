@@ -51,7 +51,7 @@ export function useCalendarData() {
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  
+
   // ✅ Add refs to prevent multiple sync calls
   const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isSyncingRef = useRef(false);
@@ -115,11 +115,10 @@ export function useCalendarData() {
       try {
         isSyncingRef.current = true;
         setIsSyncing(true);
-        
+
         await syncIfNeeded();
         await loadRoutines();
         lastSyncTimeRef.current = Date.now();
-        
       } catch (error) {
       } finally {
         isSyncingRef.current = false;
@@ -147,11 +146,11 @@ export function useCalendarData() {
       );
       // Refresh alarms in background (with debounce)
       // if (alarmStore.needsRefresh && alarmStore.needsRefresh()) {
-        const now = Date.now();
-        if (now - lastSyncTimeRef.current > SYNC_COOLDOWN_MS) {
-          alarmStore.fetchAlarms(1, 500, true).catch(() => {});
-          lastSyncTimeRef.current = now;
-        }
+      const now = Date.now();
+      if (now - lastSyncTimeRef.current > SYNC_COOLDOWN_MS) {
+        alarmStore.fetchAlarms(1, 500, true).catch(() => {});
+        lastSyncTimeRef.current = now;
+      }
       // }
     });
 

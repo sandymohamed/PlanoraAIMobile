@@ -117,12 +117,9 @@ export function formatDueLabel(
 }
 export function formatDueDateTime(dueDate?: string): string | null | any {
   if (!dueDate) return null;
-  console.log("Formatting due date:", dueDate);
   const date = new Date(dueDate);
 
-  console.log("Formatting due date:", date);
   const today = new Date();
-  console.log("Today:", today);
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 

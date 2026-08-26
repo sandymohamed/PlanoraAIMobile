@@ -7,14 +7,14 @@ import {
   eachDayOfInterval,
   isSameDay,
   addDays,
-} from 'date-fns';
-import { Task, TaskPriority, TaskStatus } from '@/types/task';
-import { Goal, GoalStatus, MilestoneStatus } from '@/types/goal';
-import { Routine } from '@/types/routine';
-import { Alarm } from '@/types/alarm';
-import { Reminder } from '@/services/reminderService';
+} from "date-fns";
+import { Task, TaskPriority, TaskStatus } from "@/types/task";
+import { Goal, GoalStatus, MilestoneStatus } from "@/types/goal";
+import { Routine } from "@/types/routine";
+import { Alarm } from "@/types/alarm";
+import { Reminder } from "@/services/reminderService";
 
-export type CalendarViewMode = 'month' | 'week' | 'day' | 'agenda';
+export type CalendarViewMode = "month" | "week" | "day" | "agenda";
 
 export interface CalendarDateRange {
   start: Date;
@@ -30,9 +30,9 @@ export interface DayReminderEntry {
 export function getCalendarDateRange(
   viewMode: CalendarViewMode,
   currentDate: Date,
-  selectedDate: Date
+  selectedDate: Date,
 ): CalendarDateRange {
-  if (viewMode === 'month' || viewMode === 'agenda') {
+  if (viewMode === "month" || viewMode === "agenda") {
     const ms = startOfMonth(currentDate);
     const me = endOfMonth(currentDate);
     return {
@@ -40,7 +40,7 @@ export function getCalendarDateRange(
       end: endOfWeek(me, { weekStartsOn: 0 }),
     };
   }
-  if (viewMode === 'week') {
+  if (viewMode === "week") {
     return {
       start: startOfWeek(selectedDate, { weekStartsOn: 0 }),
       end: endOfWeek(selectedDate, { weekStartsOn: 0 }),
@@ -53,32 +53,50 @@ export function getCalendarDateRange(
   return { start: dayStart, end: dayEnd };
 }
 
-function parseRecurrenceStep(rule: string): { unit: 'day' | 'week' | 'month' | 'year'; interval: number } | null {
+function parseRecurrenceStep(
+  rule: string,
+): { unit: "day" | "week" | "month" | "year"; interval: number } | null {
   const r = rule.trim();
-  if (!r || r === 'none') return null;
+  if (!r || r === "none") return null;
   const lower = r.toLowerCase();
-  if (lower === 'daily' || r.includes('FREQ=DAILY')) return { unit: 'day', interval: 1 };
-  if (lower === 'weekly' || r.includes('FREQ=WEEKLY')) return { unit: 'week', interval: 1 };
-  if (lower === 'monthly' || r.includes('FREQ=MONTHLY')) return { unit: 'month', interval: 1 };
-  if (lower === 'yearly' || r.includes('FREQ=YEARLY')) return { unit: 'year', interval: 1 };
+  if (lower === "daily" || r.includes("FREQ=DAILY"))
+    return { unit: "day", interval: 1 };
+  if (lower === "weekly" || r.includes("FREQ=WEEKLY"))
+    return { unit: "week", interval: 1 };
+  if (lower === "monthly" || r.includes("FREQ=MONTHLY"))
+    return { unit: "month", interval: 1 };
+  if (lower === "yearly" || r.includes("FREQ=YEARLY"))
+    return { unit: "year", interval: 1 };
   const intervalMatch = r.match(/INTERVAL=(\d+)/i);
   const interval = intervalMatch ? parseInt(intervalMatch[1], 10) : 1;
-  if (r.includes('FREQ=DAILY')) return { unit: 'day', interval };
-  if (r.includes('FREQ=WEEKLY')) return { unit: 'week', interval };
-  if (r.includes('FREQ=MONTHLY')) return { unit: 'month', interval };
-  if (r.includes('FREQ=YEARLY')) return { unit: 'year', interval };
+  if (r.includes("FREQ=DAILY")) return { unit: "day", interval };
+  if (r.includes("FREQ=WEEKLY")) return { unit: "week", interval };
+  if (r.includes("FREQ=MONTHLY")) return { unit: "month", interval };
+  if (r.includes("FREQ=YEARLY")) return { unit: "year", interval };
   return null;
 }
 
 /** Expand recurring tasks into dated instances inside [start, end]. */
-export function expandTaskRecurrences(task: Task, rangeStart: Date, rangeEnd: Date): Task[] {
-  if (!task.dueDate || task.status === TaskStatus.DONE || task.status === TaskStatus.ARCHIVED) {
+export function expandTaskRecurrences(
+  task: Task,
+  rangeStart: Date,
+  rangeEnd: Date,
+): Task[] {
+  if (
+    !task.dueDate ||
+    task.status === TaskStatus.DONE ||
+    task.status === TaskStatus.ARCHIVED
+  ) {
     return task.dueDate ? [task] : [];
   }
   const rule = task.recurrenceRule;
-  if (!rule || rule === 'none') {
+  if (!rule || rule === "none") {
     const d = new Date(task.dueDate);
-    return d >= rangeStart && d <= rangeEnd ? [task] : d < rangeStart ? [] : [task];
+    return d >= rangeStart && d <= rangeEnd
+      ? [task]
+      : d < rangeStart
+        ? []
+        : [task];
   }
 
   const step = parseRecurrenceStep(rule);
@@ -102,26 +120,43 @@ export function expandTaskRecurrences(task: Task, rangeStart: Date, rangeEnd: Da
     if (cursor >= rangeStart) {
       instances.push({
         ...task,
-        id: `${task.id}_${format(cursor, 'yyyy-MM-dd')}`,
-        dueDate: mergeDateTime(cursor, task.dueDate, task.dueTime).toISOString(),
-        metadata: { ...task.metadata, recurrenceInstance: true, recurrenceParentId: task.id },
+        id: `${task.id}_${format(cursor, "yyyy-MM-dd")}`,
+        dueDate: mergeDateTime(
+          cursor,
+          task.dueDate,
+          task.dueTime,
+        ).toISOString(),
+        metadata: {
+          ...task.metadata,
+          recurrenceInstance: true,
+          recurrenceParentId: task.id,
+        },
       });
     }
     cursor = advanceDate(cursor, step);
   }
 
-  return instances.length ? instances : isInRange(base, rangeStart, rangeEnd) ? [task] : [];
+  return instances.length
+    ? instances
+    : isInRange(base, rangeStart, rangeEnd)
+      ? [task]
+      : [];
 }
 
 function isInRange(d: Date, start: Date, end: Date): boolean {
   return d >= start && d <= end;
 }
 
-function advanceDate(d: Date, step: { unit: 'day' | 'week' | 'month' | 'year'; interval: number }): Date {
+function advanceDate(
+  d: Date,
+  step: { unit: "day" | "week" | "month" | "year"; interval: number },
+): Date {
   const next = new Date(d);
-  if (step.unit === 'day') next.setDate(next.getDate() + step.interval);
-  else if (step.unit === 'week') next.setDate(next.getDate() + 7 * step.interval);
-  else if (step.unit === 'month') next.setMonth(next.getMonth() + step.interval);
+  if (step.unit === "day") next.setDate(next.getDate() + step.interval);
+  else if (step.unit === "week")
+    next.setDate(next.getDate() + 7 * step.interval);
+  else if (step.unit === "month")
+    next.setMonth(next.getMonth() + step.interval);
   else next.setFullYear(next.getFullYear() + step.interval);
   return next;
 }
@@ -129,7 +164,7 @@ function advanceDate(d: Date, step: { unit: 'day' | 'week' | 'month' | 'year'; i
 function mergeDateTime(day: Date, dueDateIso: string, dueTime?: string): Date {
   const merged = new Date(day);
   if (dueTime) {
-    const [h, m] = dueTime.split(':').map(Number);
+    const [h, m] = dueTime.split(":").map(Number);
     merged.setHours(h, m, 0, 0);
     return merged;
   }
@@ -162,7 +197,7 @@ export function goalsToCalendarTasks(goals: Goal[]): Task[] {
         dueDate: date,
         goalId: goal.id,
         createdBy: goal.userId,
-        tags: ['goal', 'milestone'],
+        tags: ["goal", "milestone"],
         order: milestone.order || 0,
         metadata: {
           isGoalMilestone: true,
@@ -188,7 +223,7 @@ export function goalsToCalendarTasks(goals: Goal[]): Task[] {
         dueDate: goal.targetDate,
         goalId: goal.id,
         createdBy: goal.userId,
-        tags: ['goal', 'target'],
+        tags: ["goal", "target"],
         order: 0,
         metadata: { isGoalTarget: true, goalTitle: goal.title },
         createdAt: goal.createdAt,
@@ -204,46 +239,71 @@ export function routinesToCalendarTasks(
   routines: Routine[],
   alarms: Alarm[],
   rangeStart: Date,
-  rangeEnd: Date
+  rangeEnd: Date,
 ): Task[] {
   const routineEvents: Task[] = [];
   const now = new Date();
+
   const enabledRoutineAlarmTitles = new Set(
     alarms
-      .filter((alarm) => alarm.enabled && alarm.title.startsWith('Habit: '))
-      .map((alarm) => alarm.title.replace(/^Habit:\s*/, '').trim().toLowerCase())
+      .filter((alarm) => alarm.enabled && alarm.title.startsWith("Habit: "))
+      .map((alarm) =>
+        alarm.title
+          .replace(/^Habit:\s*/, "")
+          .trim()
+          .toLowerCase(),
+      ),
   );
+
 
   routines
     .filter((r) => r.enabled)
     .forEach((routine) => {
-      const schedule = routine.schedule as { time?: string; days?: number[]; day?: number };
-      const timeParts = schedule.time?.split(':') || ['0', '0'];
+      const schedule = routine.schedule as {
+        time?: string;
+        days?: number[];
+        day?: number;
+      };
+      const timeParts = schedule.time?.split(":") || ["0", "0"];
       const hour = parseInt(timeParts[0], 10);
       const minute = parseInt(timeParts[1], 10);
 
       const tasks = routine.routineTasks || [];
-      const hasAlarm = enabledRoutineAlarmTitles.has(routine.title.trim().toLowerCase());
+      const hasAlarm = enabledRoutineAlarmTitles.has(
+        routine.title.trim().toLowerCase(),
+      );
       const hasReminder = Boolean(routine.reminderBefore);
 
-      const pushInstance = (loopDate: Date, extra?: Record<string, unknown>) => {
+      const pushInstance = (
+        loopDate: Date,
+        extra?: Record<string, unknown>,
+      ) => {
         const taskDate = new Date(loopDate);
         taskDate.setHours(hour, minute, 0, 0);
         const completedOnDate = tasks.filter(
-          (task) => task.completed && task.completedAt && isSameDay(new Date(task.completedAt), loopDate)
+          (task) =>
+            task.completed &&
+            task.completedAt &&
+            isSameDay(new Date(task.completedAt), loopDate),
         ).length;
-        const allDoneOnDate = tasks.length > 0 && completedOnDate === tasks.length;
+        const allDoneOnDate =
+          tasks.length > 0 && completedOnDate === tasks.length;
 
         routineEvents.push({
-          id: `routine_${routine.id}_${format(loopDate, 'yyyy-MM-dd')}`,
+          id: `routine_${routine.id}_${format(loopDate, "yyyy-MM-dd")}`,
           title: routine.title,
-          description: routine.description || `${tasks.length} routine task${tasks.length === 1 ? '' : 's'}`,
+          description:
+            routine.description ||
+            `${tasks.length} routine task${tasks.length === 1 ? "" : "s"}`,
           status: allDoneOnDate ? TaskStatus.DONE : TaskStatus.TODO,
-          priority: !allDoneOnDate && taskDate < now ? TaskPriority.URGENT : TaskPriority.MEDIUM,
+          priority:
+            !allDoneOnDate && taskDate < now
+              ? TaskPriority.URGENT
+              : TaskPriority.MEDIUM,
           dueDate: taskDate.toISOString(),
           dueTime: schedule.time,
           createdBy: routine.userId,
-          tags: ['routine'],
+          tags: ["routine"],
           order: 0,
           metadata: {
             routineId: routine.id,
@@ -263,13 +323,13 @@ export function routinesToCalendarTasks(
         });
       };
 
-      if (routine.frequency === 'DAILY') {
+      if (routine.frequency === "DAILY") {
         const loop = new Date(rangeStart);
         while (loop <= rangeEnd) {
           pushInstance(loop);
           loop.setDate(loop.getDate() + 1);
         }
-      } else if (routine.frequency === 'WEEKLY' && schedule.days?.length) {
+      } else if (routine.frequency === "WEEKLY" && schedule.days?.length) {
         const loop = new Date(rangeStart);
         while (loop <= rangeEnd) {
           if (schedule.days.includes(loop.getDay())) {
@@ -277,16 +337,19 @@ export function routinesToCalendarTasks(
           }
           loop.setDate(loop.getDate() + 1);
         }
-      } else if (routine.frequency === 'MONTHLY' && schedule.day) {
+      } else if (routine.frequency === "MONTHLY" && schedule.day) {
         const loop = new Date(rangeStart);
         while (loop <= rangeEnd) {
           if (loop.getDate() === schedule.day) pushInstance(loop);
           loop.setDate(loop.getDate() + 1);
         }
-      } else if (routine.frequency === 'YEARLY' && schedule.day) {
+      } else if (routine.frequency === "YEARLY" && schedule.day) {
         const loop = new Date(rangeStart);
         while (loop <= rangeEnd) {
-          if (loop.getDate() === schedule.day && loop.getMonth() === (schedule as { month?: number }).month) {
+          if (
+            loop.getDate() === schedule.day &&
+            loop.getMonth() === (schedule as { month?: number }).month
+          ) {
             pushInstance(loop);
           }
           loop.setDate(loop.getDate() + 1);
@@ -297,24 +360,28 @@ export function routinesToCalendarTasks(
   return routineEvents;
 }
 
-export function alarmsToCalendarTasks(alarms: Alarm[], rangeStart: Date, rangeEnd: Date): Task[] {
+export function alarmsToCalendarTasks(
+  alarms: Alarm[],
+  rangeStart: Date,
+  rangeEnd: Date,
+): Task[] {
   const items: Task[] = [];
   const enabled = alarms.filter((a) => a.enabled);
 
   enabled.forEach((alarm) => {
     const base = new Date(alarm.time);
-    const step = parseRecurrenceStep(alarm.recurrenceRule || 'none');
+    const step = parseRecurrenceStep(alarm.recurrenceRule || "none");
 
     const push = (at: Date) => {
       if (at < rangeStart || at > rangeEnd) return;
       items.push({
-        id: `alarm_${alarm.id}_${format(at, 'yyyy-MM-dd-HHmm')}`,
+        id: `alarm_${alarm.id}_${format(at, "yyyy-MM-dd-HHmm")}`,
         title: alarm.title,
         status: TaskStatus.TODO,
         priority: TaskPriority.HIGH,
         dueDate: at.toISOString(),
         createdBy: alarm.userId,
-        tags: ['alarm'],
+        tags: ["alarm"],
         order: 0,
         metadata: {
           isAlarm: true,
@@ -354,7 +421,7 @@ export function buildMonthRemindersMap(
   routineReminders: Reminder[],
   enabledRoutines: Routine[],
   rangeStart: Date,
-  rangeEnd: Date
+  rangeEnd: Date,
 ): Map<string, DayReminderEntry[]> {
   const map = new Map<string, DayReminderEntry[]>();
   const enabledReminders = routineReminders.filter((reminder) => {
@@ -367,21 +434,21 @@ export function buildMonthRemindersMap(
     const schedule = reminder.schedule;
     if (!schedule?.time || !schedule?.routineId) return;
 
-    const [routineHours, routineMinutes] = schedule.time.split(':').map(Number);
+    const [routineHours, routineMinutes] = schedule.time.split(":").map(Number);
     const loopDate = new Date(rangeStart);
 
     while (loopDate <= rangeEnd) {
       let routineOccurrence: Date | null = null;
 
-      if (schedule.frequency === 'DAILY') {
+      if (schedule.frequency === "DAILY") {
         routineOccurrence = new Date(loopDate);
         routineOccurrence.setHours(routineHours, routineMinutes, 0, 0);
-      } else if (schedule.frequency === 'WEEKLY' && schedule.days?.length) {
+      } else if (schedule.frequency === "WEEKLY" && schedule.days?.length) {
         if (schedule.days.includes(loopDate.getDay())) {
           routineOccurrence = new Date(loopDate);
           routineOccurrence.setHours(routineHours, routineMinutes, 0, 0);
         }
-      } else if (schedule.frequency === 'MONTHLY' && schedule.day) {
+      } else if (schedule.frequency === "MONTHLY" && schedule.day) {
         if (loopDate.getDate() === schedule.day) {
           routineOccurrence = new Date(loopDate);
           routineOccurrence.setHours(routineHours, routineMinutes, 0, 0);
@@ -395,14 +462,18 @@ export function buildMonthRemindersMap(
           if (match) {
             const value = parseInt(match[1], 10);
             const unit = match[2];
-            if (unit === 'm') reminderDate.setMinutes(reminderDate.getMinutes() - value);
-            else if (unit === 'h') reminderDate.setHours(reminderDate.getHours() - value);
-            else if (unit === 'd') reminderDate.setDate(reminderDate.getDate() - value);
-            else if (unit === 'w') reminderDate.setDate(reminderDate.getDate() - value * 7);
+            if (unit === "m")
+              reminderDate.setMinutes(reminderDate.getMinutes() - value);
+            else if (unit === "h")
+              reminderDate.setHours(reminderDate.getHours() - value);
+            else if (unit === "d")
+              reminderDate.setDate(reminderDate.getDate() - value);
+            else if (unit === "w")
+              reminderDate.setDate(reminderDate.getDate() - value * 7);
           }
         }
         if (reminderDate >= rangeStart && reminderDate <= rangeEnd) {
-          const dayKey = format(reminderDate, 'yyyy-MM-dd');
+          const dayKey = format(reminderDate, "yyyy-MM-dd");
           if (!map.has(dayKey)) map.set(dayKey, []);
           map.get(dayKey)!.push({ date: reminderDate, reminder });
         }
@@ -419,17 +490,25 @@ export function getRemindersForDate(
   viewMode: CalendarViewMode,
   monthRemindersMap: Map<string, DayReminderEntry[]>,
   routineReminders: Reminder[],
-  enabledRoutines: Routine[]
+  enabledRoutines: Routine[],
 ): DayReminderEntry[] {
-  const dayKey = format(date, 'yyyy-MM-dd');
-  if ((viewMode === 'month' || viewMode === 'agenda') && monthRemindersMap.size > 0) {
+  const dayKey = format(date, "yyyy-MM-dd");
+  if (
+    (viewMode === "month" || viewMode === "agenda") &&
+    monthRemindersMap.size > 0
+  ) {
     return monthRemindersMap.get(dayKey) || [];
   }
   const start = new Date(date);
   start.setHours(0, 0, 0, 0);
   const end = new Date(date);
   end.setHours(23, 59, 59, 999);
-  const map = buildMonthRemindersMap(routineReminders, enabledRoutines, start, end);
+  const map = buildMonthRemindersMap(
+    routineReminders,
+    enabledRoutines,
+    start,
+    end,
+  );
   return map.get(dayKey) || [];
 }
 
@@ -446,7 +525,9 @@ export interface BuildCalendarItemsInput {
 export function buildCalendarItems(input: BuildCalendarItemsInput): Task[] {
   const { tasks, goals, routines, alarms, rangeStart, rangeEnd } = input;
   const regular = tasks.filter((t) => !t.metadata?.isRoutineTask);
-  const visibleAlarms = alarms.filter((alarm) => !alarm.title.startsWith('Habit: '));
+  const visibleAlarms = alarms.filter(
+    (alarm) => !alarm.title.startsWith("Habit: "),
+  );
 
   const expandedTasks: Task[] = [];
   regular.forEach((t) => {
@@ -466,11 +547,14 @@ export function buildCalendarItems(input: BuildCalendarItemsInput): Task[] {
   return Array.from(map.values());
 }
 
-export function groupTasksByDayKey(items: Task[], days: Date[]): Record<string, Task[]> {
+export function groupTasksByDayKey(
+  items: Task[],
+  days: Date[],
+): Record<string, Task[]> {
   const out: Record<string, Task[]> = {};
   days.forEach((day) => {
-    out[format(day, 'yyyy-MM-dd')] = items.filter(
-      (item) => item.dueDate && isSameDay(new Date(item.dueDate), day)
+    out[format(day, "yyyy-MM-dd")] = items.filter(
+      (item) => item.dueDate && isSameDay(new Date(item.dueDate), day),
     );
   });
   return out;
@@ -497,7 +581,7 @@ export function sortTasksByDueTime(a: Task, b: Task): number {
 
 export function getTaskHour(task: Task): number {
   if (task.dueTime) {
-    return parseInt(task.dueTime.split(':')[0], 10);
+    return parseInt(task.dueTime.split(":")[0], 10);
   }
   if (task.dueDate) {
     return new Date(task.dueDate).getHours();

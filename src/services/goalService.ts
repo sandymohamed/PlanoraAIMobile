@@ -269,20 +269,20 @@ class GoalService {
     }
   }
 
-  async cancelGoal(id: string): Promise<Goal> {
-    try {
-      const response = await apiClient.post<ApiResponse<Goal>>(`/goals/${id}/cancel`);
+  // async cancelGoal(id: string): Promise<Goal> {
+  //   try {
+  //     const response = await apiClient.post<ApiResponse<Goal>>(`/goals/${id}/cancel`);
 
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to cancel goal');
-      }
+  //     if (!response.success) {
+  //       throw new Error(response.error || 'Failed to cancel goal');
+  //     }
 
-      return response.data;
-    } catch (error) {
-      logger.error('Cancel goal error:', error);
-      throw error;
-    }
-  }
+  //     return response.data;
+  //   } catch (error) {
+  //     logger.error('Cancel goal error:', error);
+  //     throw error;
+  //   }
+  // }
 }
 
 export const goalService = new GoalService();
