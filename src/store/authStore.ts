@@ -13,6 +13,9 @@ import { useGoalStore } from "./goalStore";
 import { useAlarmStore } from "./alarmStore";
 import { reliableAlarmService } from "@/features/alarms/ReliableAlarmService";
 import { pushNotificationService } from "@/services/pushNotificationService";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import auth from "@react-native-firebase/auth";
+import "@/services/googleAuthService";
 
 export interface User {
   id: string;
@@ -95,6 +98,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isInitialized: boolean;
   hasCompletedOnboarding: boolean;
+  loginWithGoogle: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -143,6 +147,73 @@ export const useAuthStore = create<AuthState>()(
           trackFailure(AnalyticsEvents.LOGIN_FAILED, error, {
             method: "email",
           });
+          throw error;
+        }
+      },
+      loginWithGoogle: async () => {
+        try {
+          await GoogleSignin.hasPlayServices({
+            showPlayServicesUpdateDialog: true,
+          });
+
+          const result = await GoogleSignin.signIn();
+
+          if (result.type !== "success") {
+            throw new Error("Google sign-in was cancelled");
+          }
+
+          const { idToken } = result.data;
+
+          if (!idToken) {
+            throw new Error("Google did not return an ID token");
+          }
+
+          const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+
+          const firebaseResult =
+            await auth().signInWithCredential(googleCredential);
+
+          const firebaseIdToken = await firebaseResult.user.getIdToken();
+
+          logger.info("[Planora Auth] Firebase Google sign-in successful");
+
+          // Send Firebase token to Planora backend
+          const res = await apiClient.post<
+            ApiEnvelope<{ user: User; tokens: AuthTokens }>
+          >("/auth/google", {
+            idToken: firebaseIdToken,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+          });
+
+          const { user, tokens } = parseAuthPayload(res);
+
+          await storeTokens(tokens);
+
+          set({
+            user,
+            isAuthenticated: true,
+          });
+
+          track(AnalyticsEvents.USER_LOGGED_IN, {
+            method: "google",
+          });
+
+          identifyCurrentUser();
+
+          // Fetch alarms after successful login
+          await alarmService.getAlarms();
+
+          logger.info("[Planora Auth] Google login successful");
+        } catch (error) {
+          logger.warn(
+            "[Planora Auth] Google sign-in failed",
+            getApiErrorMessage(error),
+          );
+
+          trackFailure(AnalyticsEvents.LOGIN_FAILED, error, {
+            method: "google",
+          });
+
           throw error;
         }
       },

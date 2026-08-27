@@ -91,9 +91,11 @@ export async function initializeRemoteConfig(): Promise<void> {
 }
 
 export function getApiBaseUrl(): string {
-  return apiBaseUrl;
+  // return apiBaseUrl;
+  return "http://192.168.1.16:3001/api/v1"
 }
 
 export function getApiRootUrl(): string {
-  return apiRootUrl;
+  // return apiRootUrl;
+  return "http://192.168.1.16:3001/"
 }
