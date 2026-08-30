@@ -13,7 +13,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { AppIcon as Icon } from "@/components/ui/AppIcon";
 import { showAlert } from "@/components/ConfirmationDialog";
-import { colors, spacing, typography } from "@/theme/tokens";
+import { PlanoraColors, spacing, typography } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
 import { track, AnalyticsEvents } from "@/analytics/posthog";
 import {
   FOCUS_MODES,
@@ -39,7 +40,165 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const MIN_MINUTES = 5;
 const MAX_MINUTES = 180;
 
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      padding: spacing.lg,
+      alignItems: "center",
+    },
+    title: { ...typography.h1, color: colors.text, alignSelf: "flex-start" },
+    sub: {
+      ...typography.caption,
+      color: colors.textMuted,
+      alignSelf: "flex-start",
+      marginBottom: spacing.md,
+    },
+    statsRow: {
+      flexDirection: "row",
+      gap: spacing.md,
+      alignSelf: "stretch",
+      marginBottom: spacing.md,
+    },
+    statCard: {
+      flex: 1,
+      backgroundColor: colors.surface,
+      borderRadius: 14,
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    statValue: { ...typography.h3, color: colors.primary },
+    statLabel: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
+    modes: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      marginVertical: spacing.md,
+    },
+    modeBtn: {
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderRadius: 20,
+      backgroundColor: colors.surface,
+    },
+    modeActive: { backgroundColor: colors.primarySoft },
+    modeText: { color: colors.textMuted, fontWeight: "600" },
+    modeTextActive: { color: colors.primary },
+    timerWrap: {
+      width: RING_SIZE,
+      height: RING_SIZE,
+      alignItems: "center",
+      justifyContent: "center",
+      marginVertical: spacing.lg,
+    },
+    timerCenter: {
+      position: "absolute",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    timer: {
+      fontSize: 60,
+      fontWeight: "200",
+      color: colors.text,
+      fontVariant: ["tabular-nums"],
+    },
+    timerHint: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
+    stepper: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      marginTop: spacing.md,
+    },
+    stepBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.surface,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    stepLabel: {
+      ...typography.body,
+      color: colors.text,
+      minWidth: 64,
+      textAlign: "center",
+    },
+    actions: { marginTop: spacing.lg, alignItems: "center", gap: spacing.md },
+    startBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      backgroundColor: colors.primary,
+      paddingHorizontal: spacing.xxl,
+      paddingVertical: spacing.md,
+      borderRadius: 16,
+    },
+    secondaryBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      backgroundColor: colors.surfaceElevated,
+      paddingHorizontal: spacing.xxl,
+      paddingVertical: spacing.md,
+      borderRadius: 16,
+    },
+    secondaryText: { ...typography.h3, color: colors.text },
+    startText: { ...typography.h3, color: "#fff" },
+    resetBtn: { paddingVertical: spacing.sm },
+    reset: { color: colors.textSecondary },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.6)",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: spacing.xl,
+    },
+    modalCard: {
+      width: "100%",
+      maxWidth: 360,
+      backgroundColor: colors.surfaceElevated,
+      borderRadius: 24,
+      padding: spacing.xl,
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    modalIconWrap: {
+      width: 76,
+      height: 76,
+      borderRadius: 38,
+      backgroundColor: colors.primarySoft,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: spacing.md,
+    },
+    modalTitle: { ...typography.h2, color: colors.text, textAlign: "center" },
+    modalMessage: {
+      ...typography.body,
+      color: colors.textSecondary,
+      textAlign: "center",
+      marginTop: spacing.sm,
+      marginBottom: spacing.xl,
+    },
+    modalButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: spacing.sm,
+      alignSelf: "stretch",
+      backgroundColor: colors.primary,
+      paddingVertical: spacing.md,
+      borderRadius: 16,
+    },
+    modalButtonText: { ...typography.h3, color: "#fff" },
+  });
+
 export const FocusScreen: React.FC = () => {
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language.startsWith("ar");
   const [mode, setMode] = useState<FocusMode>("pomodoro");
@@ -514,154 +673,3 @@ export const FocusScreen: React.FC = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    padding: spacing.lg,
-    alignItems: "center",
-  },
-  title: { ...typography.h1, color: colors.text, alignSelf: "flex-start" },
-  sub: {
-    ...typography.caption,
-    color: colors.textMuted,
-    alignSelf: "flex-start",
-    marginBottom: spacing.md,
-  },
-  statsRow: {
-    flexDirection: "row",
-    gap: spacing.md,
-    alignSelf: "stretch",
-    marginBottom: spacing.md,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  statValue: { ...typography.h3, color: colors.primary },
-  statLabel: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
-  modes: { flexDirection: "row", gap: spacing.sm, marginVertical: spacing.md },
-  modeBtn: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-  },
-  modeActive: { backgroundColor: colors.primarySoft },
-  modeText: { color: colors.textMuted, fontWeight: "600" },
-  modeTextActive: { color: colors.primary },
-  timerWrap: {
-    width: RING_SIZE,
-    height: RING_SIZE,
-    alignItems: "center",
-    justifyContent: "center",
-    marginVertical: spacing.lg,
-  },
-  timerCenter: {
-    position: "absolute",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  timer: {
-    fontSize: 60,
-    fontWeight: "200",
-    color: colors.text,
-    fontVariant: ["tabular-nums"],
-  },
-  timerHint: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
-  stepper: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    marginTop: spacing.md,
-  },
-  stepBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  stepLabel: {
-    ...typography.body,
-    color: colors.text,
-    minWidth: 64,
-    textAlign: "center",
-  },
-  actions: { marginTop: spacing.lg, alignItems: "center", gap: spacing.md },
-  startBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.xxl,
-    paddingVertical: spacing.md,
-    borderRadius: 16,
-  },
-  secondaryBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.surfaceElevated,
-    paddingHorizontal: spacing.xxl,
-    paddingVertical: spacing.md,
-    borderRadius: 16,
-  },
-  secondaryText: { ...typography.h3, color: colors.text },
-  startText: { ...typography.h3, color: "#fff" },
-  resetBtn: { paddingVertical: spacing.sm },
-  reset: { color: colors.textSecondary },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: spacing.xl,
-  },
-  modalCard: {
-    width: "100%",
-    maxWidth: 360,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: 24,
-    padding: spacing.xl,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  modalIconWrap: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: colors.primarySoft,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: spacing.md,
-  },
-  modalTitle: { ...typography.h2, color: colors.text, textAlign: "center" },
-  modalMessage: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: "center",
-    marginTop: spacing.sm,
-    marginBottom: spacing.xl,
-  },
-  modalButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    alignSelf: "stretch",
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: 16,
-  },
-  modalButtonText: { ...typography.h3, color: "#fff" },
-});

@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,32 +8,140 @@ import {
   RefreshControl,
   TextInput,
   ActivityIndicator,
-} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { useTranslation } from 'react-i18next';
-import { useGoalStore } from '@/store/goalStore';
-import { Goal, GoalStatus } from '@/types/goal';
-import { colors, spacing, typography } from '@/theme/tokens';
-import { getApiErrorMessage } from '@/utils/apiError';
-import { showError, showConfirmDialog, showActionSheet } from '@/components/ConfirmationDialog';
-import { format, isAfter, differenceInDays } from 'date-fns';
-import { AdBanner } from '@/features/ads';
-import { useScreenAnalytics } from '@/hooks/useScreenAnalytics';
-import { AnalyticsEvents } from '@/analytics/posthog';
-import { syncIfNeeded } from '@/services/sync/appSync';
+} from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
+import { useGoalStore } from "@/store/goalStore";
+import { Goal, GoalStatus } from "@/types/goal";
+import { PlanoraColors, spacing, typography } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
+import { getApiErrorMessage } from "@/utils/apiError";
+import {
+  showError,
+  showConfirmDialog,
+  showActionSheet,
+} from "@/components/ConfirmationDialog";
+import { format, isAfter, differenceInDays } from "date-fns";
+import { AdBanner } from "@/features/ads";
+import { useScreenAnalytics } from "@/hooks/useScreenAnalytics";
+import { AnalyticsEvents } from "@/analytics/posthog";
+import { syncIfNeeded } from "@/services/sync/appSync";
 
-const STATUS_FILTERS: { key: 'all' | 'active' | 'completed'; statuses?: GoalStatus[] }[] = [
-  { key: 'all' },
-  { key: 'active', statuses: [GoalStatus.ACTIVE, GoalStatus.DRAFT, GoalStatus.PAUSED] },
-  { key: 'completed', statuses: [GoalStatus.DONE] },
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    search: {
+      margin: spacing.md,
+      padding: spacing.md,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      color: colors.text,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    chips: {
+      paddingHorizontal: spacing.md,
+      gap: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    chip: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      borderRadius: 20,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    chipActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    chipText: { ...typography.caption, color: colors.textSecondary },
+    chipTextActive: { color: colors.background, fontWeight: "600" },
+    list: { padding: spacing.md, paddingBottom: 100 },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 14,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    cardHeader: {
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      gap: spacing.sm,
+    },
+    cardTitle: { ...typography.h3, color: colors.text, flex: 1 },
+    badge: { ...typography.caption, fontWeight: "600" },
+    cardDesc: {
+      ...typography.body,
+      color: colors.textSecondary,
+      marginTop: spacing.xs,
+    },
+    progressTrack: {
+      height: 6,
+      backgroundColor: colors.borderSubtle,
+      borderRadius: 3,
+      marginTop: spacing.sm,
+      overflow: "hidden",
+    },
+    progressFill: {
+      height: "100%",
+      backgroundColor: colors.primary,
+      borderRadius: 3,
+    },
+    cardMeta: { justifyContent: "space-between", marginTop: spacing.sm },
+    metaText: { ...typography.caption, color: colors.textMuted },
+    overdue: { color: colors.error },
+    empty: {
+      ...typography.body,
+      color: colors.textMuted,
+      marginTop: spacing.xl,
+    },
+    fab: {
+      position: "absolute",
+      end: spacing.lg,
+      bottom: spacing.lg,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.primary,
+      alignItems: "center",
+      justifyContent: "center",
+      elevation: 4,
+    },
+    fabText: {
+      fontSize: 28,
+      color: colors.background,
+      fontWeight: "300",
+      marginTop: -2,
+    },
+  });
+
+const STATUS_FILTERS: {
+  key: "all" | "active" | "completed";
+  statuses?: GoalStatus[];
+}[] = [
+  { key: "all" },
+  {
+    key: "active",
+    statuses: [GoalStatus.ACTIVE, GoalStatus.DRAFT, GoalStatus.PAUSED],
+  },
+  { key: "completed", statuses: [GoalStatus.DONE] },
 ];
 
 export const GoalsScreen: React.FC = () => {
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
   const navigation = useNavigation<any>();
   const { t, i18n } = useTranslation();
-  const isArabic = i18n.language.startsWith('ar');
-  const textDir = { textAlign: isArabic ? 'right' : 'left', writingDirection: isArabic ? 'rtl' : 'ltr' } as const;
-  const rowDir = { flexDirection: isArabic ? 'row-reverse' : 'row' } as const;
+  const isArabic = i18n.language.startsWith("ar");
+  const textDir = {
+    textAlign: isArabic ? "right" : "left",
+    writingDirection: isArabic ? "rtl" : "ltr",
+  } as const;
+  const rowDir = { flexDirection: isArabic ? "row-reverse" : "row" } as const;
 
   useScreenAnalytics(AnalyticsEvents.GOALS_OPENED);
 
@@ -43,7 +151,7 @@ export const GoalsScreen: React.FC = () => {
   const isLoaded = useGoalStore((s) => s.isLoaded);
   const searchQuery = useGoalStore((s) => s.searchQuery);
   const hasNextPage = useGoalStore((s) => s.hasNextPage);
-  
+
   // Store actions
   const fetchGoals = useGoalStore((s) => s.fetchGoals);
   const loadMoreGoals = useGoalStore((s) => s.loadMoreGoals);
@@ -54,7 +162,9 @@ export const GoalsScreen: React.FC = () => {
   const deleteGoal = useGoalStore((s) => s.deleteGoal);
   const completeGoal = useGoalStore((s) => s.completeGoal);
 
-  const [viewMode, setViewMode] = useState<'all' | 'active' | 'completed'>('all');
+  const [viewMode, setViewMode] = useState<"all" | "active" | "completed">(
+    "all",
+  );
   const [refreshing, setRefreshing] = useState(false);
   const [localSearch, setLocalSearch] = useState(searchQuery);
   const [isInitialLoading, setIsInitialLoading] = useState(!isLoaded);
@@ -105,12 +215,12 @@ export const GoalsScreen: React.FC = () => {
   const onSearchChange = (text: string) => {
     setLocalSearch(text);
     if (!text.trim() && searchQuery) {
-      setSearchQuery('');
+      setSearchQuery("");
     }
   };
 
   const onGoalPress = (goal: Goal) => {
-    navigation.navigate('GoalDetail', { goalId: goal.id });
+    navigation.navigate("GoalDetail", { goalId: goal.id });
   };
 
   const onGoalLongPress = (goal: Goal) => {
@@ -118,36 +228,36 @@ export const GoalsScreen: React.FC = () => {
       title: goal.title,
       options: [
         {
-          label: t('goals.actions.complete'),
-          icon: 'check-circle-outline',
+          label: t("goals.actions.complete"),
+          icon: "check-circle-outline",
           onPress: async () => {
             try {
               await completeGoal(goal.id);
             } catch (e) {
-              showError(t('common.error'), getApiErrorMessage(e));
+              showError(t("common.error"), getApiErrorMessage(e));
             }
           },
         },
         {
-          label: t('goals.actions.edit'),
-          icon: 'pencil-outline',
-          onPress: () => navigation.navigate('GoalEdit', { goalId: goal.id }),
+          label: t("goals.actions.edit"),
+          icon: "pencil-outline",
+          onPress: () => navigation.navigate("GoalEdit", { goalId: goal.id }),
         },
         {
-          label: t('goals.actions.delete'),
-          icon: 'trash-can-outline',
+          label: t("goals.actions.delete"),
+          icon: "trash-can-outline",
           destructive: true,
           onPress: () =>
             showConfirmDialog({
-              title: t('goals.actions.deleteTitle'),
+              title: t("goals.actions.deleteTitle"),
               itemName: goal.title,
-              confirmLabel: t('goals.actions.delete'),
+              confirmLabel: t("goals.actions.delete"),
               destructive: true,
               onConfirm: async () => {
                 try {
                   await deleteGoal(goal.id);
                 } catch (e) {
-                  showError(t('common.error'), getApiErrorMessage(e));
+                  showError(t("common.error"), getApiErrorMessage(e));
                 }
               },
             }),
@@ -158,8 +268,12 @@ export const GoalsScreen: React.FC = () => {
 
   const renderGoal = ({ item }: { item: Goal }) => {
     const overdue =
-      item.targetDate && item.status !== GoalStatus.DONE && isAfter(new Date(), new Date(item.targetDate));
-    const daysLeft = item.targetDate ? differenceInDays(new Date(item.targetDate), new Date()) : null;
+      item.targetDate &&
+      item.status !== GoalStatus.DONE &&
+      isAfter(new Date(), new Date(item.targetDate));
+    const daysLeft = item.targetDate
+      ? differenceInDays(new Date(item.targetDate), new Date())
+      : null;
 
     return (
       <TouchableOpacity
@@ -172,7 +286,11 @@ export const GoalsScreen: React.FC = () => {
           <Text style={[styles.cardTitle, textDir]} numberOfLines={2}>
             {item.title}
           </Text>
-          <Text style={[styles.badge, textDir, statusStyle(item.status)]}>{t(`goals.status.${item.status}`)}</Text>
+          <Text
+            style={[styles.badge, textDir, statusStyle(item.status, colors)]}
+          >
+            {t(`goals.status.${item.status}`)}
+          </Text>
         </View>
         {item.description ? (
           <Text style={[styles.cardDesc, textDir]} numberOfLines={2}>
@@ -180,18 +298,29 @@ export const GoalsScreen: React.FC = () => {
           </Text>
         ) : null}
         <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${Math.min(100, item.progress || 0)}%` }]} />
+          <View
+            style={[
+              styles.progressFill,
+              { width: `${Math.min(100, item.progress || 0)}%` },
+            ]}
+          />
         </View>
         <View style={[styles.cardMeta, rowDir]}>
-          <Text style={[styles.metaText, textDir]}>{Math.round(item.progress || 0)}%</Text>
-          <Text style={[styles.metaText, textDir]}>{t(`goals.categories.${item.category}`, { defaultValue: item.category })}</Text>
+          <Text style={[styles.metaText, textDir]}>
+            {Math.round(item.progress || 0)}%
+          </Text>
+          <Text style={[styles.metaText, textDir]}>
+            {t(`goals.categories.${item.category}`, {
+              defaultValue: item.category,
+            })}
+          </Text>
           {item.targetDate ? (
             <Text style={[styles.metaText, textDir, overdue && styles.overdue]}>
               {overdue
-                ? t('goals.screen.overdue')
+                ? t("goals.screen.overdue")
                 : daysLeft !== null && daysLeft >= 0
-                  ? t('goals.screen.daysLeft', { count: daysLeft })
-                  : format(new Date(item.targetDate), 'MMM d')}
+                  ? t("goals.screen.daysLeft", { count: daysLeft })
+                  : format(new Date(item.targetDate), "MMM d")}
             </Text>
           ) : null}
         </View>
@@ -203,7 +332,10 @@ export const GoalsScreen: React.FC = () => {
   if (isInitialLoading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />
+        <ActivityIndicator
+          color={colors.primary}
+          style={{ marginTop: spacing.xl }}
+        />
       </View>
     );
   }
@@ -212,7 +344,7 @@ export const GoalsScreen: React.FC = () => {
     <View style={styles.container}>
       <TextInput
         style={[styles.search, textDir]}
-        placeholder={t('goals.screen.searchPlaceholder')}
+        placeholder={t("goals.screen.searchPlaceholder")}
         placeholderTextColor={colors.textMuted}
         value={localSearch}
         onChangeText={onSearchChange}
@@ -226,7 +358,15 @@ export const GoalsScreen: React.FC = () => {
             style={[styles.chip, viewMode === f.key && styles.chipActive]}
             onPress={() => applyViewMode(f.key)}
           >
-            <Text style={[styles.chipText, textDir, viewMode === f.key && styles.chipTextActive]}>{t(`goals.filter.${f.key}`)}</Text>
+            <Text
+              style={[
+                styles.chipText,
+                textDir,
+                viewMode === f.key && styles.chipTextActive,
+              ]}
+            >
+              {t(`goals.filter.${f.key}`)}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -236,25 +376,37 @@ export const GoalsScreen: React.FC = () => {
         keyExtractor={(g) => g.id}
         renderItem={renderGoal}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
         onEndReached={() => {
           if (hasNextPage && !isLoading) {
             loadMoreGoals();
           }
         }}
         onEndReachedThreshold={0.3}
-        ListEmptyComponent={<Text style={[styles.empty, textDir]}>{t('goals.screen.empty')}</Text>}
+        ListEmptyComponent={
+          <Text style={[styles.empty, textDir]}>{t("goals.screen.empty")}</Text>
+        }
         ListFooterComponent={<AdBanner placement="goals" />}
       />
 
-      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('GoalCreate')} activeOpacity={0.9}>
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate("GoalCreate")}
+        activeOpacity={0.9}
+      >
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
     </View>
   );
 };
 
-function statusStyle(status: GoalStatus) {
+function statusStyle(status: GoalStatus, colors: PlanoraColors) {
   switch (status) {
     case GoalStatus.DONE:
       return { color: colors.success };
@@ -266,66 +418,3 @@ function statusStyle(status: GoalStatus) {
       return { color: colors.primary };
   }
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  search: {
-    margin: spacing.md,
-    padding: spacing.md,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    color: colors.text,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  chips: { paddingHorizontal: spacing.md, gap: spacing.sm, marginBottom: spacing.sm },
-  chip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipText: { ...typography.caption, color: colors.textSecondary },
-  chipTextActive: { color: colors.background, fontWeight: '600' },
-  list: { padding: spacing.md, paddingBottom: 100 },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  cardHeader: { justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm },
-  cardTitle: { ...typography.h3, color: colors.text, flex: 1 },
-  badge: { ...typography.caption, fontWeight: '600' },
-  cardDesc: { ...typography.body, color: colors.textSecondary, marginTop: spacing.xs },
-  progressTrack: {
-    height: 6,
-    backgroundColor: colors.borderSubtle,
-    borderRadius: 3,
-    marginTop: spacing.sm,
-    overflow: 'hidden',
-  },
-  progressFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 3 },
-  cardMeta: { justifyContent: 'space-between', marginTop: spacing.sm },
-  metaText: { ...typography.caption, color: colors.textMuted },
-  overdue: { color: colors.error },
-  empty: { ...typography.body, color: colors.textMuted, marginTop: spacing.xl },
-  fab: {
-    position: 'absolute',
-    end: spacing.lg,
-    bottom: spacing.lg,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-  },
-  fabText: { fontSize: 28, color: colors.background, fontWeight: '300', marginTop: -2 },
-});

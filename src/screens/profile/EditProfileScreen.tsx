@@ -4,12 +4,34 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '@/store/authStore';
 import { apiClient } from '@/services/apiClient';
 import { Button } from '@/components/ui/Button';
-import { colors, spacing, typography } from '@/theme/tokens';
+import { PlanoraColors, spacing, typography } from '@/theme/tokens';
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
+
 import { inputTextStyle } from '@/utils/rtl';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { showAlert, showError } from '@/components/ConfirmationDialog';
 
+
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background, padding: spacing.lg },
+  label: { ...typography.label, color: colors.textSecondary, marginTop: spacing.md },
+  input: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+  },
+  readonly: { ...typography.body, color: colors.textMuted, marginTop: spacing.sm },
+});
+
+
 export const EditProfileScreen: React.FC = () => {
+    const { styles, colors } = usePlanoraStyles(createStyles);
+  
   const navigation = useNavigation();
   const { user, updateUser } = useAuthStore();
   const [name, setName] = useState(user?.name || '');
@@ -46,17 +68,3 @@ export const EditProfileScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, padding: spacing.lg },
-  label: { ...typography.label, color: colors.textSecondary, marginTop: spacing.md },
-  input: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: spacing.md,
-    marginTop: spacing.sm,
-    color: colors.text,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  readonly: { ...typography.body, color: colors.textMuted, marginTop: spacing.sm },
-});

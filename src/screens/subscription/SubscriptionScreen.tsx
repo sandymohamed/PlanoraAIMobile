@@ -10,7 +10,8 @@ import { useNavigation } from "@react-navigation/native";
 import LinearGradient from "react-native-linear-gradient";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { colors, spacing, typography, radius } from "@/theme/tokens";
+import { PlanoraColors, spacing, typography, radius } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
 import {
   trackPremiumClick,
   useSubscriptionStore,
@@ -42,7 +43,78 @@ const PREMIUM_FEATURES = [
   "Exclusive premium features",
 ];
 
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    hero: {
+      padding: spacing.xl,
+      borderRadius: radius.lg,
+      marginBottom: spacing.lg,
+    },
+    usagePill: {
+      alignSelf: "center",
+      backgroundColor: colors.accentSoft,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.full,
+      marginBottom: spacing.lg,
+    },
+    usageText: {
+      ...typography.caption,
+      color: colors.accent,
+      fontWeight: "600",
+    },
+    heroTitle: { ...typography.h1, color: "#fff" },
+    heroSub: {
+      ...typography.body,
+      color: "rgba(255,255,255,0.9)",
+      marginTop: 4,
+    },
+    plan: { marginBottom: spacing.md },
+    subtitle: {
+      ...typography.body,
+      color: colors.textSecondary,
+      marginBottom: spacing.md,
+    },
+
+    badge: {
+      alignSelf: "flex-start",
+      backgroundColor: colors.surface,
+      color: colors.text,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 4,
+      borderRadius: radius.full,
+      marginBottom: spacing.sm,
+      fontWeight: "600",
+    },
+
+    futureBadge: {
+      alignSelf: "flex-start",
+      backgroundColor: colors.accentSoft,
+      color: colors.primary,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 4,
+      borderRadius: radius.full,
+      marginBottom: spacing.sm,
+      fontWeight: "700",
+    },
+    premiumPlan: { borderColor: colors.primary, borderWidth: 1 },
+    planName: {
+      ...typography.h2,
+      color: colors.text,
+      marginBottom: spacing.sm,
+    },
+    price: { ...typography.h3, color: colors.accent, marginBottom: spacing.md },
+    feature: {
+      ...typography.body,
+      color: colors.textSecondary,
+      marginBottom: 6,
+    },
+  });
+
 export const SubscriptionScreen: React.FC = () => {
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
   const navigation = useNavigation<any>();
   const isPremium = useSubscriptionStore((s) => s.isPremium);
   const aiPlansRemaining = useSubscriptionStore((s) => s.aiPlansRemaining);
@@ -132,55 +204,3 @@ export const SubscriptionScreen: React.FC = () => {
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  hero: {
-    padding: spacing.xl,
-    borderRadius: radius.lg,
-    marginBottom: spacing.lg,
-  },
-  usagePill: {
-    alignSelf: "center",
-    backgroundColor: colors.accentSoft,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.full,
-    marginBottom: spacing.lg,
-  },
-  usageText: { ...typography.caption, color: colors.accent, fontWeight: "600" },
-  heroTitle: { ...typography.h1, color: "#fff" },
-  heroSub: { ...typography.body, color: "rgba(255,255,255,0.9)", marginTop: 4 },
-  plan: { marginBottom: spacing.md },
-  subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginBottom: spacing.md,
-  },
-
-  badge: {
-    alignSelf: "flex-start",
-    backgroundColor: colors.surface,
-    color: colors.text,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: radius.full,
-    marginBottom: spacing.sm,
-    fontWeight: "600",
-  },
-
-  futureBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: colors.accentSoft,
-    color: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: radius.full,
-    marginBottom: spacing.sm,
-    fontWeight: "700",
-  },
-  premiumPlan: { borderColor: colors.primary, borderWidth: 1 },
-  planName: { ...typography.h2, color: colors.text, marginBottom: spacing.sm },
-  price: { ...typography.h3, color: colors.accent, marginBottom: spacing.md },
-  feature: { ...typography.body, color: colors.textSecondary, marginBottom: 6 },
-});

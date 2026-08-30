@@ -1,6 +1,7 @@
-import { colors } from "@/theme/tokens";
+import { PlanoraColors } from "@/theme/tokens";
 import { Task, TaskPriority, TaskStatus, TaskStatusFilter } from "@/types/task";
 import i18n, { formatDate } from "@/i18n";
+
 
 /** Start of local calendar day */
 function startOfDay(d: Date): Date {
@@ -43,29 +44,43 @@ export function sortTasksByDueDate(tasks: Task[]): Task[] {
   });
 }
 
-export function priorityColor(priority: TaskPriority): string {
+
+export function priorityColor(
+  priority: TaskPriority,
+  colors: PlanoraColors,
+): string {
   switch (priority) {
     case TaskPriority.URGENT:
       return colors.error;
+
     case TaskPriority.HIGH:
       return colors.warning;
+
     case TaskPriority.MEDIUM:
       return colors.primary;
+
     case TaskPriority.LOW:
       return colors.textMuted;
+
     default:
       return colors.textSecondary;
   }
 }
 
-export function statusColor(status: TaskStatus): string {
+export function statusColor(
+  status: TaskStatus,
+  colors: PlanoraColors,
+): string {
   switch (status) {
     case TaskStatus.DONE:
       return colors.success;
+
     case TaskStatus.IN_PROGRESS:
       return colors.accent;
+
     case TaskStatus.ARCHIVED:
       return colors.textMuted;
+
     default:
       return colors.textSecondary;
   }

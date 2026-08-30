@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Modal,
   View,
@@ -7,26 +7,116 @@ import {
   TouchableOpacity,
   Pressable,
   ActivityIndicator,
-} from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { AppIcon as Icon } from '@/components/ui/AppIcon';
-import { useConfirmationDialogStore } from '@/store/confirmationDialogStore';
-import { colors, spacing, typography, radius, shadows } from '@/theme/tokens';
-import { directionalTextStyle } from '@/utils/rtl';
+} from "react-native";
+import { useTranslation } from "react-i18next";
+import { AppIcon as Icon } from "@/components/ui/AppIcon";
+import { useConfirmationDialogStore } from "@/store/confirmationDialogStore";
+import {
+  PlanoraColors,
+  spacing,
+  typography,
+  radius,
+  shadows,
+} from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
+import { directionalTextStyle } from "@/utils/rtl";
 
-const VARIANT_STYLE: Record<
-  string,
-  { icon: string; color: string; soft: string }
-> = {
-  info: { icon: 'information-outline', color: colors.primary, soft: 'rgba(124, 108, 246, 0.15)' },
-  success: { icon: 'check-circle-outline', color: colors.success, soft: 'rgba(74, 222, 128, 0.15)' },
-  error: { icon: 'close-circle-outline', color: colors.error, soft: 'rgba(248, 113, 113, 0.15)' },
-  warning: { icon: 'alert-outline', color: colors.warning, soft: 'rgba(251, 191, 36, 0.15)' },
-  danger: { icon: 'trash-can-outline', color: colors.error, soft: 'rgba(248, 113, 113, 0.15)' },
-};
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: "rgba(0, 0, 0, 0.65)",
+      justifyContent: "center",
+      alignItems: "center",
+      padding: spacing.lg,
+    },
+    card: {
+      width: "100%",
+      maxWidth: 340,
+      backgroundColor: colors.surfaceElevated,
+      borderRadius: radius.xl,
+      padding: spacing.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      ...shadows.card,
+    },
+    iconWrap: {
+      alignSelf: "center",
+      width: 56,
+      height: 56,
+      borderRadius: radius.full,
+      backgroundColor: colors.primarySoft,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: spacing.md,
+    },
+    title: {
+      ...typography.h2,
+      color: colors.text,
+      textAlign: "center",
+      marginBottom: spacing.sm,
+    },
+    itemBox: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    itemName: {
+      ...typography.body,
+      color: colors.text,
+      fontWeight: "600",
+      textAlign: "center",
+    },
+    message: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      textAlign: "center",
+      marginBottom: spacing.md,
+      lineHeight: 20,
+    },
+    actions: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      marginTop: spacing.sm,
+    },
+    cancelBtn: {
+      flex: 1,
+      paddingVertical: spacing.md,
+      borderRadius: radius.md,
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    cancelText: {
+      ...typography.body,
+      color: colors.textSecondary,
+      fontWeight: "600",
+    },
+    confirmBtn: {
+      flex: 1,
+      paddingVertical: spacing.md,
+      borderRadius: radius.md,
+      alignItems: "center",
+      backgroundColor: colors.primary,
+    },
+    confirmBtnDanger: {
+      backgroundColor: colors.error,
+    },
+    confirmText: {
+      ...typography.body,
+      color: "#fff",
+      fontWeight: "700",
+    },
+  });
 
 export const ConfirmDialogHost: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
   const visible = useConfirmationDialogStore((s) => s.visible);
   const title = useConfirmationDialogStore((s) => s.title);
   const message = useConfirmationDialogStore((s) => s.message);
@@ -55,14 +145,64 @@ export const ConfirmDialogHost: React.FC = () => {
       setLoading(false);
     }
   };
+  const VARIANT_STYLE: Record<
+    string,
+    { icon: string; color: string; soft: string }
+  > = {
+    info: {
+      icon: "information-outline",
+      color: colors.primary,
+      soft: "rgba(124, 108, 246, 0.15)",
+    },
+    success: {
+      icon: "check-circle-outline",
+      color: colors.success,
+      soft: "rgba(74, 222, 128, 0.15)",
+    },
+    error: {
+      icon: "close-circle-outline",
+      color: colors.error,
+      soft: "rgba(248, 113, 113, 0.15)",
+    },
+    warning: {
+      icon: "alert-outline",
+      color: colors.warning,
+      soft: "rgba(251, 191, 36, 0.15)",
+    },
+    danger: {
+      icon: "trash-can-outline",
+      color: colors.error,
+      soft: "rgba(248, 113, 113, 0.15)",
+    },
+  };
 
   const v = VARIANT_STYLE[variant] ?? VARIANT_STYLE.info;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={hide} statusBarTranslucent>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={hide}
+      statusBarTranslucent
+    >
       <View style={styles.backdrop}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={hide} accessibilityRole="button" accessibilityLabel={t('common.dismiss')} />
-        <View style={[styles.card, { display: "flex", flexDirection: "column", alignItems: i18n.language === 'ar' ? 'flex-end' : 'flex-start' }]}>
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={hide}
+          accessibilityRole="button"
+          accessibilityLabel={t("common.dismiss")}
+        />
+        <View
+          style={[
+            styles.card,
+            {
+              display: "flex",
+              flexDirection: "column",
+              alignItems: i18n.language === "ar" ? "flex-end" : "flex-start",
+            },
+          ]}
+        >
           <View style={[styles.iconWrap, { backgroundColor: v.soft }]}>
             <Icon name={v.icon} size={28} color={v.color} />
           </View>
@@ -71,13 +211,20 @@ export const ConfirmDialogHost: React.FC = () => {
 
           {itemName ? (
             <View style={styles.itemBox}>
-              <Text style={[styles.itemName, directionalTextStyle()]} numberOfLines={2}>
+              <Text
+                style={[styles.itemName, directionalTextStyle()]}
+                numberOfLines={2}
+              >
                 {itemName}
               </Text>
             </View>
           ) : null}
 
-          {message ? <Text style={[styles.message, directionalTextStyle()]}>{message}</Text> : null}
+          {message ? (
+            <Text style={[styles.message, directionalTextStyle()]}>
+              {message}
+            </Text>
+          ) : null}
 
           <View style={styles.actions}>
             {!alert && (
@@ -92,7 +239,10 @@ export const ConfirmDialogHost: React.FC = () => {
             )}
 
             <TouchableOpacity
-              style={[styles.confirmBtn, destructive && styles.confirmBtnDanger]}
+              style={[
+                styles.confirmBtn,
+                destructive && styles.confirmBtnDanger,
+              ]}
               onPress={handleConfirm}
               disabled={loading}
               activeOpacity={0.85}
@@ -109,94 +259,3 @@ export const ConfirmDialogHost: React.FC = () => {
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.lg,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 340,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.xl,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadows.card,
-  },
-  iconWrap: {
-    alignSelf: 'center',
-    width: 56,
-    height: 56,
-    borderRadius: radius.full,
-    backgroundColor: colors.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  title: {
-    ...typography.h2,
-    color: colors.text,
-    textAlign: 'center',
-    marginBottom: spacing.sm,
-  },
-  itemBox: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  itemName: {
-    ...typography.body,
-    color: colors.text,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  message: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: spacing.md,
-    lineHeight: 20,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  cancelText: {
-    ...typography.body,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  confirmBtn: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-  },
-  confirmBtnDanger: {
-    backgroundColor: colors.error,
-  },
-  confirmText: {
-    ...typography.body,
-    color: '#fff',
-    fontWeight: '700',
-  },
-});

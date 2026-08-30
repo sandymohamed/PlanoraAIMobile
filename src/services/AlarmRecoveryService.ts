@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 
 const APP_BUILD_KEY = '@planora_last_known_build';
 const RECOVERY_LOCK_KEY = '@planora_alarm_recovery_lock';
-const BUILD_VERSION = '1.0.0'; // Keep in sync with package.json for update detection
+const BUILD_VERSION = '1.0.4'; // Keep in sync with package.json for update detection
 
 export type RecoveryReason = 'app_start' | 'boot' | 'app_update' | 'permission_granted' | 'authenticated';
 

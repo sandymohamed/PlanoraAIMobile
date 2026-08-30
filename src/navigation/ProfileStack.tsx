@@ -14,13 +14,15 @@ import { TermsOfServiceScreen } from "@/screens/profile/TermsOfServiceScreen";
 import { DataExportScreen } from "@/screens/profile/DataExportScreen";
 import { HelpSupportScreen } from "@/screens/profile/HelpSupportScreen";
 import { AboutScreen } from "@/screens/profile/AboutScreen";
-import { colors } from "@/theme/tokens";
-import { stackHeaderOptions } from "@/navigation/headerOptions";
+import { Appearance } from "@/screens/settings/Appearance";
+import { usePlanoraTheme } from "@/theme/ThemeProvider";
+import { createStackHeaderOptions } from "@/navigation/headerOptions";
 
 export type ProfileStackParamList = {
   ProfileMain: undefined;
   Settings: undefined;
   LanguageSettings: undefined;
+  Appearance: undefined;
   EditProfile: undefined;
   ChangePassword: undefined;
   DeleteAccount: undefined;
@@ -37,6 +39,9 @@ const Stack = createNativeStackNavigator<ProfileStackParamList>();
 
 export const ProfileStack: React.FC = () => {
   const { t } = useTranslation();
+
+  const { colors } = usePlanoraTheme();
+  const stackHeaderOptions = createStackHeaderOptions(colors);
 
   return (
     <Stack.Navigator
@@ -55,6 +60,7 @@ export const ProfileStack: React.FC = () => {
         component={ProfileScreen}
         options={{ headerShown: false }}
       />
+
       <Stack.Screen
         name="Settings"
         component={SettingsScreen}
@@ -64,6 +70,11 @@ export const ProfileStack: React.FC = () => {
         name="LanguageSettings"
         component={LanguageSettingsScreen}
         options={{ title: t("navigation.language") }}
+      />
+      <Stack.Screen
+        name="Appearance"
+        component={Appearance}
+        options={{ title: t("navigation.appearance") }}
       />
       <Stack.Screen
         name="EditProfile"
@@ -84,7 +95,7 @@ export const ProfileStack: React.FC = () => {
         name="NotificationSettings"
         component={NotificationSettingsScreen}
         options={{ title: t("navigation.notifications") }}
-      /> 
+      />
       <Stack.Screen
         name="PrivacySettings"
         component={PrivacySettingsScreen}
@@ -99,22 +110,22 @@ export const ProfileStack: React.FC = () => {
         name="HelpSupport"
         component={HelpSupportScreen}
         options={{ title: t("navigation.helpSupport") }}
-      />
+        />
       <Stack.Screen
         name="About"
         component={AboutScreen}
         options={{ title: t("navigation.about") }}
-      />
+        />
       <Stack.Screen
         name="PrivacyPolicy"
         component={PrivacyPolicyScreen}
         options={{ title: t("navigation.privacyPolicy") }}
-      />
+        />
       <Stack.Screen
         name="TermsOfService"
         component={TermsOfServiceScreen}
         options={{ title: t("navigation.termsOfService") }}
-      />
+      /> 
     </Stack.Navigator>
   );
 };

@@ -13,16 +13,67 @@ import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/Button";
 import { PasswordInput } from "@/components/ui/PasswordInput";
-import { colors, spacing, typography } from "@/theme/tokens";
 import { inputTextStyle } from "@/utils/rtl";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { ActivityIndicator } from "react-native-paper";
 import { GoogleIcon } from "./GoogleIcon";
+import { PlanoraColors, spacing, typography } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
 
 const logoImage = require("@/assets/logo.jpg");
 
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+      padding: spacing.lg,
+      justifyContent: "center",
+    },
+    brandBlock: { alignItems: "center", marginBottom: spacing.lg },
+    logo: { width: 96, height: 96, borderRadius: 24, marginBottom: spacing.sm },
+    brand: { ...typography.h1, color: colors.primary },
+    title: { ...typography.hero, color: colors.text },
+    sub: {
+      ...typography.body,
+      color: colors.textSecondary,
+      marginBottom: spacing.xl,
+    },
+    input: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: spacing.md,
+      color: colors.text,
+      marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    error: { color: colors.error, marginBottom: spacing.md },
+    googleButton: {
+      marginTop: 6,
+      width: "100%",
+      height: 48,
+      borderRadius: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 10,
+      borderWidth: 1,
+      borderColor: "#DADCE0",
+      backgroundColor: "transparent",
+    },
+
+    googleButtonText: {
+      fontSize: 16,
+      fontWeight: "500",
+      color: colors.text,
+    },
+  });
+
 export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { t } = useTranslation();
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
   const login = useAuthStore((s) => s.login);
   const loginWithGoogle = useAuthStore((s) => s.loginWithGoogle);
 
@@ -90,7 +141,6 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         onPress={handleLogin}
         loading={loading}
       />
-    
 
       <Pressable
         accessibilityRole="button"
@@ -123,49 +173,3 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    padding: spacing.lg,
-    justifyContent: "center",
-  },
-  brandBlock: { alignItems: "center", marginBottom: spacing.lg },
-  logo: { width: 96, height: 96, borderRadius: 24, marginBottom: spacing.sm },
-  brand: { ...typography.h1, color: colors.primary },
-  title: { ...typography.hero, color: colors.text },
-  sub: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginBottom: spacing.xl,
-  },
-  input: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: spacing.md,
-    color: colors.text,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  error: { color: colors.error, marginBottom: spacing.md },
-  googleButton: {
-    marginTop: 6,
-    width: "100%",
-    height: 48,
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    borderWidth: 1,
-    borderColor: "#DADCE0",
-    backgroundColor: "transparent",
-  },
-
-  googleButtonText: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-});

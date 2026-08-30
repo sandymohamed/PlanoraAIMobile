@@ -31,7 +31,9 @@ import { Goal } from "@/types/goal";
 import { Task, TaskStatus } from "@/types/task";
 import { Routine } from "@/types/routine";
 import { Card } from "@/components/ui/Card";
-import { colors, spacing, typography, radius } from "@/theme/tokens";
+import { PlanoraColors, spacing, typography, radius } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
+
 import { track, AnalyticsEvents } from "@/analytics/posthog";
 import { useScreenAnalytics } from "@/hooks/useScreenAnalytics";
 import { setPendingAnalyticsContext } from "@/analytics/pendingContext";
@@ -42,18 +44,167 @@ import { alarmPermissionService } from "@/services/AlarmPermissionService";
 import { chevronForwardIcon, writingDirection } from "@/utils/rtl";
 import { useRTL } from "@/hooks/useRTL";
 
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { padding: spacing.lg, paddingBottom: spacing.xxl },
+    greeting: { ...typography.hero, color: colors.text },
+    sub: {
+      ...typography.body,
+      width: "100%",
+      color: colors.textSecondary,
+      marginBottom: spacing.lg,
+    },
+
+    title: { ...typography.h1, color: colors.text },
+
+    permBanner: {
+      alignItems: "center",
+      gap: spacing.sm,
+      padding: spacing.md,
+      backgroundColor: colors.primarySoft,
+      borderRadius: 8,
+      marginBottom: spacing.md,
+    },
+    permBody: { flex: 1 },
+    permText: { ...typography.body, color: colors.primary, fontWeight: "600" },
+    permSub: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+
+    focusCard: { marginBottom: spacing.md },
+    sectionLabel: {
+      ...typography.label,
+      color: colors.textMuted,
+      marginBottom: spacing.sm,
+    },
+    focusTitle: { ...typography.h2, color: colors.text },
+    focusMeta: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginTop: 4,
+    },
+    aiCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: spacing.md,
+      borderRadius: radius.lg,
+      marginBottom: spacing.md,
+      gap: spacing.md,
+    },
+    aiText: { flex: 1 },
+    aiTitle: { ...typography.h3, color: "#fff" },
+    aiBody: {
+      ...typography.caption,
+      color: "rgba(255,255,255,0.85)",
+      marginTop: 4,
+    },
+    quickRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      marginBottom: spacing.lg,
+    },
+    quickItem: {
+      flex: 1,
+      backgroundColor: colors.surface,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    quickIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.primarySoft,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: spacing.sm,
+    },
+    quickLabel: {
+      ...typography.caption,
+      color: colors.text,
+      fontWeight: "600",
+      fontSize: 8,
+    },
+    sectionHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginBottom: spacing.sm,
+      marginTop: spacing.sm,
+    },
+    sectionTitle: { ...typography.h3, color: colors.text },
+    sectionAction: {
+      ...typography.caption,
+      color: colors.primary,
+      fontWeight: "600",
+    },
+    taskRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      paddingVertical: spacing.sm,
+    },
+    taskTitle: { ...typography.body, color: colors.text, flex: 1 },
+    streakBadge: {
+      ...typography.caption,
+      color: colors.accent,
+      fontWeight: "700",
+    },
+    progressWrap: { marginBottom: spacing.md },
+    progressHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginBottom: 6,
+    },
+    progressPct: { ...typography.caption, color: colors.primary },
+    progressTrack: {
+      height: 6,
+      backgroundColor: colors.border,
+      borderRadius: 3,
+      overflow: "hidden",
+    },
+    progressFill: {
+      height: "100%",
+      backgroundColor: colors.primary,
+      borderRadius: 3,
+    },
+    streakCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      marginTop: spacing.md,
+    },
+    streakNum: { ...typography.h3, color: colors.text },
+    streakMeta: { ...typography.caption, color: colors.textSecondary },
+    emptyText: {
+      ...typography.body,
+      color: colors.textMuted,
+      padding: spacing.sm,
+    },
+    loadingText: {
+      ...typography.body,
+      color: colors.textMuted,
+      padding: spacing.sm,
+    },
+  });
+
 export const HomeScreen: React.FC = () => {
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
   const navigation = useNavigation<any>();
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language.startsWith("ar");
 
-    const {
-      navigateNext,
-      arrowBack,
-      directionalTextStyle: dirText,
-      rowDirection,
-    } = useRTL();
-
+  const {
+    navigateNext,
+    arrowBack,
+    directionalTextStyle: dirText,
+    rowDirection,
+  } = useRTL();
 
   // ✅ Read from store directly - instant data
   const user = useAuthStore((s) => s.user);
@@ -519,18 +670,22 @@ const QuickAction: React.FC<{
   icon: string;
   label: string;
   onPress: () => void;
-}> = React.memo(({ icon, label, onPress }) => (
-  <TouchableOpacity
-    style={styles.quickItem}
-    onPress={onPress}
-    activeOpacity={0.7}
-  >
-    <View style={styles.quickIcon}>
-      <Icon name={icon} size={22} color={colors.primary} />
-    </View>
-    <Text style={styles.quickLabel}>{label}</Text>
-  </TouchableOpacity>
-));
+}> = React.memo(({ icon, label, onPress }) => {
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
+  return (
+    <TouchableOpacity
+      style={styles.quickItem}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={styles.quickIcon}>
+        <Icon name={icon} size={22} color={colors.primary} />
+      </View>
+      <Text style={styles.quickLabel}>{label}</Text>
+    </TouchableOpacity>
+  );
+});
 
 QuickAction.displayName = "QuickAction";
 
@@ -540,6 +695,7 @@ const SectionHeader: React.FC<{
   onAction: () => void;
 }> = React.memo(({ title, action, onAction }) => {
   const { i18n } = useTranslation();
+  const { styles, colors } = usePlanoraStyles(createStyles);
 
   return (
     <View
@@ -559,168 +715,37 @@ const SectionHeader: React.FC<{
 SectionHeader.displayName = "SectionHeader";
 
 const RoutineRow: React.FC<{ name: string; streak: number }> = React.memo(
-  ({ name, streak }) => (
-    <View style={styles.taskRow}>
-      <Icon name="repeat" size={20} color={colors.accent} />
-      <Text style={styles.taskTitle}>{name}</Text>
-      <Text style={styles.streakBadge}>{streak}d</Text>
-    </View>
-  ),
+  ({ name, streak }) => {
+    const { styles, colors } = usePlanoraStyles(createStyles);
+
+    return (
+      <View style={styles.taskRow}>
+        <Icon name="repeat" size={20} color={colors.accent} />
+        <Text style={styles.taskTitle}>{name}</Text>
+        <Text style={styles.streakBadge}>{streak}d</Text>
+      </View>
+    );
+  },
 );
 
 RoutineRow.displayName = "RoutineRow";
 
 const ProgressBar: React.FC<{ label: string; progress: number }> = React.memo(
-  ({ label, progress }) => (
-    <View style={styles.progressWrap}>
-      <View style={styles.progressHeader}>
-        <Text style={styles.taskTitle}>{label}</Text>
-        <Text style={styles.progressPct}>{progress}%</Text>
+  ({ label, progress }) => {
+    const { styles } = usePlanoraStyles(createStyles);
+
+    return (
+      <View style={styles.progressWrap}>
+        <View style={styles.progressHeader}>
+          <Text style={styles.taskTitle}>{label}</Text>
+          <Text style={styles.progressPct}>{progress}%</Text>
+        </View>
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${progress}%` }]} />
+        </View>
       </View>
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${progress}%` }]} />
-      </View>
-    </View>
-  ),
+    );
+  },
 );
 
 ProgressBar.displayName = "ProgressBar";
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.lg, paddingBottom: spacing.xxl },
-  greeting: { ...typography.hero, color: colors.text },
-  sub: {
-    ...typography.body,
-    width: "100%",
-    color: colors.textSecondary,
-    marginBottom: spacing.lg,
-  },
-
-  title: { ...typography.h1, color: colors.text },
-
-  permBanner: {
-    alignItems: "center",
-    gap: spacing.sm,
-    padding: spacing.md,
-    backgroundColor: colors.primarySoft,
-    borderRadius: 8,
-    marginBottom: spacing.md,
-  },
-  permBody: { flex: 1 },
-  permText: { ...typography.body, color: colors.primary, fontWeight: "600" },
-  permSub: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
-
-  focusCard: { marginBottom: spacing.md },
-  sectionLabel: {
-    ...typography.label,
-    color: colors.textMuted,
-    marginBottom: spacing.sm,
-  },
-  focusTitle: { ...typography.h2, color: colors.text },
-  focusMeta: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  aiCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: spacing.md,
-    borderRadius: radius.lg,
-    marginBottom: spacing.md,
-    gap: spacing.md,
-  },
-  aiText: { flex: 1 },
-  aiTitle: { ...typography.h3, color: "#fff" },
-  aiBody: {
-    ...typography.caption,
-    color: "rgba(255,255,255,0.85)",
-    marginTop: 4,
-  },
-  quickRow: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.lg },
-  quickItem: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  quickIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primarySoft,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: spacing.sm,
-  },
-  quickLabel: {
-    ...typography.caption,
-    color: colors.text,
-    fontWeight: "600",
-    fontSize: 8,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  sectionTitle: { ...typography.h3, color: colors.text },
-  sectionAction: {
-    ...typography.caption,
-    color: colors.primary,
-    fontWeight: "600",
-  },
-  taskRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
-  taskTitle: { ...typography.body, color: colors.text, flex: 1 },
-  streakBadge: {
-    ...typography.caption,
-    color: colors.accent,
-    fontWeight: "700",
-  },
-  progressWrap: { marginBottom: spacing.md },
-  progressHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 6,
-  },
-  progressPct: { ...typography.caption, color: colors.primary },
-  progressTrack: {
-    height: 6,
-    backgroundColor: colors.border,
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: colors.primary,
-    borderRadius: 3,
-  },
-  streakCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    marginTop: spacing.md,
-  },
-  streakNum: { ...typography.h3, color: colors.text },
-  streakMeta: { ...typography.caption, color: colors.textSecondary },
-  emptyText: {
-    ...typography.body,
-    color: colors.textMuted,
-    padding: spacing.sm,
-  },
-  loadingText: {
-    ...typography.body,
-    color: colors.textMuted,
-    padding: spacing.sm,
-  },
-});

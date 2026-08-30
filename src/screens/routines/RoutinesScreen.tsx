@@ -18,16 +18,80 @@ import { useTaskStore } from "@/store/taskStore";
 import { Routine } from "@/types/routine";
 import { RoutinesStackParamList } from "@/navigation/RoutinesStack";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { colors, spacing, typography } from "@/theme/tokens";
+import { PlanoraColors, spacing, typography } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { showError, showConfirmDialog } from "@/components/ConfirmationDialog";
 import { useScreenAnalytics } from "@/hooks/useScreenAnalytics";
 import { AnalyticsEvents } from "@/analytics/posthog";
 import formatTime from "@/utils/formatTime";
 
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    title: {
+      ...typography.h1,
+      color: colors.text,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
+    },
+    sub: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.md,
+    },
+    list: { padding: spacing.lg, paddingBottom: 100 },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: spacing.md,
+      marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    cardHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    cardTitle: { ...typography.h3, color: colors.text, flex: 1 },
+    badge: { ...typography.label, color: colors.primary, fontSize: 10 },
+    badgeOff: { color: colors.textMuted },
+    schedule: {
+      ...typography.caption,
+      color: colors.textMuted,
+      marginTop: 4,
+      marginBottom: spacing.sm,
+    },
+    taskRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      paddingVertical: spacing.sm,
+    },
+    taskTitle: { ...typography.body, color: colors.text },
+    taskDone: { textDecorationLine: "line-through", color: colors.textMuted },
+    actions: { flexDirection: "row", gap: spacing.lg, marginTop: spacing.sm },
+    actionText: { color: colors.primary, fontWeight: "600", fontSize: 13 },
+    fab: {
+      position: "absolute",
+      end: spacing.lg,
+      bottom: spacing.lg,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.primary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+  });
+
 type Nav = NativeStackNavigationProp<RoutinesStackParamList, "RoutinesList">;
 
 export const RoutinesScreen: React.FC = () => {
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
   const navigation = useNavigation<Nav>();
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language.startsWith("ar");
@@ -327,63 +391,3 @@ export const RoutinesScreen: React.FC = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  title: {
-    ...typography.h1,
-    color: colors.text,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-  },
-  sub: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  list: { padding: spacing.lg, paddingBottom: 100 },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  cardTitle: { ...typography.h3, color: colors.text, flex: 1 },
-  badge: { ...typography.label, color: colors.primary, fontSize: 10 },
-  badgeOff: { color: colors.textMuted },
-  schedule: {
-    ...typography.caption,
-    color: colors.textMuted,
-    marginTop: 4,
-    marginBottom: spacing.sm,
-  },
-  taskRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
-  taskTitle: { ...typography.body, color: colors.text },
-  taskDone: { textDecorationLine: "line-through", color: colors.textMuted },
-  actions: { flexDirection: "row", gap: spacing.lg, marginTop: spacing.sm },
-  actionText: { color: colors.primary, fontWeight: "600", fontSize: 13 },
-  fab: {
-    position: "absolute",
-    end: spacing.lg,
-    bottom: spacing.lg,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});

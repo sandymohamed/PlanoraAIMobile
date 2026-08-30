@@ -1,23 +1,23 @@
 // types/task.ts
 export enum TaskStatus {
-  TODO = 'TODO',
-  IN_PROGRESS = 'IN_PROGRESS',
-  DONE = 'DONE',
-  ARCHIVED = 'ARCHIVED',
+  TODO = "TODO",
+  IN_PROGRESS = "IN_PROGRESS",
+  DONE = "DONE",
+  ARCHIVED = "ARCHIVED",
 }
 export enum TaskStatusFilter {
-  ALL = 'ALL',
-  TODO = 'TODO',
-  IN_PROGRESS = 'IN_PROGRESS',
-  DONE = 'DONE',
-  ARCHIVED = 'ARCHIVED',
+  ALL = "ALL",
+  TODO = "TODO",
+  IN_PROGRESS = "IN_PROGRESS",
+  DONE = "DONE",
+  ARCHIVED = "ARCHIVED",
 }
 
 export enum TaskPriority {
-  LOW = 'LOW',
-  MEDIUM = 'MEDIUM',
-  HIGH = 'HIGH',
-  URGENT = 'URGENT',
+  LOW = "LOW",
+  MEDIUM = "MEDIUM",
+  HIGH = "HIGH",
+  URGENT = "URGENT",
 }
 
 export interface Task {
@@ -32,6 +32,14 @@ export interface Task {
   completedAt?: string;
   projectId?: string;
   goalId?: string;
+  goal?: {
+    id: string;
+    title: string;
+  };
+  milestone?: {
+    id: string;
+    title: string;
+  };
   assigneeId?: string;
   createdBy: string;
   tags: string[];

@@ -35,7 +35,8 @@ import { useTranslation } from "react-i18next";
 import { useCalendarData, CalendarViewMode } from "@/hooks/useCalendarData";
 import { Task, TaskStatus } from "@/types/task";
 import { formatDate } from "@/i18n";
-import { colors, spacing, typography } from "@/theme/tokens";
+import { PlanoraColors, spacing, typography } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
 import { priorityColor } from "@/utils/taskUi";
 import { Button } from "@/components/ui/Button";
 import { AdBanner } from "@/features/ads";
@@ -52,12 +53,12 @@ const VIEW_MODES: CalendarViewMode[] = ["month", "week", "day", "agenda"];
 const HOUR_SLOTS = Array.from({ length: 24 }, (_, h) => h);
 
 // Memoized event accent function
-const eventAccent = (task: Task): string => {
+const eventAccent = (task: Task, colors:PlanoraColors): string => {
   if (task.metadata?.isGoalMilestone || task.metadata?.isGoalTarget)
     return colors.accent;
   if (task.metadata?.isRoutineTask) return "#FBBF24";
   if (task.metadata?.isAlarm) return "#FF7043";
-  return priorityColor(task.priority);
+  return priorityColor(task.priority, colors);
 };
 
 // Memoized DayCell component to prevent unnecessary rerenders
@@ -71,27 +72,31 @@ const DayCell = memo(
     inMonth,
     onPress,
     onLongPress,
-  }: any) => (
-    <TouchableOpacity
-      style={[
-        styles.dayCell,
-        !inMonth && styles.dayMuted,
-        isToday && styles.dayToday,
-        isSelected && styles.daySelected,
-      ]}
-      onPress={onPress}
-      onLongPress={onLongPress}
-    >
-      <Text style={[styles.dayNum, isSelected && styles.dayNumSelected]}>
-        {dayNumber}
-      </Text>
-      <View style={styles.dots}>
-        {dotColors.slice(0, 3).map((c: string, i: number) => (
-          <View key={i} style={[styles.dot, { backgroundColor: c }]} />
-        ))}
-      </View>
-    </TouchableOpacity>
-  ),
+  }: any) => {
+    const { styles, colors } = usePlanoraStyles(createStyles);
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.dayCell,
+          !inMonth && styles.dayMuted,
+          isToday && styles.dayToday,
+          isSelected && styles.daySelected,
+        ]}
+        onPress={onPress}
+        onLongPress={onLongPress}
+      >
+        <Text style={[styles.dayNum, isSelected && styles.dayNumSelected]}>
+          {dayNumber}
+        </Text>
+        <View style={styles.dots}>
+          {dotColors.slice(0, 3).map((c: string, i: number) => (
+            <View key={i} style={[styles.dot, { backgroundColor: c }]} />
+          ))}
+        </View>
+      </TouchableOpacity>
+    );
+  },
 );
 
 DayCell.displayName = "DayCell";
@@ -99,7 +104,9 @@ DayCell.displayName = "DayCell";
 // Memoized EventCard component
 const EventCard = memo(
   ({ task, onPress }: { task: Task; onPress: (task: Task) => void }) => {
-    const accent = eventAccent(task);
+    const { styles, colors } = usePlanoraStyles(createStyles);
+    const accent = eventAccent(task, colors);
+
     return (
       <TouchableOpacity
         style={[styles.eventCard, { borderStartColor: accent }]}
@@ -128,9 +135,277 @@ const EventCard = memo(
 
 EventCard.displayName = "EventCard";
 
-export const CalendarScreen: React.FC = () => {
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
+    },
+    headerTitle: { ...typography.h2, color: colors.text, textAlign: "center" },
+    headerSub: {
+      ...typography.caption,
+      color: colors.textMuted,
+      textAlign: "center",
+      fontSize: 10,
+    },
+    modeScroll: { maxHeight: 48 },
+    modeRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+    },
+    modeChip: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: 20,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    modeChipActive: {
+      backgroundColor: colors.primarySoft,
+      borderColor: colors.primary,
+    },
+    modeText: {
+      ...typography.label,
+      color: colors.textMuted,
+      minHeight: 25,
+      fontSize: 10,
+      lineHeight: 6.8,
+    },
+    modeTextActive: { color: colors.primary },
+    syncing: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.sm,
+    },
+    syncingText: { ...typography.caption, color: colors.textMuted },
+    scroll: { padding: spacing.lg, paddingBottom: 120 },
+    weekHeader: { flexDirection: "row", marginBottom: spacing.sm },
+    weekLabel: {
+      flex: 1,
+      textAlign: "center",
+      ...typography.label,
+      color: colors.textMuted,
+      fontSize: 10,
+    },
+    weekRow: { flexDirection: "row" },
+    dayCell: {
+      flex: 1,
+      minHeight: 58,
+      alignItems: "center",
+      paddingVertical: spacing.sm,
+      borderRadius: 8,
+      margin: 1,
+    },
+    dayMuted: { opacity: 0.35 },
+    dayToday: { borderWidth: 1, borderColor: colors.primary },
+    daySelected: { backgroundColor: colors.primary },
+    dayNum: { ...typography.caption, color: colors.text, fontWeight: "600" },
+    dayNumSelected: { color: "#fff" },
+    dots: {
+      flexDirection: "row",
+      gap: 2,
+      marginTop: 4,
+      flexWrap: "wrap",
+      justifyContent: "center",
+    },
+    dot: { width: 5, height: 5, borderRadius: 3 },
+    weekScroll: { marginBottom: spacing.md },
+    weekCard: {
+      width: 92,
+      marginEnd: spacing.sm,
+      padding: spacing.md,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    weekCardSelected: {
+      borderColor: colors.primary,
+      backgroundColor: colors.primarySoft,
+    },
+    weekCardToday: { borderColor: colors.accent },
+    weekCardDay: { ...typography.label, color: colors.textMuted, fontSize: 10 },
+    weekCardNum: { ...typography.h2, color: colors.text },
+    weekCardCount: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginTop: 4,
+    },
+    dayTitle: {
+      ...typography.h3,
+      color: colors.text,
+      marginBottom: spacing.md,
+    },
+    timeSlot: { marginBottom: spacing.sm },
+    timeSlotHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: spacing.xs,
+    },
+    timeLabel: { width: 52, ...typography.caption, color: colors.textMuted },
+    timeLine: { flex: 1, height: 1, backgroundColor: colors.borderSubtle },
+    nowDot: { width: 8, height: 8, borderRadius: 4, marginStart: 4 },
+    emptySlot: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+      padding: spacing.sm,
+      borderRadius: 8,
+      backgroundColor: colors.surface,
+      opacity: 0.7,
+    },
+    emptySlotText: { ...typography.caption, color: colors.primary },
+    eventCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 10,
+      padding: spacing.sm,
+      marginBottom: spacing.xs,
+      borderStartWidth: 4,
+    },
+    eventTitle: { ...typography.body, color: colors.text, fontWeight: "600" },
+    eventMetaRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.xs,
+      marginTop: 2,
+    },
+    eventMeta: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    emptyDay: {
+      ...typography.body,
+      color: colors.textMuted,
+      textAlign: "center",
+      marginVertical: spacing.xl,
+    },
+    agendaDay: { marginBottom: spacing.lg },
+    agendaDayLabel: {
+      ...typography.h3,
+      color: colors.text,
+      marginBottom: spacing.sm,
+    },
+    agendaRow: {
+      flexDirection: "row",
+      gap: spacing.md,
+      paddingVertical: spacing.sm,
+      borderStartWidth: 3,
+      paddingStart: spacing.sm,
+      marginBottom: spacing.xs,
+    },
+    agendaTime: { width: 64, ...typography.caption, color: colors.primary },
+    agendaTitle: { flex: 1, ...typography.body, color: colors.text },
+    upcomingSection: { marginBottom: spacing.lg },
+    sectionTitle: {
+      ...typography.h3,
+      color: colors.text,
+      marginBottom: spacing.sm,
+    },
+    upcomingCard: {
+      width: 140,
+      marginEnd: spacing.sm,
+      padding: spacing.md,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+    },
+    upcomingTitle: {
+      ...typography.body,
+      color: colors.text,
+      fontWeight: "600",
+    },
+    upcomingMeta: {
+      ...typography.caption,
+      color: colors.textMuted,
+      marginTop: 4,
+    },
+    selectedSection: { marginTop: spacing.lg },
+    selectedTitle: {
+      ...typography.h3,
+      color: colors.text,
+      marginBottom: spacing.md,
+    },
+    listRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      paddingVertical: spacing.sm,
+    },
+    listDot: { width: 10, height: 10, borderRadius: 5 },
+    listBody: { flex: 1 },
+    listTitle: { ...typography.body, color: colors.text },
+    listMeta: { ...typography.caption, color: colors.textMuted },
+    moreText: {
+      ...typography.caption,
+      color: colors.textMuted,
+      marginVertical: spacing.xs,
+    },
+    fab: {
+      position: "absolute",
+      end: spacing.lg,
+      bottom: spacing.lg,
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      backgroundColor: colors.primary,
+      alignItems: "center",
+      justifyContent: "center",
+      elevation: 6,
+    },
+    fabBackdrop: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: "rgba(0,0,0,0.35)",
+    },
+    fabMenu: {
+      position: "absolute",
+      end: spacing.lg,
+      bottom: spacing.lg + 60,
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      gap: spacing.xs,
+    },
+    fabMenuItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      padding: spacing.sm,
+    },
+    fabMenuText: { ...typography.body, color: colors.text },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.6)",
+      justifyContent: "center",
+      padding: spacing.lg,
+    },
+    modalCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      padding: spacing.lg,
+      gap: spacing.sm,
+    },
+    modalTitle: { ...typography.h2, color: colors.text },
+    modalBody: { ...typography.body, color: colors.textSecondary },
+    modalMeta: { ...typography.caption, color: colors.textMuted },
+  });
+
+export const  CalendarScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { t } = useTranslation();
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
   const cal = useCalendarData();
   const [refreshing, setRefreshing] = useState(false);
   const [modalTask, setModalTask] = useState<Task | null>(null);
@@ -277,7 +552,7 @@ export const CalendarScreen: React.FC = () => {
         // Limit to first 3 tasks for dots
         dayTasks
           .slice(0, 3)
-          .forEach((task) => colorsSeen.add(eventAccent(task)));
+          .forEach((task) => colorsSeen.add(eventAccent(task, colors)));
 
         return {
           key,
@@ -483,7 +758,7 @@ export const CalendarScreen: React.FC = () => {
                 key={task.id}
                 style={[
                   styles.agendaRow,
-                  { borderStartColor: eventAccent(task) },
+                  { borderStartColor: eventAccent(task, colors) },
                 ]}
                 onPress={() => openEvent(task)}
               >
@@ -522,7 +797,7 @@ export const CalendarScreen: React.FC = () => {
           {cal.upcomingTasks.slice(0, 10).map((task) => (
             <TouchableOpacity
               key={task.id}
-              style={[styles.upcomingCard, { borderColor: eventAccent(task) }]}
+              style={[styles.upcomingCard, { borderColor: eventAccent(task, colors) }]}
               onPress={() => openEvent(task)}
             >
               <Text style={styles.upcomingTitle} numberOfLines={1}>
@@ -560,7 +835,7 @@ export const CalendarScreen: React.FC = () => {
             onPress={() => openEvent(task)}
           >
             <View
-              style={[styles.listDot, { backgroundColor: eventAccent(task) }]}
+              style={[styles.listDot, { backgroundColor: eventAccent(task, colors) }]}
             />
             <View style={styles.listBody}>
               <Text style={styles.listTitle} numberOfLines={1}>
@@ -973,260 +1248,3 @@ export const CalendarScreen: React.FC = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-  },
-  headerTitle: { ...typography.h2, color: colors.text, textAlign: "center" },
-  headerSub: {
-    ...typography.caption,
-    color: colors.textMuted,
-    textAlign: "center",
-    fontSize: 10,
-  },
-  modeScroll: { maxHeight: 48 },
-  modeRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-  },
-  modeChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  modeChipActive: {
-    backgroundColor: colors.primarySoft,
-    borderColor: colors.primary,
-  },
-  modeText: {
-    ...typography.label,
-    color: colors.textMuted,
-    minHeight: 25,
-    fontSize: 10,
-    lineHeight: 6.8,
-  },
-  modeTextActive: { color: colors.primary },
-  syncing: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  syncingText: { ...typography.caption, color: colors.textMuted },
-  scroll: { padding: spacing.lg, paddingBottom: 120 },
-  weekHeader: { flexDirection: "row", marginBottom: spacing.sm },
-  weekLabel: {
-    flex: 1,
-    textAlign: "center",
-    ...typography.label,
-    color: colors.textMuted,
-    fontSize: 10,
-  },
-  weekRow: { flexDirection: "row" },
-  dayCell: {
-    flex: 1,
-    minHeight: 58,
-    alignItems: "center",
-    paddingVertical: spacing.sm,
-    borderRadius: 8,
-    margin: 1,
-  },
-  dayMuted: { opacity: 0.35 },
-  dayToday: { borderWidth: 1, borderColor: colors.primary },
-  daySelected: { backgroundColor: colors.primary },
-  dayNum: { ...typography.caption, color: colors.text, fontWeight: "600" },
-  dayNumSelected: { color: "#fff" },
-  dots: {
-    flexDirection: "row",
-    gap: 2,
-    marginTop: 4,
-    flexWrap: "wrap",
-    justifyContent: "center",
-  },
-  dot: { width: 5, height: 5, borderRadius: 3 },
-  weekScroll: { marginBottom: spacing.md },
-  weekCard: {
-    width: 92,
-    marginEnd: spacing.sm,
-    padding: spacing.md,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  weekCardSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
-  },
-  weekCardToday: { borderColor: colors.accent },
-  weekCardDay: { ...typography.label, color: colors.textMuted, fontSize: 10 },
-  weekCardNum: { ...typography.h2, color: colors.text },
-  weekCardCount: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  dayTitle: { ...typography.h3, color: colors.text, marginBottom: spacing.md },
-  timeSlot: { marginBottom: spacing.sm },
-  timeSlotHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: spacing.xs,
-  },
-  timeLabel: { width: 52, ...typography.caption, color: colors.textMuted },
-  timeLine: { flex: 1, height: 1, backgroundColor: colors.borderSubtle },
-  nowDot: { width: 8, height: 8, borderRadius: 4, marginStart: 4 },
-  emptySlot: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    padding: spacing.sm,
-    borderRadius: 8,
-    backgroundColor: colors.surface,
-    opacity: 0.7,
-  },
-  emptySlotText: { ...typography.caption, color: colors.primary },
-  eventCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-    padding: spacing.sm,
-    marginBottom: spacing.xs,
-    borderStartWidth: 4,
-  },
-  eventTitle: { ...typography.body, color: colors.text, fontWeight: "600" },
-  eventMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    marginTop: 2,
-  },
-  eventMeta: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  emptyDay: {
-    ...typography.body,
-    color: colors.textMuted,
-    textAlign: "center",
-    marginVertical: spacing.xl,
-  },
-  agendaDay: { marginBottom: spacing.lg },
-  agendaDayLabel: {
-    ...typography.h3,
-    color: colors.text,
-    marginBottom: spacing.sm,
-  },
-  agendaRow: {
-    flexDirection: "row",
-    gap: spacing.md,
-    paddingVertical: spacing.sm,
-    borderStartWidth: 3,
-    paddingStart: spacing.sm,
-    marginBottom: spacing.xs,
-  },
-  agendaTime: { width: 64, ...typography.caption, color: colors.primary },
-  agendaTitle: { flex: 1, ...typography.body, color: colors.text },
-  upcomingSection: { marginBottom: spacing.lg },
-  sectionTitle: {
-    ...typography.h3,
-    color: colors.text,
-    marginBottom: spacing.sm,
-  },
-  upcomingCard: {
-    width: 140,
-    marginEnd: spacing.sm,
-    padding: spacing.md,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-  },
-  upcomingTitle: { ...typography.body, color: colors.text, fontWeight: "600" },
-  upcomingMeta: {
-    ...typography.caption,
-    color: colors.textMuted,
-    marginTop: 4,
-  },
-  selectedSection: { marginTop: spacing.lg },
-  selectedTitle: {
-    ...typography.h3,
-    color: colors.text,
-    marginBottom: spacing.md,
-  },
-  listRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
-  listDot: { width: 10, height: 10, borderRadius: 5 },
-  listBody: { flex: 1 },
-  listTitle: { ...typography.body, color: colors.text },
-  listMeta: { ...typography.caption, color: colors.textMuted },
-  moreText: {
-    ...typography.caption,
-    color: colors.textMuted,
-    marginVertical: spacing.xs,
-  },
-  fab: {
-    position: "absolute",
-    end: spacing.lg,
-    bottom: spacing.lg,
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 6,
-  },
-  fabBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.35)",
-  },
-  fabMenu: {
-    position: "absolute",
-    end: spacing.lg,
-    bottom: spacing.lg + 60,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    gap: spacing.xs,
-  },
-  fabMenuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    padding: spacing.sm,
-  },
-  fabMenuText: { ...typography.body, color: colors.text },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "center",
-    padding: spacing.lg,
-  },
-  modalCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: spacing.lg,
-    gap: spacing.sm,
-  },
-  modalTitle: { ...typography.h2, color: colors.text },
-  modalBody: { ...typography.body, color: colors.textSecondary },
-  modalMeta: { ...typography.caption, color: colors.textMuted },
-});

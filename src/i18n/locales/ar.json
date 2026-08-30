@@ -83,6 +83,7 @@
     "weeklyReview": "المراجعة الأسبوعية",
     "focus": "التركيز",
     "language": "اللغة",
+    "Appearance": "المظهر",
     "goToHome": "الانتقال إلى الرئيسية"
   },
   "tasks": {
@@ -570,7 +571,17 @@
     "current": "اللغة الحالية",
     "restartNote": "قد تكتمل بعض اتجاهات الشاشات الأصلية بعد إعادة فتح التطبيق.",
     "changedTitle": "تم تحديث اللغة",
-    "changedMessage": "يستخدم Planora الآن {{language}}."
+    "changedMessage": "يستخدم Planora AI الآن {{language}}."
+  },
+  "theme": {
+    "title": "المظهر",
+    "subtitle": "اختر مظهر Planora AI على جهازك.",
+    "appearance": "السمة",
+    "darkMode": "الوضع الداكن",
+    "lightMode": "الوضع الفاتح",
+    "darkModeEnabled": "المظهر الداكن محدد حاليًا.",
+    "lightModeEnabled": "المظهر الفاتح محدد حاليًا.",
+    "note": "يتم حفظ تفضيل المظهر تلقائيًا."
   },
   "dialogs": {
     "deleteTitle": "حذف {{entity}}؟",

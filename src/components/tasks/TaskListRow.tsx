@@ -9,7 +9,8 @@ import {
 } from "react-native";
 import { AppIcon as Icon } from "@/components/ui/AppIcon";
 import { Task, TaskStatus } from "@/types/task";
-import { colors, spacing, typography } from "@/theme/tokens";
+import { PlanoraColors, spacing, typography } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
 import { directionalHitSlop } from "@/utils/rtl";
 import {
   formatDueLabel,
@@ -37,6 +38,91 @@ type Props = {
   dismissOnComplete?: boolean;
 };
 
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+    rowCompact: {
+      alignItems: "center",
+      paddingVertical: spacing.sm,
+      paddingHorizontal: 0,
+      backgroundColor: "transparent",
+      borderWidth: 0,
+      borderRadius: 0,
+    },
+    rowCompactDone: {
+      backgroundColor: "rgba(74, 222, 128, 0.1)",
+      borderRadius: 8,
+    },
+    row: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      padding: spacing.md,
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      marginBottom: 0,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      overflow: "hidden",
+    },
+    rowComplete: {
+      borderColor: colors.success,
+      backgroundColor: "rgba(74, 222, 128, 0.08)",
+    },
+    rowOverdue: {
+      borderColor: colors.error,
+      borderWidth: 1.5,
+      backgroundColor: "rgba(248, 113, 113, 0.08)",
+    },
+    greenWash: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: "rgba(74, 222, 128, 0.14)",
+    },
+    progressTrack: {
+      position: "absolute",
+      start: 0,
+      bottom: 0,
+      height: 3,
+      backgroundColor: colors.success,
+      borderBottomStartRadius: 12,
+    },
+    check: { marginEnd: spacing.sm, marginTop: 2, zIndex: 1 },
+    checkCompact: { marginTop: 0 },
+    checkIconStack: { width: 26, height: 26 },
+    checkIconStackCompact: { width: 22, height: 22, marginTop: 0 },
+    rowTitleCompact: { fontWeight: "500" },
+    checkFilled: {
+      position: "absolute",
+      start: 0,
+      top: 0,
+    },
+    rowBody: { flex: 1, zIndex: 1 },
+    rowTitle: {
+      ...typography.body,
+      color: colors.text,
+      fontWeight: "600",
+      padding: 2,
+    },
+    rowTitleDone: {
+      textDecorationLine: "line-through",
+      color: colors.textSecondary,
+    },
+    due: { ...typography.caption, color: colors.accent, marginTop: 4 },
+    dueOverdue: { color: colors.error, fontWeight: "600" },
+    meta: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.sm,
+      marginTop: spacing.sm,
+    },
+    badge: {
+      borderWidth: 1,
+      borderRadius: 6,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+    },
+    badgeText: { fontSize: 10, fontWeight: "700" },
+    statusText: { ...typography.label, fontSize: 10 },
+  });
+
 const TaskListRowComponent: React.FC<Props> = ({
   task,
   onPress,
@@ -45,6 +131,8 @@ const TaskListRowComponent: React.FC<Props> = ({
   compact = false,
   dismissOnComplete = true,
 }) => {
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
   const isDone = task.status === TaskStatus.DONE;
   const overdue = isTaskOverdue(task);
   const dueLabel = formatDueLabel(task.dueDate, task.dueTime, { overdue });
@@ -363,7 +451,7 @@ const TaskListRowComponent: React.FC<Props> = ({
               <View
                 style={[
                   styles.badge,
-                  { borderColor: priorityColor(task.priority) },
+                  { borderColor: priorityColor(task.priority, colors) },
                   {
                     flexDirection:
                       i18n.language === "ar" ? "row-reverse" : "row",
@@ -373,7 +461,7 @@ const TaskListRowComponent: React.FC<Props> = ({
                 <Text
                   style={[
                     styles.badgeText,
-                    { color: priorityColor(task.priority) },
+                    { color: priorityColor(task.priority, colors) },
                   ]}
                 >
                   {translateTaskPriority(task.priority)}
@@ -385,7 +473,7 @@ const TaskListRowComponent: React.FC<Props> = ({
                   {
                     color: showCompletedLook
                       ? colors.success
-                      : statusColor(task.status),
+                      : statusColor(task.status, colors),
                   },
                 ]}
               >
@@ -424,82 +512,3 @@ export const TaskListRow = React.memo(
     prev.task.dueDate === next.task.dueDate &&
     prev.task.dueTime === next.task.dueTime,
 );
-
-const styles = StyleSheet.create({
-  rowCompact: {
-    alignItems: "center",
-    paddingVertical: spacing.sm,
-    paddingHorizontal: 0,
-    backgroundColor: "transparent",
-    borderWidth: 0,
-    borderRadius: 0,
-  },
-  rowCompactDone: {
-    backgroundColor: "rgba(74, 222, 128, 0.1)",
-    borderRadius: 8,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    padding: spacing.md,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    marginBottom: 0,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    overflow: "hidden",
-  },
-  rowComplete: {
-    borderColor: colors.success,
-    backgroundColor: "rgba(74, 222, 128, 0.08)",
-  },
-  rowOverdue: {
-    borderColor: colors.error,
-    borderWidth: 1.5,
-    backgroundColor: "rgba(248, 113, 113, 0.08)",
-  },
-  greenWash: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(74, 222, 128, 0.14)",
-  },
-  progressTrack: {
-    position: "absolute",
-    start: 0,
-    bottom: 0,
-    height: 3,
-    backgroundColor: colors.success,
-    borderBottomStartRadius: 12,
-  },
-  check: { marginEnd: spacing.sm, marginTop: 2, zIndex: 1 },
-  checkCompact: { marginTop: 0 },
-  checkIconStack: { width: 26, height: 26 },
-  checkIconStackCompact: { width: 22, height: 22, marginTop: 0 },
-  rowTitleCompact: { fontWeight: "500" },
-  checkFilled: {
-    position: "absolute",
-    start: 0,
-    top: 0,
-  },
-  rowBody: { flex: 1, zIndex: 1 },
-  rowTitle: { ...typography.body, color: colors.text, fontWeight: "600", padding: 2 },
-  rowTitleDone: {
-    textDecorationLine: "line-through",
-    color: colors.textSecondary,
-  },
-  due: { ...typography.caption, color: colors.accent, marginTop: 4 },
-  dueOverdue: { color: colors.error, fontWeight: "600" },
-  meta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  badge: {
-    borderWidth: 1,
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  badgeText: { fontSize: 10, fontWeight: "700" },
-  statusText: { ...typography.label, fontSize: 10 },
-});

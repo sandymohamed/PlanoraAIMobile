@@ -1,13 +1,47 @@
-import React, { useState } from 'react';
-import { View, TextInput, Pressable, StyleSheet, TextInputProps } from 'react-native';
-import { AppIcon } from '@/components/ui/AppIcon';
-import { colors, spacing } from '@/theme/tokens';
-import { inputTextStyle } from '@/utils/rtl';
+import React, { useState } from "react";
+import {
+  View,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  TextInputProps,
+} from "react-native";
+import { AppIcon } from "@/components/ui/AppIcon";
+import { inputTextStyle } from "@/utils/rtl";
+import { PlanoraColors, spacing, typography } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
 
-type PasswordInputProps = Omit<TextInputProps, 'secureTextEntry'>;
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+    container: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    input: {
+      flex: 1,
+      padding: spacing.md,
+      paddingEnd: spacing.xs,
+      color: colors.text,
+    },
+    toggle: {
+      padding: spacing.md,
+      paddingStart: spacing.xs,
+    },
+  });
 
-export const PasswordInput: React.FC<PasswordInputProps> = ({ style, ...textInputProps }) => {
+type PasswordInputProps = Omit<TextInputProps, "secureTextEntry">;
+
+export const PasswordInput: React.FC<PasswordInputProps> = ({
+  style,
+  ...textInputProps
+}) => {
   const [visible, setVisible] = useState(false);
+  const { styles, colors } = usePlanoraStyles(createStyles);
 
   return (
     <View style={styles.container}>
@@ -20,11 +54,11 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({ style, ...textInpu
         style={styles.toggle}
         onPress={() => setVisible((v) => !v)}
         accessibilityRole="button"
-        accessibilityLabel={visible ? 'Hide password' : 'Show password'}
+        accessibilityLabel={visible ? "Hide password" : "Show password"}
         hitSlop={8}
       >
         <AppIcon
-          name={visible ? 'eye-off-outline' : 'eye-outline'}
+          name={visible ? "eye-off-outline" : "eye-outline"}
           size={22}
           color={colors.textMuted}
         />
@@ -32,25 +66,3 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({ style, ...textInpu
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  input: {
-    flex: 1,
-    padding: spacing.md,
-    paddingEnd: spacing.xs,
-    color: colors.text,
-  },
-  toggle: {
-    padding: spacing.md,
-    paddingStart: spacing.xs,
-  },
-});

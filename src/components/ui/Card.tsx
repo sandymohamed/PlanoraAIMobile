@@ -1,6 +1,22 @@
-import React from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
-import { colors, radius, spacing, shadows } from '@/theme/tokens';
+import React from "react";
+import { View, StyleSheet, ViewStyle } from "react-native";
+import { PlanoraColors, radius, spacing, shadows } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
+
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    elevated: {
+      backgroundColor: colors.surfaceElevated,
+      ...shadows.card,
+    },
+  });
 
 interface CardProps {
   children: React.ReactNode;
@@ -9,20 +25,12 @@ interface CardProps {
   gradient?: boolean;
 }
 
-export const Card: React.FC<CardProps> = ({ children, style, elevated }) => (
-  <View style={[styles.card, elevated && styles.elevated, style]}>{children}</View>
-);
+export const Card: React.FC<CardProps> = ({ children, style, elevated }) => {
+  const { styles, colors } = usePlanoraStyles(createStyles);
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  elevated: {
-    backgroundColor: colors.surfaceElevated,
-    ...shadows.card,
-  },
-});
+  return (
+    <View style={[styles.card, elevated && styles.elevated, style]}>
+      {children}
+    </View>
+  );
+};

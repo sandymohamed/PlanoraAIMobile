@@ -8,11 +8,22 @@ import { useTaskStore } from '@/store/taskStore';
 import { RoutineForm } from '@/components/routines/RoutineForm';
 import { CreateRoutineData } from '@/types/routine';
 import { RoutinesStackParamList } from '@/navigation/RoutinesStack';
-import { colors } from '@/theme/tokens';
+import { PlanoraColors,  } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
 import { getApiErrorMessage } from '@/utils/apiError';
 import { showError } from '@/components/ConfirmationDialog';
 
+
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+});
+
+
 export const RoutineEditScreen: React.FC = () => {
+    const { styles, colors } = usePlanoraStyles(createStyles);
+  
   const navigation = useNavigation();
   const { t } = useTranslation();
   const { routineId } = useRoute<RouteProp<RoutinesStackParamList, 'RoutineEdit'>>().params;
@@ -67,7 +78,3 @@ export const RoutineEditScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
-});

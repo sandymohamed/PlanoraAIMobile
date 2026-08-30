@@ -83,6 +83,7 @@
     "weeklyReview": "Weekly review",
     "focus": "Focus",
     "language": "Language",
+    "appearance": "Appearance",
     "goToHome": "Go to Home"
   },
   "tasks": {
@@ -108,8 +109,8 @@
       "overdue": "Overdue · {{date}}"
     },
     "details": {
-      "noTasks":"No tasks yet",
-      "noTasksMessage":"Add your first task to start planning your day.",
+      "noTasks": "No tasks yet",
+      "noTasksMessage": "Add your first task to start planning your day.",
       "addTask": "Add task",
       "editTask": "Edit task",
       "deleteTask": "Delete task",
@@ -571,6 +572,16 @@
     "restartNote": "Some native screen directions may fully update after reopening the app.",
     "changedTitle": "Language updated",
     "changedMessage": "Planora is now using {{language}}."
+  },
+  "theme": {
+    "title": "Appearance",
+    "subtitle": "Choose how Planora looks on your device.",
+    "appearance": "Theme",
+    "darkMode": "Dark",
+    "lightMode": "Light",
+    "darkModeEnabled": "Dark theme is currently selected.",
+    "lightModeEnabled": "Light theme is currently selected.",
+    "note": "Your appearance preference is saved automatically."
   },
   "dialogs": {
     "deleteTitle": "Delete {{entity}}?",

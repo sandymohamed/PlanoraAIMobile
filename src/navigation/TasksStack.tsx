@@ -5,8 +5,8 @@ import { TasksScreen } from "@/screens/tasks/TasksScreen";
 import { TaskCreateScreen } from "@/screens/tasks/TaskCreateScreen";
 import { TaskEditScreen } from "@/screens/tasks/TaskEditScreen";
 import { TaskDetailScreen } from "@/screens/tasks/TaskDetailScreen";
-import { colors } from "@/theme/tokens";
-import { stackHeaderOptions } from "@/navigation/headerOptions";
+import { usePlanoraTheme } from "@/theme/ThemeProvider";
+import { createStackHeaderOptions } from "@/navigation/headerOptions";
 
 export type TasksStackParamList = {
   TasksList: undefined;
@@ -25,14 +25,17 @@ const Stack = createNativeStackNavigator<TasksStackParamList>();
 export const TasksStack: React.FC = () => {
   const { t } = useTranslation();
 
+  const { colors } = usePlanoraTheme();
+  const stackHeaderOptions = createStackHeaderOptions(colors);
+
   return (
     <Stack.Navigator
       screenOptions={{
         headerShown: true,
         ...stackHeaderOptions,
         headerTitleStyle: { fontWeight: "600" },
-        animation: "slide_from_right", // ✅ Smooth animations
-        freezeOnBlur: true, // ✅ Keep screens mounted
+        animation: "slide_from_right", 
+        freezeOnBlur: true,
         gestureEnabled: true,
         contentStyle: { backgroundColor: colors.background },
       }}

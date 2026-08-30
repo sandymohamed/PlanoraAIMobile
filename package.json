@@ -1,6 +1,6 @@
 {
   "name": "planora-mobile",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "private": true,
   "scripts": {
     "android": "npm run adb:reset && node scripts/ensure-adb-device.js && npm run android:install && npm run adb",

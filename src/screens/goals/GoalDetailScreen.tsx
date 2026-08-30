@@ -18,7 +18,8 @@ import { useTranslation } from "react-i18next";
 import { useGoalStore } from "@/store/goalStore";
 import { useSubscriptionStore } from "@/store/subscriptionStore";
 import { Milestone, MilestoneStatus } from "@/types/goal";
-import { colors, spacing, typography } from "@/theme/tokens";
+import { PlanoraColors, spacing, typography } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
 import { directionalHitSlop } from "@/utils/rtl";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { track, AnalyticsEvents } from "@/analytics/posthog";
@@ -32,7 +33,144 @@ import { DateTimePicker } from "@/components/ui/DateTimePicker";
 import { format } from "date-fns";
 import { syncIfNeeded } from "@/services/sync/appSync";
 
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { padding: spacing.lg, paddingBottom: 48 },
+    center: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: colors.background,
+    },
+    title: { ...typography.h1, color: colors.text },
+    body: {
+      ...typography.body,
+      color: colors.textSecondary,
+      marginTop: spacing.sm,
+    },
+    meta: {
+      ...typography.caption,
+      color: colors.textMuted,
+      marginTop: spacing.xs,
+    },
+    progressTrack: {
+      height: 8,
+      backgroundColor: colors.borderSubtle,
+      borderRadius: 4,
+      marginTop: spacing.md,
+      overflow: "hidden",
+    },
+    progressFill: { height: "100%", backgroundColor: colors.primary },
+    progressLabel: {
+      ...typography.caption,
+      color: colors.primary,
+      marginTop: spacing.xs,
+    },
+    actions: { flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.md },
+    actionBtn: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      backgroundColor: colors.surface,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    actionBtnText: {
+      ...typography.caption,
+      color: colors.text,
+      fontWeight: "600",
+    },
+    aiBtn: {
+      marginTop: spacing.md,
+      backgroundColor: colors.primary,
+      borderRadius: 12,
+      padding: spacing.md,
+      alignItems: "center",
+    },
+    aiBtnText: {
+      ...typography.body,
+      color: colors.background,
+      fontWeight: "600",
+    },
+    sectionRow: {
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginTop: spacing.xl,
+    },
+    section: { ...typography.h3, color: colors.text },
+    link: { ...typography.caption, color: colors.primary, fontWeight: "600" },
+    milestone: {
+      padding: spacing.md,
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      marginTop: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    milestoneDone: {
+      borderColor: colors.success,
+      backgroundColor: "rgba(74, 222, 128, 0.08)",
+    },
+    mRow: { alignItems: "flex-start" },
+    mCheck: { marginEnd: spacing.sm, marginTop: 2 },
+    mCheckIconStack: { width: 26, height: 26 },
+    mCheckFilled: { position: "absolute", start: 0, top: 0 },
+    mBody: { flex: 1 },
+    mTitleRow: {
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      gap: spacing.sm,
+    },
+    mTitle: {
+      ...typography.body,
+      color: colors.text,
+      fontWeight: "600",
+      flex: 1,
+    },
+    mTitleDone: {
+      textDecorationLine: "line-through",
+      color: colors.textSecondary,
+    },
+    mStatus: { ...typography.caption, color: colors.textMuted },
+    mDesc: { ...typography.caption, color: colors.textSecondary, marginTop: 4 },
+    mMeta: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
+    mActions: { gap: spacing.md, marginTop: spacing.sm },
+    danger: { marginTop: spacing.xl, alignItems: "center" },
+    dangerText: { color: colors.error, ...typography.caption },
+    error: { color: colors.error, padding: spacing.lg },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.6)",
+      justifyContent: "flex-end",
+    },
+    modal: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: 16,
+      borderTopRightRadius: 16,
+      padding: spacing.lg,
+    },
+    modalTitle: {
+      ...typography.h3,
+      color: colors.text,
+      marginBottom: spacing.md,
+    },
+    input: {
+      backgroundColor: colors.background,
+      borderRadius: 10,
+      padding: spacing.md,
+      color: colors.text,
+      marginBottom: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    multiline: { minHeight: 72 },
+    modalActions: { justifyContent: "space-between", marginTop: spacing.md },
+  });
+
 export const GoalDetailScreen: React.FC = () => {
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
   const navigation = useNavigation<any>();
   const { goalId } =
     useRoute<RouteProp<{ params: { goalId: string } }, "params">>().params;
@@ -484,16 +622,22 @@ const ActionBtn: React.FC<{
   label: string;
   textDir: { textAlign: "right" | "left"; writingDirection: "rtl" | "ltr" };
   onPress: () => void;
-}> = ({ label, textDir, onPress }) => (
-  <TouchableOpacity style={styles.actionBtn} onPress={onPress}>
-    <Text style={[styles.actionBtnText, textDir]}>{label}</Text>
-  </TouchableOpacity>
-);
+}> = ({ label, textDir, onPress }) => {
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
+  return (
+    <TouchableOpacity style={styles.actionBtn} onPress={onPress}>
+      <Text style={[styles.actionBtnText, textDir]}>{label}</Text>
+    </TouchableOpacity>
+  );
+};
 
 const MilestoneCheckToggle: React.FC<{
   isDone: boolean;
   onToggle: () => Promise<void>;
 }> = ({ isDone, onToggle }) => {
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
   const [phase, setPhase] = useState<"idle" | "completing" | "uncompleting">(
     "idle",
   );
@@ -636,137 +780,3 @@ const MilestoneCheckToggle: React.FC<{
     </TouchableOpacity>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.lg, paddingBottom: 48 },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: colors.background,
-  },
-  title: { ...typography.h1, color: colors.text },
-  body: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginTop: spacing.sm,
-  },
-  meta: {
-    ...typography.caption,
-    color: colors.textMuted,
-    marginTop: spacing.xs,
-  },
-  progressTrack: {
-    height: 8,
-    backgroundColor: colors.borderSubtle,
-    borderRadius: 4,
-    marginTop: spacing.md,
-    overflow: "hidden",
-  },
-  progressFill: { height: "100%", backgroundColor: colors.primary },
-  progressLabel: {
-    ...typography.caption,
-    color: colors.primary,
-    marginTop: spacing.xs,
-  },
-  actions: { flexWrap: "wrap", gap: spacing.sm, marginTop: spacing.md },
-  actionBtn: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  actionBtnText: {
-    ...typography.caption,
-    color: colors.text,
-    fontWeight: "600",
-  },
-  aiBtn: {
-    marginTop: spacing.md,
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    padding: spacing.md,
-    alignItems: "center",
-  },
-  aiBtnText: {
-    ...typography.body,
-    color: colors.background,
-    fontWeight: "600",
-  },
-  sectionRow: {
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: spacing.xl,
-  },
-  section: { ...typography.h3, color: colors.text },
-  link: { ...typography.caption, color: colors.primary, fontWeight: "600" },
-  milestone: {
-    padding: spacing.md,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    marginTop: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  milestoneDone: {
-    borderColor: colors.success,
-    backgroundColor: "rgba(74, 222, 128, 0.08)",
-  },
-  mRow: { alignItems: "flex-start" },
-  mCheck: { marginEnd: spacing.sm, marginTop: 2 },
-  mCheckIconStack: { width: 26, height: 26 },
-  mCheckFilled: { position: "absolute", start: 0, top: 0 },
-  mBody: { flex: 1 },
-  mTitleRow: {
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: spacing.sm,
-  },
-  mTitle: {
-    ...typography.body,
-    color: colors.text,
-    fontWeight: "600",
-    flex: 1,
-  },
-  mTitleDone: {
-    textDecorationLine: "line-through",
-    color: colors.textSecondary,
-  },
-  mStatus: { ...typography.caption, color: colors.textMuted },
-  mDesc: { ...typography.caption, color: colors.textSecondary, marginTop: 4 },
-  mMeta: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
-  mActions: { gap: spacing.md, marginTop: spacing.sm },
-  danger: { marginTop: spacing.xl, alignItems: "center" },
-  dangerText: { color: colors.error, ...typography.caption },
-  error: { color: colors.error, padding: spacing.lg },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "flex-end",
-  },
-  modal: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: spacing.lg,
-  },
-  modalTitle: {
-    ...typography.h3,
-    color: colors.text,
-    marginBottom: spacing.md,
-  },
-  input: {
-    backgroundColor: colors.background,
-    borderRadius: 10,
-    padding: spacing.md,
-    color: colors.text,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  multiline: { minHeight: 72 },
-  modalActions: { justifyContent: "space-between", marginTop: spacing.md },
-});

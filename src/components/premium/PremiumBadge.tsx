@@ -1,8 +1,40 @@
 import React from "react";
 import { View, Text, StyleSheet, ViewStyle } from "react-native";
-import { colors, typography, radius } from "@/theme/tokens";
+import { PlanoraColors, typography, radius } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
+
 import type { PlanType } from "@/store/subscriptionStore";
 import { useTranslation } from "react-i18next";
+
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+    badge: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: radius.sm,
+      backgroundColor: colors.primarySoft,
+      borderWidth: 1,
+      borderColor: colors.primary,
+    },
+    premium: {
+      backgroundColor: "rgba(94, 234, 212, 0.15)",
+      borderColor: colors.accent,
+    },
+    small: { paddingHorizontal: 6, paddingVertical: 2 },
+    text: {
+      ...typography.label,
+      color: colors.primary,
+      fontSize: 9,
+      fontWeight: "800",
+      letterSpacing: 0.8,
+    },
+    textPremium: { color: colors.accent },
+    textSmall: { fontSize: 8 },
+    row: {
+      alignItems: "center",
+      gap: 6,
+    },
+  });
 
 interface PremiumBadgeProps {
   variant?: "pro" | "premium";
@@ -15,6 +47,8 @@ export const PremiumBadge: React.FC<PremiumBadgeProps> = ({
   style,
   small,
 }) => {
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
   const isPremium = variant === "premium";
   return (
     <View
@@ -47,9 +81,15 @@ export function PremiumLabel({
   children: React.ReactNode;
 }) {
   const { i18n } = useTranslation();
+  const { styles, colors } = usePlanoraStyles(createStyles);
 
   return (
-    <View style={[styles.row, { flexDirection: i18n.language === 'ar' ? 'row-reverse' : 'row' }]}>
+    <View
+      style={[
+        styles.row,
+        { flexDirection: i18n.language === "ar" ? "row-reverse" : "row" },
+      ]}
+    >
       {children}
       <PremiumBadge
         variant={requiredPlan === "premium" ? "premium" : "pro"}
@@ -58,33 +98,3 @@ export function PremiumLabel({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.sm,
-    backgroundColor: colors.primarySoft,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  premium: {
-    backgroundColor: "rgba(94, 234, 212, 0.15)",
-    borderColor: colors.accent,
-  },
-  small: { paddingHorizontal: 6, paddingVertical: 2 },
-  text: {
-    ...typography.label,
-    color: colors.primary,
-    fontSize: 9,
-    fontWeight: "800",
-    letterSpacing: 0.8,
-  },
-  textPremium: { color: colors.accent },
-  textSmall: { fontSize: 8 },
-  row: {
-   
-    alignItems: "center",
-    gap: 6,
-  },
-});

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import {
   NavigationContainer,
   DarkTheme,
+  DefaultTheme,
   createNavigationContainerRef,
   ParamListBase,
 } from "@react-navigation/native";
@@ -23,8 +24,9 @@ import { AnimatedSplashScreen } from "@/screens/splash/AnimatedSplashScreen";
 import { GoalsStack } from "./GoalsStack";
 import { RoutinesStack } from "./RoutinesStack";
 import { AlarmsStack } from "./AlarmsStack";
-import { colors } from "@/theme/tokens";
 import { logger } from "@/utils/logger";
+import { usePlanoraTheme } from "@/theme/ThemeProvider";
+import { Text } from "react-native-paper";
 
 const Stack = createNativeStackNavigator();
 
@@ -47,25 +49,41 @@ function routeForScreen(screen: string): { name: string; params?: object } {
   }
 }
 
-const navTheme = {
-  ...DarkTheme,
-  colors: {
-    ...DarkTheme.colors,
-    background: colors.background,
-    card: colors.surface,
-    text: colors.text,
-    border: colors.border,
-    primary: colors.primary,
-  },
-};
+// const navTheme = {
+//   ...DarkTheme,
+//   colors: {
+//     ...DarkTheme.colors,
+//     background: colors.background,
+//     card: colors.surface,
+//     text: colors.text,
+//     border: colors.border,
+//     primary: colors.primary,
+//   },
+// };
 
 export const RootNavigator: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const { colors, isDark } = usePlanoraTheme();
+
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isInitialized = useAuthStore((s) => s.isInitialized);
   const hasCompletedOnboarding = useAuthStore((s) => s.hasCompletedOnboarding);
   const handledRef = useRef(false);
   const [showSplash, setShowSplash] = useState(true);
+
+  const navTheme = {
+    ...(isDark ? DarkTheme : DefaultTheme),
+
+    colors: {
+      ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
+
+      background: colors.background,
+      card: colors.surface,
+      text: colors.text,
+      border: colors.border,
+      primary: colors.primary,
+    },
+  };
 
   // Consume any pending navigation stored by a notification tap (foreground/background/cold start).
   const consumePending = useCallback(async () => {
@@ -149,10 +167,11 @@ export const RootNavigator: React.FC = () => {
               name="Focus"
               component={FocusScreen}
               options={{ presentation: "fullScreenModal" }}
-            />
+              />
             <Stack.Screen name="Goals" component={GoalsStack} />
             <Stack.Screen name="Routines" component={RoutinesStack} />
-            <Stack.Screen name="Alarms" component={AlarmsStack} />
+           
+            <Stack.Screen name="Alarms" component={AlarmsStack} /> 
           </>
         )}
       </Stack.Navigator>

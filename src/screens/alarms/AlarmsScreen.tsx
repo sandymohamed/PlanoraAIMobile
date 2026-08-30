@@ -25,16 +25,90 @@ import {
   showDeleteConfirmation,
   showError,
 } from "@/components/ConfirmationDialog";
-import { colors, spacing, typography } from "@/theme/tokens";
+import { PlanoraColors, spacing, typography } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
 import { format } from "date-fns";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { useScreenAnalytics } from "@/hooks/useScreenAnalytics";
 import { AnalyticsEvents } from "@/analytics/posthog";
-import { useAuthStore } from "@/store/authStore";
 import { apiClient } from "@/services/apiClient";
+
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    scroll: { flex: 1 },
+    scrollContent: { padding: spacing.lg, paddingBottom: 120 },
+    title: { ...typography.h1, color: colors.text },
+    sub: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginBottom: spacing.sm,
+    },
+    permBanner: {
+      alignItems: "center",
+      gap: spacing.sm,
+      padding: spacing.md,
+      backgroundColor: colors.primarySoft,
+      borderRadius: 8,
+      marginBottom: spacing.md,
+    },
+    permBody: { flex: 1 },
+    permText: { ...typography.body, color: colors.primary, fontWeight: "600" },
+    disBanner: {
+      alignItems: "center",
+      gap: spacing.sm,
+      padding: spacing.md,
+      backgroundColor: "#e47f7f",
+      borderRadius: 8,
+      marginBottom: spacing.md,
+    },
+    dismBody: { flex: 1 },
+    disText: { ...typography.body, color: "#760404", fontWeight: "600" },
+    permSub: { ...typography.caption, color: "#fff", marginTop: 2 },
+    section: {
+      ...typography.label,
+      color: colors.textMuted,
+      marginTop: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    row: {
+      alignItems: "center",
+      gap: spacing.sm,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    rowDisabled: { opacity: 0.65 },
+    statusDot: { width: 8, height: 8, borderRadius: 4 },
+    rowBody: { flex: 1 },
+    rowTitle: { ...typography.body, color: colors.text, fontWeight: "600" },
+    textMuted: { color: colors.textMuted },
+    rowMeta: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
+    empty: {
+      ...typography.body,
+      color: colors.textMuted,
+      marginBottom: spacing.lg,
+    },
+    fab: {
+      position: "absolute",
+      end: spacing.lg,
+      bottom: spacing.lg,
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.primary,
+      alignItems: "center",
+      justifyContent: "center",
+      elevation: 6,
+    },
+  });
 
 export const AlarmsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { styles, colors } = usePlanoraStyles(createStyles);
 
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language.startsWith("ar");
@@ -363,75 +437,3 @@ export const AlarmsScreen: React.FC = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  scroll: { flex: 1 },
-  scrollContent: { padding: spacing.lg, paddingBottom: 120 },
-  title: { ...typography.h1, color: colors.text },
-  sub: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-  },
-  permBanner: {
-    alignItems: "center",
-    gap: spacing.sm,
-    padding: spacing.md,
-    backgroundColor: colors.primarySoft,
-    borderRadius: 8,
-    marginBottom: spacing.md,
-  },
-  permBody: { flex: 1 },
-  permText: { ...typography.body, color: colors.primary, fontWeight: "600" },
-  disBanner: {
-    alignItems: "center",
-    gap: spacing.sm,
-    padding: spacing.md,
-    backgroundColor: "#e47f7f",
-    borderRadius: 8,
-    marginBottom: spacing.md,
-  },
-  dismBody: { flex: 1 },
-  disText: { ...typography.body, color: "#760404", fontWeight: "600" },
-  permSub: { ...typography.caption, color: "#fff", marginTop: 2 },
-  section: {
-    ...typography.label,
-    color: colors.textMuted,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  row: {
-    alignItems: "center",
-    gap: spacing.sm,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  rowDisabled: { opacity: 0.65 },
-  statusDot: { width: 8, height: 8, borderRadius: 4 },
-  rowBody: { flex: 1 },
-  rowTitle: { ...typography.body, color: colors.text, fontWeight: "600" },
-  textMuted: { color: colors.textMuted },
-  rowMeta: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
-  empty: {
-    ...typography.body,
-    color: colors.textMuted,
-    marginBottom: spacing.lg,
-  },
-  fab: {
-    position: "absolute",
-    end: spacing.lg,
-    bottom: spacing.lg,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 6,
-  },
-});

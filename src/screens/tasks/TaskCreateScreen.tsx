@@ -1,31 +1,43 @@
-import React, { useState, useRef } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useTaskStore } from '@/store/taskStore';
-import { CreateTaskData, TaskPriority, TaskStatus } from '@/types/task';
-import { TaskForm, TaskFormValues } from '@/components/tasks/TaskForm';
-import { useTaskDueDate, validateTaskForm } from '@/hooks/useTaskDueDate';
-import { Button } from '@/components/ui/Button';
-import { TasksStackParamList } from '@/navigation/TasksStack';
-import { colors, spacing } from '@/theme/tokens';
-import { getApiErrorMessage } from '@/utils/apiError';
-import { showError } from '@/components/ConfirmationDialog';
-import { setPendingAnalyticsContext } from '@/analytics/pendingContext';
-import { useTranslation } from 'react-i18next';
+import React, { useState, useRef } from "react";
+import { View, StyleSheet, ActivityIndicator } from "react-native";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useTaskStore } from "@/store/taskStore";
+import { CreateTaskData, TaskPriority, TaskStatus } from "@/types/task";
+import { TaskForm, TaskFormValues } from "@/components/tasks/TaskForm";
+import { useTaskDueDate, validateTaskForm } from "@/hooks/useTaskDueDate";
+import { Button } from "@/components/ui/Button";
+import { TasksStackParamList } from "@/navigation/TasksStack";
+import { PlanoraColors, spacing } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
+import { getApiErrorMessage } from "@/utils/apiError";
+import { showError } from "@/components/ConfirmationDialog";
+import { setPendingAnalyticsContext } from "@/analytics/pendingContext";
+import { useTranslation } from "react-i18next";
 
-type Route = RouteProp<TasksStackParamList, 'TaskCreate'>;
-type Nav = NativeStackNavigationProp<TasksStackParamList, 'TaskCreate'>;
+type Route = RouteProp<TasksStackParamList, "TaskCreate">;
+type Nav = NativeStackNavigationProp<TasksStackParamList, "TaskCreate">;
 
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    footer: {
+      padding: spacing.lg,
+      gap: spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderSubtle,
+    },
+  });
 export const TaskCreateScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { createTask, isLoading } = useTaskStore();
   const { t } = useTranslation();
-  
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
   const [values, setValues] = useState<TaskFormValues>({
-    title: '',
-    description: '',
+    title: "",
+    description: "",
     priority: TaskPriority.MEDIUM,
     status: TaskStatus.TODO,
     dueDate: route.params?.dueDate,
@@ -33,9 +45,13 @@ export const TaskCreateScreen: React.FC = () => {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const submittingRef = useRef(false);
-  const due = useTaskDueDate({ dueDate: route.params?.dueDate, dueTime: route.params?.dueTime });
+  const due = useTaskDueDate({
+    dueDate: route.params?.dueDate,
+    dueTime: route.params?.dueTime,
+  });
 
-  const patch = (p: Partial<TaskFormValues>) => setValues((v) => ({ ...v, ...p }));
+  const patch = (p: Partial<TaskFormValues>) =>
+    setValues((v) => ({ ...v, ...p }));
 
   const handleSave = async () => {
     if (submittingRef.current || isLoading) return;
@@ -47,7 +63,7 @@ export const TaskCreateScreen: React.FC = () => {
     submittingRef.current = true;
     const payload: CreateTaskData = {
       title: values.title.trim(),
-      description: values.description ?? '',
+      description: values.description ?? "",
       priority: values.priority,
       status: values.status,
       dueDate: values.dueDate,
@@ -58,13 +74,13 @@ export const TaskCreateScreen: React.FC = () => {
 
     try {
       if (route.params?.dueDate) {
-        setPendingAnalyticsContext({ taskCreateSource: 'calendar' });
+        setPendingAnalyticsContext({ taskCreateSource: "calendar" });
       }
       // ✅ createTask now uses optimistic updates - instant UI response
       await createTask(payload);
       navigation.goBack();
     } catch (e) {
-      showError('Could not create task', getApiErrorMessage(e));
+      showError("Could not create task", getApiErrorMessage(e));
     } finally {
       submittingRef.current = false;
     }
@@ -84,14 +100,18 @@ export const TaskCreateScreen: React.FC = () => {
       />
       <View style={styles.footer}>
         {isLoading ? <ActivityIndicator color={colors.primary} /> : null}
-        <Button label={t(`tasks.form.createTask`)} onPress={handleSave} loading={isLoading} disabled={isLoading} />
-        <Button label={t(`common.cancel`)} variant="ghost" onPress={() => navigation.goBack()} />
+        <Button
+          label={t(`tasks.form.createTask`)}
+          onPress={handleSave}
+          loading={isLoading}
+          disabled={isLoading}
+        />
+        <Button
+          label={t(`common.cancel`)}
+          variant="ghost"
+          onPress={() => navigation.goBack()}
+        />
       </View>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  footer: { padding: spacing.lg, gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.borderSubtle },
-});

@@ -1,9 +1,16 @@
-import { colors } from '@/theme/tokens';
+import { NativeStackNavigationOptions } from "@react-navigation/native-stack";
+import { PlanoraColors } from "@/theme/tokens";
 
-/** Shared native-stack header options with RTL-aware title alignment. */
-export const stackHeaderOptions = {
-  headerStyle: { backgroundColor: colors.surface },
+export const createStackHeaderOptions = (
+  colors: PlanoraColors
+): NativeStackNavigationOptions => ({
+  headerStyle: {
+    backgroundColor: colors.surface,
+  },
+
   headerTintColor: colors.text,
-  headerTitleAlign: 'center' as const,
-  headerBackTitleVisible: false,
-};
+
+  headerTitleAlign: "center",
+
+  headerBackVisible: false,
+});

@@ -20,19 +20,23 @@ import { ConfirmDialogHost } from "@/components/ConfirmDialogHost";
 import { ActionSheetHost } from "@/components/ActionSheetHost";
 import { useAuthStore } from "@/store/authStore";
 import { useSubscriptionStore } from "@/store/subscriptionStore";
-import { planoraTheme } from "@/theme/paperTheme";
+import { PlanoraThemeProvider, usePlanoraTheme } from "@/theme/ThemeProvider";
 import { initSentry, wrapApp } from "@/analytics/sentry";
 import { initPostHog } from "@/analytics/posthog";
-import { colors } from "@/theme/tokens";
-import { getApiBaseUrl, initializeRemoteConfig } from "@/config/remoteConfig";
+import { initializeRemoteConfig } from "@/config/remoteConfig";
 import { logger } from "@/utils/logger";
 import { ActiveAlarmBanner } from "@/components/ActiveAlarmBanner";
 import { reliableAlarmService } from "@/services/ReliableAlarmService";
 import { apiClient } from "@/services/apiClient";
 
-function App() {
+const AppContent = () => {
   const initializeAuth = useAuthStore((s) => s.initializeAuth);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  const { theme, colors, isDark } = usePlanoraTheme();
+  console.log("🔥 THEME:", theme);
+  console.log("🔥 COLORS:", colors);
+  console.log("🔥 IS DARK:", isDark);
 
   const [ready, setReady] = useState(false);
   const [activeAlarm, setActiveAlarm] = useState<{
@@ -40,31 +44,31 @@ function App() {
     title: string;
   } | null>(null);
 
-useEffect(() => {
-  let mounted = true;
+  useEffect(() => {
+    let mounted = true;
 
-  async function bootstrap() {
-    try {
-      await initializeI18n();
+    async function bootstrap() {
+      try {
+        await initializeI18n();
 
-      await initializeRemoteConfig();
+        await initializeRemoteConfig();
 
-      apiClient.updateBaseUrl();
-    } catch (error) {
-      console.error("App bootstrap failed:", error);
-    } finally {
-      if (mounted) {
-        setReady(true);
+        apiClient.updateBaseUrl();
+      } catch (error) {
+        console.error("App bootstrap failed:", error);
+      } finally {
+        if (mounted) {
+          setReady(true);
+        }
       }
     }
-  }
 
-  bootstrap();
+    bootstrap();
 
-  return () => {
-    mounted = false;
-  };
-}, []);
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     initSentry();
@@ -219,50 +223,57 @@ useEffect(() => {
   }
 
   return (
+    <PaperProvider theme={theme}>
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={colors.background}
+      />
+      {activeAlarm && (
+        <ActiveAlarmBanner
+          alarm={activeAlarm}
+          onStop={async () => {
+            try {
+              await reliableAlarmService.stopAlarm();
+
+              setActiveAlarm(null);
+            } catch (error) {
+              console.error("Failed to stop alarm:", error);
+            }
+          }}
+          onSnooze={async () => {
+            try {
+              const { useAlarmStore } = await import("@/store/alarmStore");
+
+              await useAlarmStore
+                .getState()
+                .snoozeAlarm(activeAlarm.alarmId, 5);
+
+              setActiveAlarm(null);
+            } catch (error) {
+              console.error("Failed to snooze alarm:", error);
+            }
+          }}
+          onPress={() => {
+            // Navigation can be added here later.
+            console.log("Opening alarm:", activeAlarm.alarmId);
+          }}
+        />
+      )}
+
+      <RootNavigator />
+      <ConfirmDialogHost />
+      <ActionSheetHost />
+    </PaperProvider>
+  );
+};
+
+function App() {
+  return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <PaperProvider theme={planoraTheme}>
-          <StatusBar
-            barStyle="light-content"
-            backgroundColor={colors.background}
-          />
-
-          {activeAlarm && (
-            <ActiveAlarmBanner
-              alarm={activeAlarm}
-              onStop={async () => {
-                try {
-                  await reliableAlarmService.stopAlarm();
-
-                  setActiveAlarm(null);
-                } catch (error) {
-                  console.error("Failed to stop alarm:", error);
-                }
-              }}
-              onSnooze={async () => {
-                try {
-                  const { useAlarmStore } = await import("@/store/alarmStore");
-
-                  await useAlarmStore
-                    .getState()
-                    .snoozeAlarm(activeAlarm.alarmId, 5);
-
-                  setActiveAlarm(null);
-                } catch (error) {
-                  console.error("Failed to snooze alarm:", error);
-                }
-              }}
-              onPress={() => {
-                // Navigation can be added here later.
-                console.log("Opening alarm:", activeAlarm.alarmId);
-              }}
-            />
-          )}
-
-          <RootNavigator />
-          <ConfirmDialogHost />
-          <ActionSheetHost />
-        </PaperProvider>
+        <PlanoraThemeProvider>
+          <AppContent />
+        </PlanoraThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

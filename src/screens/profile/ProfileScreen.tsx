@@ -12,14 +12,46 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useAuthStore } from "@/store/authStore";
 import { useSubscriptionStore } from "@/store/subscriptionStore";
 import { Card } from "@/components/ui/Card";
-import { colors, spacing, typography } from "@/theme/tokens";
+import { PlanoraColors, spacing, typography } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
 import { trackPremiumClick } from "@/store/subscriptionStore";
 import { useScreenAnalytics } from "@/hooks/useScreenAnalytics";
 import { AnalyticsEvents } from "@/analytics/posthog";
 import { chevronForwardIcon } from "@/utils/rtl";
 import { useRTL } from "@/hooks/useRTL";
 
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    title: { ...typography.h1, color: colors.text, marginBottom: spacing.lg },
+    name: { ...typography.h2, color: colors.text },
+    email: { ...typography.caption, color: colors.textSecondary },
+    badge: {
+      alignSelf: "flex-start",
+      backgroundColor: colors.primarySoft,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 8,
+      marginTop: spacing.sm,
+    },
+    badgeText: { ...typography.label, color: colors.primary, fontSize: 10 },
+    menuItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacing.md,
+      padding: spacing.md,
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      marginTop: spacing.xs,
+      marginBottom: spacing.xs,
+    },
+    menuHighlight: { borderWidth: 1, borderColor: colors.primary },
+    menuLabel: { ...typography.body, color: colors.text, flex: 1 },
+  });
+
 export const ProfileScreen: React.FC = () => {
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
   const navigation = useNavigation<any>();
   const { user, logout } = useAuthStore();
   const { isPremium } = useSubscriptionStore();
@@ -114,6 +146,8 @@ const MenuItem: React.FC<MenuItemProps> = ({
   highlight,
   danger,
 }) => {
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
   const {
     navigateNext,
     directionalTextStyle: dirText,
@@ -144,36 +178,9 @@ const MenuItem: React.FC<MenuItemProps> = ({
           danger && { color: colors.error },
         ]}
       >
-        {label} 
+        {label}
       </Text>
-      <Icon name={navigateNext()} size={20} color={colors.textMuted} /> 
+      <Icon name={navigateNext()} size={20} color={colors.textMuted} />
     </TouchableOpacity>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  title: { ...typography.h1, color: colors.text, marginBottom: spacing.lg },
-  name: { ...typography.h2, color: colors.text },
-  email: { ...typography.caption, color: colors.textSecondary },
-  badge: {
-    alignSelf: "flex-start",
-    backgroundColor: colors.primarySoft,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginTop: spacing.sm,
-  },
-  badgeText: { ...typography.label, color: colors.primary, fontSize: 10 },
-  menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    padding: spacing.md,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    marginBottom: spacing.sm,
-  },
-  menuHighlight: { borderWidth: 1, borderColor: colors.primary },
-  menuLabel: { ...typography.body, color: colors.text, flex: 1 },
-});

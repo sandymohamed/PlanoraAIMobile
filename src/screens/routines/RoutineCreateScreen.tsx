@@ -7,11 +7,19 @@ import { useAlarmStore } from "@/store/alarmStore";
 import { useTaskStore } from "@/store/taskStore";
 import { RoutineForm } from "@/components/routines/RoutineForm";
 import { CreateRoutineData } from "@/types/routine";
-import { colors } from "@/theme/tokens";
+import { PlanoraColors } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { showError } from "@/components/ConfirmationDialog";
 
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+  });
+
 export const RoutineCreateScreen: React.FC = () => {
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
   const navigation = useNavigation();
   const { t } = useTranslation();
   const fetchAlarms = useAlarmStore((s) => s.fetchAlarms);
@@ -42,7 +50,3 @@ export const RoutineCreateScreen: React.FC = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-});

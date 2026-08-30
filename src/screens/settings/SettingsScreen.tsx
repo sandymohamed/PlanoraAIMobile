@@ -10,13 +10,34 @@ import { useNavigation } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useRTL } from "@/hooks/useRTL";
-import { colors, spacing, typography } from "@/theme/tokens";
 import { useScreenAnalytics } from "@/hooks/useScreenAnalytics";
 import { AnalyticsEvents } from "@/analytics/posthog";
-import { chevronForwardIcon } from "@/utils/rtl";
+import { PlanoraColors, spacing, typography } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
+
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    row: {
+      alignItems: "center",
+      gap: spacing.md,
+      padding: spacing.md,
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      marginBottom: spacing.sm,
+    },
+    labelWrap: { flex: 1 },
+    label: { ...typography.body, color: colors.text },
+    subtitle: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+  });
 
 export const SettingsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { styles, colors } = usePlanoraStyles(createStyles);
 
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language.startsWith("ar");
@@ -42,9 +63,16 @@ export const SettingsScreen: React.FC = () => {
         route: "ChangePassword",
       },
       {
-        icon: "delete-outline",
-        label: t("settings.deleteAccount"),
-        route: "DeleteAccount",
+        icon: "brightness-4",
+        label: t("theme.title"),
+        subtitle: t("theme.subtitle"),
+        route: "Appearance",
+      },
+      {
+        icon: "translate",
+        label: t("settings.language"),
+        subtitle: t("settings.languageSubtitle"),
+        route: "LanguageSettings",
       },
       {
         icon: "bell-outline",
@@ -56,11 +84,11 @@ export const SettingsScreen: React.FC = () => {
         label: t("settings.privacy"),
         route: "PrivacySettings",
       },
+
       {
-        icon: "translate",
-        label: t("settings.language"),
-        subtitle: t("settings.languageSubtitle"),
-        route: "LanguageSettings",
+        icon: "delete-outline",
+        label: t("settings.deleteAccount"),
+        route: "DeleteAccount",
       },
       {
         icon: "help-circle-outline",
@@ -108,32 +136,9 @@ export const SettingsScreen: React.FC = () => {
               <Text style={[styles.subtitle]}>{item.subtitle}</Text>
             ) : null}
           </View>
-          <Icon
-            name={navigateNext()}
-            size={20}
-            color={colors.textMuted}
-          />
+          <Icon name={navigateNext()} size={20} color={colors.textMuted} />
         </TouchableOpacity>
       ))}
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  row: {
-    alignItems: "center",
-    gap: spacing.md,
-    padding: spacing.md,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    marginBottom: spacing.sm,
-  },
-  labelWrap: { flex: 1 },
-  label: { ...typography.body, color: colors.text },
-  subtitle: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-});

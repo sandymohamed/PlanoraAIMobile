@@ -1,43 +1,69 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useTaskStore } from '@/store/taskStore';
-import { TaskPriority, TaskStatus, UpdateTaskData } from '@/types/task';
-import { TaskForm, TaskFormValues } from '@/components/tasks/TaskForm';
-import { useTaskDueDate, validateTaskForm } from '@/hooks/useTaskDueDate';
-import { Button } from '@/components/ui/Button';
-import { TasksStackParamList } from '@/navigation/TasksStack';
-import { colors, spacing, typography } from '@/theme/tokens';
-import { getApiErrorMessage } from '@/utils/apiError';
-import { showError } from '@/components/ConfirmationDialog';
+import React, { useEffect, useState, useRef } from "react";
+import { View, StyleSheet, ActivityIndicator, Text } from "react-native";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useTaskStore } from "@/store/taskStore";
+import { TaskPriority, TaskStatus, UpdateTaskData } from "@/types/task";
+import { TaskForm, TaskFormValues } from "@/components/tasks/TaskForm";
+import { useTaskDueDate, validateTaskForm } from "@/hooks/useTaskDueDate";
+import { Button } from "@/components/ui/Button";
+import { TasksStackParamList } from "@/navigation/TasksStack";
+import { PlanoraColors, spacing, typography } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
+import { getApiErrorMessage } from "@/utils/apiError";
+import { showError } from "@/components/ConfirmationDialog";
 
-type Route = RouteProp<TasksStackParamList, 'TaskEdit'>;
-type Nav = NativeStackNavigationProp<TasksStackParamList, 'TaskEdit'>;
+type Route = RouteProp<TasksStackParamList, "TaskEdit">;
+type Nav = NativeStackNavigationProp<TasksStackParamList, "TaskEdit">;
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    footer: {
+      padding: spacing.lg,
+      gap: spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderSubtle,
+    },
+    center: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: colors.background,
+    },
+    missing: {
+      ...typography.body,
+      color: colors.textSecondary,
+      marginBottom: spacing.md,
+    },
+  });
 
 export const TaskEditScreen: React.FC = () => {
   const navigation = useNavigation<Nav>();
   const { taskId } = useRoute<Route>().params;
-  
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
   // Read from store - instant render from cache
   const tasks = useTaskStore((s) => s.tasks);
   const isLoading = useTaskStore((s) => s.isLoading);
   const isLoaded = useTaskStore((s) => s.isLoaded);
   const fetchTask = useTaskStore((s) => s.fetchTask);
   const updateTask = useTaskStore((s) => s.updateTask);
-  
+
   const task = tasks.find((t) => t.id === taskId);
 
   const [values, setValues] = useState<TaskFormValues>({
-    title: '',
-    description: '',
+    title: "",
+    description: "",
     priority: TaskPriority.MEDIUM,
     status: TaskStatus.TODO,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoadingTask, setIsLoadingTask] = useState(false);
   const submittingRef = useRef(false);
-  const due = useTaskDueDate({ dueDate: task?.dueDate, dueTime: task?.dueTime });
+  const due = useTaskDueDate({
+    dueDate: task?.dueDate,
+    dueTime: task?.dueTime,
+  });
   const { syncFromValues } = due;
 
   // ✅ Only fetch if task doesn't exist in cache
@@ -57,7 +83,7 @@ export const TaskEditScreen: React.FC = () => {
     if (!task) return;
     setValues({
       title: task.title,
-      description: task.description || '',
+      description: task.description || "",
       priority: task.priority,
       status: task.status,
       dueDate: task.dueDate,
@@ -66,7 +92,8 @@ export const TaskEditScreen: React.FC = () => {
     syncFromValues({ dueDate: task.dueDate, dueTime: task.dueTime });
   }, [syncFromValues, task]);
 
-  const patch = (p: Partial<TaskFormValues>) => setValues((v) => ({ ...v, ...p }));
+  const patch = (p: Partial<TaskFormValues>) =>
+    setValues((v) => ({ ...v, ...p }));
 
   const handleSave = async () => {
     if (submittingRef.current || isLoading) return;
@@ -88,7 +115,7 @@ export const TaskEditScreen: React.FC = () => {
       await updateTask(taskId, payload);
       navigation.goBack();
     } catch (e) {
-      showError('Could not update task', getApiErrorMessage(e));
+      showError("Could not update task", getApiErrorMessage(e));
     } finally {
       submittingRef.current = false;
     }
@@ -107,7 +134,11 @@ export const TaskEditScreen: React.FC = () => {
     return (
       <View style={styles.center}>
         <Text style={styles.missing}>Task not found</Text>
-        <Button label="Go back" variant="ghost" onPress={() => navigation.goBack()} />
+        <Button
+          label="Go back"
+          variant="ghost"
+          onPress={() => navigation.goBack()}
+        />
       </View>
     );
   }
@@ -125,16 +156,18 @@ export const TaskEditScreen: React.FC = () => {
         onClearDue={() => patch(due.clearDue())}
       />
       <View style={styles.footer}>
-        <Button label="Save changes" onPress={handleSave} loading={isLoading} disabled={isLoading} />
-        <Button label="Cancel" variant="ghost" onPress={() => navigation.goBack()} />
+        <Button
+          label="Save changes"
+          onPress={handleSave}
+          loading={isLoading}
+          disabled={isLoading}
+        />
+        <Button
+          label="Cancel"
+          variant="ghost"
+          onPress={() => navigation.goBack()}
+        />
       </View>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  footer: { padding: spacing.lg, gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.borderSubtle },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
-  missing: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.md },
-});

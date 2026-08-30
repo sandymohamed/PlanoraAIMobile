@@ -11,9 +11,47 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "@/services/apiClient";
 import { useRTL } from "@/hooks/useRTL";
-import { colors, spacing, typography } from "@/theme/tokens";
+import { PlanoraColors, spacing, typography } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
 import { useAlarmStore } from "@/store/alarmStore";
 import { nativeAlarmBridge } from "@/services/NativeAlarmBridge";
+
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+
+    intro: {
+      ...typography.caption,
+      color: colors.textMuted,
+      marginBottom: spacing.md,
+    },
+    settingRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: spacing.md,
+      paddingVertical: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderSubtle,
+    },
+
+    textContainer: {
+      flex: 1,
+    },
+
+    label: {
+      ...typography.body,
+      fontWeight: "600",
+      color: colors.text,
+      marginBottom: spacing.xs,
+    },
+
+    description: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      lineHeight: 20,
+    },
+  });
 
 type NotificationPrefs = {
   pushNotifications?: boolean;
@@ -23,6 +61,8 @@ type NotificationPrefs = {
 };
 
 export const NotificationSettingsScreen: React.FC = () => {
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
   const { t } = useTranslation();
   const { directionalTextStyle: dirText } = useRTL();
 
@@ -65,17 +105,9 @@ export const NotificationSettingsScreen: React.FC = () => {
       await apiClient.put("/me/notification-settings", next);
 
       if (!value) {
-        console.log("Notifications disabled → cancelling all native alarms");
-
         await nativeAlarmBridge.cancelAllAlarms();
-
-        console.log("All native alarms cancelled");
       } else {
-        console.log("Notifications enabled → fetching and rescheduling alarms");
-
         await fetchAlarms(1, 1000, true);
-
-        console.log("Alarms fetched/rescheduled");
       }
     } catch (error) {
       console.error("Failed to update notification settings", error);
@@ -114,6 +146,7 @@ export const NotificationSettingsScreen: React.FC = () => {
         </View>
 
         <Switch
+        style={{backgroundColor: colors.border}}
           value={notificationsEnabled}
           onValueChange={updatePushNotifications}
         />
@@ -121,39 +154,3 @@ export const NotificationSettingsScreen: React.FC = () => {
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-
-  intro: {
-    ...typography.caption,
-    color: colors.textMuted,
-    marginBottom: spacing.md,
-  },
-  settingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderSubtle,
-  },
-
-  textContainer: {
-    flex: 1,
-  },
-
-  label: {
-    ...typography.body,
-    fontWeight: "600",
-    color: colors.text,
-    marginBottom: spacing.xs,
-  },
-
-  description: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-});

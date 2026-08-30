@@ -10,7 +10,7 @@ export type AnalyticsPropertyValue = string | number | boolean;
 export type AnalyticsProperties = Record<string, AnalyticsPropertyValue | undefined>;
 
 export function getAppVersion(): string {
-  return appPackage.version || '1.0.0';
+  return appPackage.version || '1.0.4';
 }
 
 export function getBuildNumber(): string {

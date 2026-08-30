@@ -3,11 +3,34 @@ import { View, Text, StyleSheet, ScrollView, Share } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { apiClient } from '@/services/apiClient';
 import { Button } from '@/components/ui/Button';
-import { colors, spacing, typography, radius } from '@/theme/tokens';
+import { PlanoraColors, spacing, typography,radius } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
 import { track, AnalyticsEvents } from '@/analytics/posthog';
 import { useScreenAnalytics } from '@/hooks/useScreenAnalytics';
 
+
+
+const createStyles = (colors: PlanoraColors) =>
+  StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  loading: { ...typography.body, color: colors.textSecondary, textAlign: 'center', marginTop: 80 },
+  card: { borderRadius: radius.xl, padding: spacing.xl, marginBottom: spacing.lg },
+  label: { ...typography.label, color: 'rgba(255,255,255,0.7)' },
+  score: { fontSize: 64, fontWeight: '800', color: '#fff', marginVertical: spacing.sm },
+  scoreLabel: { ...typography.body, color: colors.accent },
+  stats: { flexDirection: 'row', gap: spacing.xl, marginTop: spacing.md },
+  stat: { alignItems: 'center' },
+  statValue: { ...typography.h1, color: '#fff' },
+  statLabel: { ...typography.caption, color: colors.textSecondary },
+  section: { ...typography.h3, color: colors.text, marginTop: spacing.md, marginBottom: spacing.sm },
+  insight: { ...typography.body, color: colors.text, marginBottom: spacing.sm },
+  rec: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.sm },
+});
+
+
 export const WeeklyReviewScreen: React.FC = () => {
+    const { styles, colors } = usePlanoraStyles(createStyles);
+  
   const [review, setReview] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -65,25 +88,12 @@ export const WeeklyReviewScreen: React.FC = () => {
   );
 };
 
-const Stat: React.FC<{ value: number; label: string }> = ({ value, label }) => (
+const Stat: React.FC<{ value: number; label: string }> = ({ value, label }) =>{
+    const { styles, colors } = usePlanoraStyles(createStyles);
+  
+return  (
   <View style={styles.stat}>
     <Text style={styles.statValue}>{value}</Text>
     <Text style={styles.statLabel}>{label}</Text>
   </View>
-);
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  loading: { ...typography.body, color: colors.textSecondary, textAlign: 'center', marginTop: 80 },
-  card: { borderRadius: radius.xl, padding: spacing.xl, marginBottom: spacing.lg },
-  label: { ...typography.label, color: 'rgba(255,255,255,0.7)' },
-  score: { fontSize: 64, fontWeight: '800', color: '#fff', marginVertical: spacing.sm },
-  scoreLabel: { ...typography.body, color: colors.accent },
-  stats: { flexDirection: 'row', gap: spacing.xl, marginTop: spacing.md },
-  stat: { alignItems: 'center' },
-  statValue: { ...typography.h1, color: '#fff' },
-  statLabel: { ...typography.caption, color: colors.textSecondary },
-  section: { ...typography.h3, color: colors.text, marginTop: spacing.md, marginBottom: spacing.sm },
-  insight: { ...typography.body, color: colors.text, marginBottom: spacing.sm },
-  rec: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.sm },
-});
+)};
