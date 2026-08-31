@@ -103,6 +103,7 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     try {
       await loginWithGoogle();
     } catch (e) {
+      console.log("Error: ", e)
       setError(getApiErrorMessage(e));
     } finally {
       setGoogleLoading(false);

@@ -9,7 +9,6 @@ import { format, isSameDay, startOfDay, subDays } from "date-fns";
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   RefreshControl,
@@ -20,16 +19,21 @@ import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import LinearGradient from "react-native-linear-gradient";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+
 import { useAuthStore } from "@/store/authStore";
 import { useTaskStore } from "@/store/taskStore";
 import { TaskListRow } from "@/components/tasks/TaskListRow";
 import { showError } from "@/components/ConfirmationDialog";
 import { getApiErrorMessage } from "@/utils/apiError";
+
 import { routineService } from "@/services/routineService";
 import { goalService } from "@/services/goalService";
-import { Goal } from "@/types/goal";
+
+import { Goal, GoalStatus } from "@/types/goal";
 import { Task, TaskStatus } from "@/types/task";
 import { Routine } from "@/types/routine";
+import { MilestoneStatus } from "@/types/goal";
+
 import { Card } from "@/components/ui/Card";
 import { PlanoraColors, spacing, typography, radius } from "@/theme/tokens";
 import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
@@ -37,245 +41,116 @@ import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
 import { track, AnalyticsEvents } from "@/analytics/posthog";
 import { useScreenAnalytics } from "@/hooks/useScreenAnalytics";
 import { setPendingAnalyticsContext } from "@/analytics/pendingContext";
+
 import { AdBanner } from "@/features/ads";
-import { PremiumLabel } from "@/components/premium/PremiumBadge";
+
 import { syncIfNeeded } from "@/services/sync/appSync";
 import { alarmPermissionService } from "@/services/AlarmPermissionService";
-import { chevronForwardIcon, writingDirection } from "@/utils/rtl";
+
 import { useRTL } from "@/hooks/useRTL";
-
-const createStyles = (colors: PlanoraColors) =>
-  StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
-    content: { padding: spacing.lg, paddingBottom: spacing.xxl },
-    greeting: { ...typography.hero, color: colors.text },
-    sub: {
-      ...typography.body,
-      width: "100%",
-      color: colors.textSecondary,
-      marginBottom: spacing.lg,
-    },
-
-    title: { ...typography.h1, color: colors.text },
-
-    permBanner: {
-      alignItems: "center",
-      gap: spacing.sm,
-      padding: spacing.md,
-      backgroundColor: colors.primarySoft,
-      borderRadius: 8,
-      marginBottom: spacing.md,
-    },
-    permBody: { flex: 1 },
-    permText: { ...typography.body, color: colors.primary, fontWeight: "600" },
-    permSub: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      marginTop: 2,
-    },
-
-    focusCard: { marginBottom: spacing.md },
-    sectionLabel: {
-      ...typography.label,
-      color: colors.textMuted,
-      marginBottom: spacing.sm,
-    },
-    focusTitle: { ...typography.h2, color: colors.text },
-    focusMeta: {
-      ...typography.caption,
-      color: colors.textSecondary,
-      marginTop: 4,
-    },
-    aiCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      padding: spacing.md,
-      borderRadius: radius.lg,
-      marginBottom: spacing.md,
-      gap: spacing.md,
-    },
-    aiText: { flex: 1 },
-    aiTitle: { ...typography.h3, color: "#fff" },
-    aiBody: {
-      ...typography.caption,
-      color: "rgba(255,255,255,0.85)",
-      marginTop: 4,
-    },
-    quickRow: {
-      flexDirection: "row",
-      gap: spacing.sm,
-      marginBottom: spacing.lg,
-    },
-    quickItem: {
-      flex: 1,
-      backgroundColor: colors.surface,
-      borderRadius: radius.md,
-      padding: spacing.md,
-      alignItems: "center",
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-    },
-    quickIcon: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: colors.primarySoft,
-      alignItems: "center",
-      justifyContent: "center",
-      marginBottom: spacing.sm,
-    },
-    quickLabel: {
-      ...typography.caption,
-      color: colors.text,
-      fontWeight: "600",
-      fontSize: 8,
-    },
-    sectionHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      marginBottom: spacing.sm,
-      marginTop: spacing.sm,
-    },
-    sectionTitle: { ...typography.h3, color: colors.text },
-    sectionAction: {
-      ...typography.caption,
-      color: colors.primary,
-      fontWeight: "600",
-    },
-    taskRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.sm,
-      paddingVertical: spacing.sm,
-    },
-    taskTitle: { ...typography.body, color: colors.text, flex: 1 },
-    streakBadge: {
-      ...typography.caption,
-      color: colors.accent,
-      fontWeight: "700",
-    },
-    progressWrap: { marginBottom: spacing.md },
-    progressHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      marginBottom: 6,
-    },
-    progressPct: { ...typography.caption, color: colors.primary },
-    progressTrack: {
-      height: 6,
-      backgroundColor: colors.border,
-      borderRadius: 3,
-      overflow: "hidden",
-    },
-    progressFill: {
-      height: "100%",
-      backgroundColor: colors.primary,
-      borderRadius: 3,
-    },
-    streakCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.md,
-      marginTop: spacing.md,
-    },
-    streakNum: { ...typography.h3, color: colors.text },
-    streakMeta: { ...typography.caption, color: colors.textSecondary },
-    emptyText: {
-      ...typography.body,
-      color: colors.textMuted,
-      padding: spacing.sm,
-    },
-    loadingText: {
-      ...typography.body,
-      color: colors.textMuted,
-      padding: spacing.sm,
-    },
-  });
+import { createStyles } from "./CreateStyle";
 
 export const HomeScreen: React.FC = () => {
   const { styles, colors } = usePlanoraStyles(createStyles);
 
   const navigation = useNavigation<any>();
   const { t, i18n } = useTranslation();
-  const isArabic = i18n.language.startsWith("ar");
 
-  const {
-    navigateNext,
-    arrowBack,
-    directionalTextStyle: dirText,
-    rowDirection,
-  } = useRTL();
-
-  // ✅ Read from store directly - instant data
   const user = useAuthStore((s) => s.user);
+
   const tasks = useTaskStore((s) => s.tasks);
   const isLoaded = useTaskStore((s) => s.isLoaded);
 
-  // ✅ Store actions
   const fetchTasks = useTaskStore((s) => s.fetchTasks);
   const completeTask = useTaskStore((s) => s.completeTask);
   const uncompleteTask = useTaskStore((s) => s.uncompleteTask);
 
-  // ✅ Local state for non-store data
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
+
   const [refreshing, setRefreshing] = useState(false);
   const [isLoadingRoutines, setIsLoadingRoutines] = useState(false);
   const [isLoadingGoals, setIsLoadingGoals] = useState(false);
 
-  // ✅ Refs to prevent double loading
   const loadRoutinesRef = useRef(false);
   const loadGoalsRef = useRef(false);
 
+  const { navigateNext, directionalTextStyle: dirText } = useRTL();
+
+  const isArabic = i18n.language.startsWith("ar");
+
   useScreenAnalytics(AnalyticsEvents.HOME_OPENED);
 
-  // ✅ Memoized greeting - no re-render on every frame
+  // -------------------------------------------------------------------------
+  // Greeting
+  // -------------------------------------------------------------------------
+
   const greeting = useMemo(() => {
-    const h = new Date().getHours();
-    if (h < 12) return t("home.goodMorning");
-    if (h < 17) return t("home.goodAfternoon");
+    const hour = new Date().getHours();
+
+    if (hour < 12) return t("home.goodMorning");
+    if (hour < 17) return t("home.goodAfternoon");
+
     return t("home.goodEvening");
   }, [t]);
 
-  // ✅ Load non-critical data in background (non-blocking)
+  // -------------------------------------------------------------------------
+  // Load routines
+  // -------------------------------------------------------------------------
+
   const loadRoutines = useCallback(async () => {
     if (loadRoutinesRef.current) return;
+
     loadRoutinesRef.current = true;
 
     try {
       setIsLoadingRoutines(true);
-      const r = await routineService.getUserRoutines();
-      setRoutines(r.filter((x) => x.enabled).slice(0, 3));
+
+      const result = await routineService.getUserRoutines();
+
+      setRoutines(result.filter((item) => item.enabled).slice(0, 3));
     } catch {
-      // Keep existing data
+      // Keep existing data.
     } finally {
       setIsLoadingRoutines(false);
+      loadRoutinesRef.current = false;
     }
   }, []);
 
+  // -------------------------------------------------------------------------
+  // Load goals
+  // -------------------------------------------------------------------------
+
   const loadGoals = useCallback(async () => {
     if (loadGoalsRef.current) return;
+
     loadGoalsRef.current = true;
 
     try {
       setIsLoadingGoals(true);
-      const gRes = await goalService.getGoals({ limit: 5 });
-      setGoals((gRes.data || []).slice(0, 3));
+
+      const result = await goalService.getGoals({
+        limit: 10,
+      });
+
+      setGoals(result.data || []);
     } catch {
-      // Keep existing data
+      // Keep existing data.
     } finally {
       setIsLoadingGoals(false);
+      loadGoalsRef.current = false;
     }
   }, []);
 
-  // ✅ Load data only on first mount
+  // -------------------------------------------------------------------------
+  // Initial loading
+  // -------------------------------------------------------------------------
+
   useEffect(() => {
-    // If tasks aren't loaded, fetch them (but don't block UI)
     if (!isLoaded) {
       fetchTasks().catch(() => {});
     }
 
-    // Load routines and goals in background
     const task = InteractionManager.runAfterInteractions(() => {
       loadRoutines();
       loadGoals();
@@ -284,38 +159,57 @@ export const HomeScreen: React.FC = () => {
     return () => task.cancel();
   }, [isLoaded, fetchTasks, loadRoutines, loadGoals]);
 
-  // ✅ On focus, only refresh in background if needed (non-blocking)
+  // -------------------------------------------------------------------------
+  // Sync
+  // -------------------------------------------------------------------------
+
   useFocusEffect(
     useCallback(() => {
       const taskStore = useTaskStore.getState();
+
       const needsRefresh = taskStore.needsRefresh && taskStore.needsRefresh();
 
       if (needsRefresh) {
         const timer = setTimeout(() => {
           syncIfNeeded().catch(() => {});
         }, 500);
+
         return () => clearTimeout(timer);
       }
     }, []),
   );
+
+  // -------------------------------------------------------------------------
+  // Permissions
+  // -------------------------------------------------------------------------
+
   const [permissionsGranted, setPermissionsGranted] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
       const checkPermissions = async () => {
-        const perms = await alarmPermissionService.checkAllPermissions();
-        setPermissionsGranted(perms.allGranted);
+        const permissions = await alarmPermissionService.checkAllPermissions();
+
+        setPermissionsGranted(permissions.allGranted);
       };
 
       checkPermissions().catch(() => {});
     }, []),
   );
 
-  // ✅ Pull to refresh - only time user waits
+  // -------------------------------------------------------------------------
+  // Refresh
+  // -------------------------------------------------------------------------
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+
+    loadRoutinesRef.current = false;
+    loadGoalsRef.current = false;
+
     try {
       await fetchTasks();
+
       await Promise.all([loadRoutines(), loadGoals()]);
     } catch (error) {
       console.error("Refresh failed:", error);
@@ -324,47 +218,122 @@ export const HomeScreen: React.FC = () => {
     }
   }, [fetchTasks, loadRoutines, loadGoals]);
 
-  // ✅ Memoized today's tasks - only recomputes when tasks change
+  // -------------------------------------------------------------------------
+  // Today's tasks
+  // -------------------------------------------------------------------------
+
   const todayTasks = useMemo(() => {
     const today = new Date();
+
     return tasks
       .filter(
-        (t) =>
-          t.dueDate &&
-          isSameDay(new Date(t.dueDate), today) &&
-          !t.metadata?.isRoutineTask &&
-          t.status !== TaskStatus.DONE,
+        (task) =>
+          task.dueDate &&
+          isSameDay(new Date(task.dueDate), today) &&
+          !task.metadata?.isRoutineTask &&
+          task.status !== TaskStatus.DONE &&
+          !task.isDeleted,
       )
       .slice(0, 5);
   }, [tasks]);
 
-  // ✅ Memoized completed tasks for streak calculation
+  // -------------------------------------------------------------------------
+  // Completed tasks / streak
+  // -------------------------------------------------------------------------
+
   const completedTasks = useMemo(() => {
     return tasks.filter(
-      (t) => t.status === TaskStatus.DONE && !t.metadata?.isRoutineTask,
+      (task) =>
+        task.status === TaskStatus.DONE &&
+        !task.metadata?.isRoutineTask &&
+        !task.isDeleted,
     );
   }, [tasks]);
 
-  // ✅ Memoized streak stats - only recomputes when completed tasks change
   const streakStats = useMemo(
     () => calculateCompletionStreak(completedTasks, t),
     [completedTasks, t],
   );
 
-  // ✅ Memoized navigation handlers
-  const toggleTaskComplete = useCallback(
-    async (task: Task) => {
-      setPendingAnalyticsContext({ taskCompleteSource: "today" });
-      if (task.status === TaskStatus.DONE) await uncompleteTask(task.id);
-      else await completeTask(task.id);
-    },
-    [completeTask, uncompleteTask],
-  );
+  // -------------------------------------------------------------------------
+  // User state
+  // -------------------------------------------------------------------------
 
+  const isNewUser = useMemo(() => {
+    const hasGoals = goals.length > 0;
+
+    const hasRealTasks = tasks.some(
+      (task) => !task.metadata?.isRoutineTask && !task.isDeleted,
+    );
+
+    return !hasGoals && !hasRealTasks;
+  }, [goals, tasks]);
+
+  // -------------------------------------------------------------------------
+  // ACTIVE GOAL
+  // -------------------------------------------------------------------------
+  const [activeGoalTargetDate, setActiveGoalTargetDate] = useState<
+    Date  | null
+  >(null);
+
+  const activeGoal = useMemo(() => {
+    return (
+      goals.find(
+        (goal) => !goal.isDeleted && goal.status === GoalStatus.ACTIVE,
+      ) || null
+    );
+  }, [goals]);
+
+  useEffect(() => {
+    setActiveGoalTargetDate(
+      activeGoal?.targetDate ? new Date(activeGoal.targetDate) : null,
+    );
+  }, [activeGoal]);
+
+  // -------------------------------------------------------------------------
+  // CURRENT MILESTONE
+  // -------------------------------------------------------------------------
+
+  // const currentMilestone = useMemo(() => {
+  //   if (!activeGoal?.milestones?.length) {
+  //     return null;
+  //   }
+
+  //   return (
+  //     activeGoal.milestones.sort((a, b) => {
+  //       /**
+  //        * If data somehow contains more than one milestone,
+  //        * prefer the one with the lowest order.
+  //        */
+  //       return (a.order ?? 0) - (b.order ?? 0);
+  //     })[0] || null
+  //   );
+  // }, [activeGoal]);
+
+  // -------------------------------------------------------------------------
+  // Navigation
+  // -------------------------------------------------------------------------
+
+  /**
+   * This is the ONLY primary CTA for creating a goal.
+   * The user creates the goal first, then can open Goal Details and
+   * generate an AI plan there.
+   */
   const navigateToGoals = useCallback(() => {
-    track(AnalyticsEvents.AI_PLANNER_OPENED, { source: "home" });
     navigation.navigate("Goals");
   }, [navigation]);
+
+  const navigateToGoalDetail = useCallback(
+    (goalId: string) => {
+      navigation.navigate("Goals", {
+        screen: "GoalDetail",
+        params: {
+          goalId,
+        },
+      });
+    },
+    [navigation],
+  );
 
   const navigateToFocus = useCallback(
     () => navigation.navigate("Focus"),
@@ -387,7 +356,10 @@ export const HomeScreen: React.FC = () => {
   );
 
   const navigateToTasks = useCallback(
-    () => navigation.navigate("Tasks", { screen: "TasksList" }),
+    () =>
+      navigation.navigate("Tasks", {
+        screen: "TasksList",
+      }),
     [navigation],
   );
 
@@ -395,14 +367,41 @@ export const HomeScreen: React.FC = () => {
     (taskId: string) => {
       navigation.navigate("Tasks", {
         screen: "TaskDetail",
-        params: { taskId },
+        params: {
+          taskId,
+        },
       });
     },
     [navigation],
   );
 
-  // ✅ Check if data is ready to show
-  const isDataReady = isLoaded;
+  const navigateToCalendar = useCallback(
+    () => navigation.navigate("Calendar"),
+    [navigation],
+  );
+
+  // -------------------------------------------------------------------------
+  // Complete / uncomplete task
+  // -------------------------------------------------------------------------
+
+  const toggleTaskComplete = useCallback(
+    async (task: Task) => {
+      setPendingAnalyticsContext({
+        taskCompleteSource: "today",
+      });
+
+      if (task.status === TaskStatus.DONE) {
+        await uncompleteTask(task.id);
+      } else {
+        await completeTask(task.id);
+      }
+    },
+    [completeTask, uncompleteTask],
+  );
+
+  // -------------------------------------------------------------------------
+  // Render
+  // -------------------------------------------------------------------------
 
   return (
     <ScrollView
@@ -417,22 +416,36 @@ export const HomeScreen: React.FC = () => {
       }
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.greeting}>
+      {/* ================================================================
+          HEADER
+      ================================================================= */}
+
+      <Text style={[styles.greeting, dirText()]}>
         {greeting}
         {user?.name ? `, ${user.name.split(" ")[0]}` : ""}
       </Text>
 
-      <Text style={styles.sub}>{t("home.todayReady")}</Text>
+      <Text style={[styles.sub, dirText()]}>
+        {isNewUser ? t("home.getStartedSubtitle") : t("home.todayReady")}
+      </Text>
+
+      {/* ================================================================
+          PERMISSION BANNER
+      ================================================================= */}
 
       {!permissionsGranted && (
         <TouchableOpacity
           style={[
             styles.permBanner,
-            { flexDirection: isArabic ? "row-reverse" : "row" },
+            {
+              flexDirection: isArabic ? "row-reverse" : "row",
+            },
           ]}
           onPress={() => alarmPermissionService.requestAllPermissions()}
+          activeOpacity={0.8}
         >
           <Icon name="shield-check-outline" size={18} color={colors.primary} />
+
           <View style={styles.permBody}>
             <Text
               style={[
@@ -445,6 +458,7 @@ export const HomeScreen: React.FC = () => {
             >
               {t("alarms.verifyPermissions")}
             </Text>
+
             <Text
               style={[
                 styles.permSub,
@@ -460,212 +474,559 @@ export const HomeScreen: React.FC = () => {
         </TouchableOpacity>
       )}
 
-      {/* Today's focus */}
-      <Card elevated style={styles.focusCard}>
-        <Text style={styles.sectionLabel}>{t("home.todaysFocusLabel")}</Text>
-        <Text style={styles.focusTitle}>
-          {todayTasks.length > 0
-            ? `${todayTasks.length} ${t("home.todaysTasks")}`
-            : t("home.noTasksToday")}
-        </Text>
-        <Text style={styles.focusMeta}>
-          {todayTasks.length > 0 ? t("home.focusMeta") : t("home.relaxAndPlan")}
-        </Text>
-      </Card>
+      {/* ================================================================
+          NEW USER
+      ================================================================= */}
 
-      {/* AI suggestion */}
-      <TouchableOpacity onPress={navigateToGoals} activeOpacity={0.8}>
-        <LinearGradient
-          colors={[colors.gradientStart, colors.gradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[
-            styles.aiCard,
-            { flexDirection: i18n.language === "ar" ? "row-reverse" : "row" },
-            //  { flexDirection: rowDirection() },
-          ]}
-        >
-          <Icon name="star-shooting-outline" size={28} color="#fff" />
-          <View style={styles.aiText}>
-            <PremiumLabel requiredPlan="pro">
-              <Text style={styles.aiTitle}>{t("home.aiPlanner")}</Text>
-            </PremiumLabel>
-            <Text style={styles.aiBody}>{t("home.aiPlannerBody")}</Text>
-          </View>
-          <Icon
-            name={i18n.language === "ar" ? "chevron-left" : "chevron-right"}
-            // name={navigateNext()}
-            size={24}
-            color="rgba(255,255,255,0.8)"
-          />
-        </LinearGradient>
-      </TouchableOpacity>
+      {isNewUser ? (
+        <>
+          <Card style={styles.welcomeCard}>
+            <LinearGradient
+              colors={[colors.gradientStart, colors.gradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.welcomeGradient}
+            >
+              <View style={styles.welcomeIcon}>
+                <Icon name="target" size={26} color="#fff" />
+              </View>
 
-      {/* Quick actions row */}
-      <View style={styles.quickRow}>
-        <QuickAction
-          icon="timer-outline"
-          label={t("home.focus")}
-          onPress={navigateToFocus}
-        />
-        <QuickAction
-          icon="alarm"
-          label={t("navigation.alarms")}
-          onPress={navigateToAlarms}
-        />
-        <QuickAction
-          icon="repeat"
-          label={t("navigation.routines")}
-          onPress={navigateToRoutines}
-        />
-        <QuickAction
-          icon="chart-timeline-variant"
-          label={t("home.weekly")}
-          onPress={navigateToWeeklyReview}
-        />
-      </View>
+              <Text
+                style={[
+                  styles.welcomeTitle,
+                  {
+                    textAlign: isArabic ? "right" : "left",
+                  },
+                ]}
+              >
+                {t("home.getStartedTitle")}
+              </Text>
 
-      {/* Today's tasks preview */}
-      <SectionHeader
-        title={t("home.todaysTasks")}
-        action={t("home.seeAll")}
-        onAction={navigateToTasks}
-      />
-      <Card>
-        {todayTasks.length === 0 ? (
-          <Text style={styles.emptyText}>{t("home.noTasksToday")}</Text>
-        ) : (
-          todayTasks.map((task) => (
-            <TaskListRow
-              key={task.id}
-              task={task}
-              compact
-              dismissOnComplete={false}
-              onPress={() => navigateToTaskDetail(task.id)}
-              onToggleComplete={async () => {
-                try {
-                  await toggleTaskComplete(task);
-                } catch (e) {
-                  showError(t("common.error"), getApiErrorMessage(e));
-                  throw e;
-                }
-              }}
-            />
-          ))
-        )}
-      </Card>
+              <Text
+                style={[
+                  styles.welcomeBody,
+                  {
+                    textAlign: isArabic ? "right" : "left",
+                  },
+                ]}
+              >
+                {t("home.getStartedBody")}
+              </Text>
 
-      {/* Active routines */}
-      <SectionHeader
-        title={t("home.activeRoutines")}
-        action={t("home.manage")}
-        onAction={navigateToRoutines}
-      />
-      <Card>
-        {isLoadingRoutines ? (
-          <Text style={styles.loadingText}>{t("home.loading")}</Text>
-        ) : routines.length === 0 ? (
-          <Text style={styles.emptyText}>{t("home.noActiveRoutines")}</Text>
-        ) : (
-          routines.map((r) => (
-            <RoutineRow
-              key={r.id}
-              name={r.title}
-              streak={r.routineTasks?.filter((t) => t.completed).length || 0}
-            />
-          ))
-        )}
-      </Card>
+              {/* --------------------------------------------------------
+                  ONE CTA ONLY
+              --------------------------------------------------------- */}
 
-      {/* Goal progress */}
-      <SectionHeader
-        title={t("home.goalProgress")}
-        action={t("navigation.goals")}
-        onAction={navigateToGoals}
-      />
-      <Card>
-        {isLoadingGoals ? (
-          <Text style={styles.loadingText}>{t("home.loading")}</Text>
-        ) : goals.length === 0 ? (
-          <Text style={styles.emptyText}>{t("home.noGoals")}</Text>
-        ) : (
-          goals.map((g) => (
-            <ProgressBar
-              key={g.id}
-              label={g.title}
-              progress={Math.round(g.progress || 0)}
-            />
-          ))
-        )}
-      </Card>
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={navigateToGoals}
+                activeOpacity={0.85}
+              >
+                <Icon name="plus" size={21} color={colors.primary} />
 
-      {/* Streak */}
-      <Card style={styles.streakCard}>
-        <Icon name="fire" size={32} color={colors.warning} />
-        <View>
-          <Text style={styles.streakNum}>
-            {t("home.dayStreak", { count: streakStats.currentStreak })}
+                <Text style={styles.primaryButtonText}>
+                  {t("home.createGoal", {
+                    defaultValue: "Create a Goal",
+                  })}
+                </Text>
+              </TouchableOpacity>
+            </LinearGradient>
+          </Card>
+
+          {/* ============================================================
+              PRODUCT EXPLANATION
+          ============================================================ */}
+
+          <Text style={[styles.exploreTitle, dirText()]}>
+            {t("home.howPlanoraHelps")}
           </Text>
-          <Text style={styles.streakMeta}>{streakStats.message}</Text>
-        </View>
-      </Card>
+
+          <Text style={[styles.exploreSubtitle, dirText()]}>
+            {t("home.howPlanoraHelpsBody")}
+          </Text>
+
+          <View
+            style={[
+              styles.featureGrid,
+              {
+                flexDirection: isArabic ? "row-reverse" : "row",
+              },
+            ]}
+          >
+            <FeatureCard
+              icon="target"
+              title={t("home.featureGoalsTitle")}
+              body={t("home.featureGoalsBody")}
+              onPress={navigateToGoals}
+            />
+
+            <FeatureCard
+              icon="check-circle-outline"
+              title={t("home.featureTasksTitle")}
+              body={t("home.featureTasksBody")}
+              onPress={navigateToTasks}
+            />
+
+            <FeatureCard
+              icon="repeat"
+              title={t("home.featureHabitsTitle")}
+              body={t("home.featureHabitsBody")}
+              onPress={navigateToRoutines}
+            />
+
+            <FeatureCard
+              icon="calendar-month-outline"
+              title={t("home.featureCalendarTitle")}
+              body={t("home.featureCalendarBody")}
+              onPress={navigateToCalendar}
+            />
+          </View>
+        </>
+      ) : (
+        <>
+          {/* ============================================================
+              EXISTING USER DASHBOARD
+          ============================================================ */}
+
+          {/* ============================================================
+              ACTIVE GOAL
+          ============================================================ */}
+
+          {isLoadingGoals ? (
+            <Card style={styles.activeGoalCard}>
+              <Text style={[styles.loadingText, dirText()]}>
+                {t("home.loading")}
+              </Text>
+            </Card>
+          ) : activeGoal ? (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => navigateToGoalDetail(activeGoal.id)}
+            >
+              <Card elevated style={styles.activeGoalCard}>
+                <Text style={styles.sectionLabel}>{t("home.activeGoal")}</Text>
+
+                <View
+                  style={[
+                    styles.activeGoalHeader,
+                    {
+                      flexDirection: isArabic ? "row-reverse" : "row",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.activeGoalTitle,
+                      {
+                        textAlign: isArabic ? "right" : "left",
+                      },
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {activeGoal.title}
+                  </Text>
+
+                  <Icon
+                    name={isArabic ? "chevron-left" : "chevron-right"}
+                    size={24}
+                    color={colors.textMuted}
+                    style={styles.goalArrow}
+                  />
+                </View>
+
+                {/* {activeGoal.targetDate && (
+                  <Text style={[styles.goalMeta, dirText()]}>
+                    {t("home.goalTargetDate", {
+                      defaultValue: "Target: {{date}}",
+                      date: format(
+                        new Date(activeGoal.targetDate),
+                        "MMM d, yyyy",
+                      ),
+                    })}
+                  </Text>
+                )} */}
+
+                {/* ------------------------------------------------------
+                    GOAL PROGRESS
+                ------------------------------------------------------- */}
+
+                <View style={styles.progressWrap}>
+                  <View style={styles.progressHeader}>
+                    <Text style={styles.progressLabel}>
+                      {t("home.goalProgress", {
+                        defaultValue: "Progress",
+                      })}
+                    </Text>
+
+                    <Text style={styles.progressPct}>
+                      {Math.round(
+                        Math.max(0, Math.min(100, activeGoal.progress || 0)),
+                      )}
+                      %
+                    </Text>
+                  </View>
+
+                  <View style={styles.progressTrack}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        {
+                          width: `${Math.max(
+                            0,
+                            Math.min(100, activeGoal.progress || 0),
+                          )}%`,
+                        },
+                      ]}
+                    />
+                  </View>
+                </View>
+
+                {/* ------------------------------------------------------
+                    CURRENT MILESTONE
+                ------------------------------------------------------- */}
+{/* 
+                {currentMilestone && (
+                  <View
+                    style={[
+                      styles.milestoneCard,
+                      {
+                        alignItems: "stretch",
+                      },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.milestoneHeader,
+                        {
+                          flexDirection: isArabic ? "row-reverse" : "row",
+                        },
+                      ]}
+                    >
+                      <Icon
+                        name="flag-checkered"
+                        size={17}
+                        color={colors.primary}
+                      />
+
+                      <Text
+                        style={[
+                          styles.milestoneLabel,
+                          {
+                            marginLeft: isArabic ? 0 : spacing.xs,
+                            marginRight: isArabic ? spacing.xs : 0,
+                            textAlign: isArabic ? "right" : "left",
+                          },
+                        ]}
+                      >
+                        {t("home.currentMilestone", {
+                          defaultValue: "Current milestone",
+                        })}
+                      </Text>
+                    </View>
+
+                    <Text
+                      style={[
+                        styles.milestoneTitle,
+                        {
+                          textAlign: isArabic ? "right" : "left",
+                        },
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {currentMilestone.title}
+                    </Text>
+
+                    {currentMilestone.description && (
+                      <Text
+                        style={[
+                          styles.milestoneDescription,
+                          {
+                            textAlign: isArabic ? "right" : "left",
+                          },
+                        ]}
+                        numberOfLines={3}
+                      >
+                        {currentMilestone.description}
+                      </Text>
+                    )}
+
+                    {currentMilestone.targetDate && (
+                      <Text
+                        style={[
+                          styles.milestoneDate,
+                          {
+                            textAlign: isArabic ? "right" : "left",
+                          },
+                        ]}
+                      >
+                        {t("home.milestoneTargetDate", {
+                          defaultValue: "Target: {{date}}",
+                          date: format(
+                            new Date(currentMilestone.targetDate),
+                            "MMM d, yyyy",
+                          ),
+                        })}
+                      </Text>
+                    )}
+                  </View>
+                )} */}
+              </Card>
+            </TouchableOpacity>
+          ) : (
+            /* ============================================================
+               NO ACTIVE GOAL
+            ============================================================ */
+
+            <Card style={styles.noGoalCard}>
+              <View style={styles.noGoalIcon}>
+                <Icon name="target" size={24} color={colors.primary} />
+              </View>
+
+              <Text
+                style={[
+                  styles.noGoalTitle,
+                  {
+                    textAlign: isArabic ? "right" : "left",
+                  },
+                ]}
+              >
+                {t("home.noActiveGoalTitle", {
+                  defaultValue: "Ready for your next goal?",
+                })}
+              </Text>
+
+              <Text
+                style={[
+                  styles.noGoalBody,
+                  {
+                    textAlign: isArabic ? "right" : "left",
+                  },
+                ]}
+              >
+                {t("home.noActiveGoalBody", {
+                  defaultValue:
+                    "Create a goal to give your work a clear direction and track your progress.",
+                })}
+              </Text>
+
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={navigateToGoals}
+                activeOpacity={0.8}
+              >
+                <Icon name="plus" size={19} color={colors.primary} />
+
+                <Text style={styles.secondaryButtonText}>
+                  {t("home.createGoal", {
+                    defaultValue: "Create a Goal",
+                  })}
+                </Text>
+              </TouchableOpacity>
+            </Card>
+          )}
+
+          {/* ============================================================
+              TODAY'S EXECUTION
+          ============================================================ */}
+
+          <Card elevated style={styles.focusCard}>
+            <Text style={styles.sectionLabel}>
+              {t("home.todaysFocusLabel")}
+            </Text>
+
+            <Text style={[styles.focusTitle, dirText()]}>
+              {todayTasks.length > 0
+                ? `${todayTasks.length} ${t("home.todaysTasks")}`
+                : t("home.noTasksToday")}
+            </Text>
+
+            <Text style={[styles.focusMeta, dirText()]}>
+              {todayTasks.length > 0
+                ? t("home.focusMeta")
+                : t("home.relaxAndPlan")}
+            </Text>
+          </Card>
+
+          {/* ============================================================
+              SUPPORTING EXECUTION TOOLS
+          ============================================================ */}
+
+          <View style={styles.quickRow}>
+            <QuickAction
+              icon="timer-outline"
+              label={t("home.focus")}
+              onPress={navigateToFocus}
+            />
+
+            <QuickAction
+              icon="alarm"
+              label={t("navigation.alarms")}
+              onPress={navigateToAlarms}
+            />
+
+            <QuickAction
+              icon="repeat"
+              label={t("navigation.routines", {
+                defaultValue: "Habits",
+              })}
+              onPress={navigateToRoutines}
+            />
+
+            <QuickAction
+              icon="chart-timeline-variant"
+              label={t("home.weekly")}
+              onPress={navigateToWeeklyReview}
+            />
+          </View>
+
+          {/* ============================================================
+              TODAY'S TASKS
+          ============================================================ */}
+
+          <SectionHeader
+            title={t("home.todaysTasks")}
+            action={t("home.seeAll")}
+            onAction={navigateToTasks}
+          />
+
+          <Card>
+            {todayTasks.length === 0 ? (
+              <Text style={[styles.emptyText, dirText()]}>
+                {t("home.noTasksToday")}
+              </Text>
+            ) : (
+              todayTasks.map((task) => (
+                <TaskListRow
+                  key={task.id}
+                  task={task}
+                  compact
+                  dismissOnComplete={false}
+                  onPress={() => navigateToTaskDetail(task.id)}
+                  onToggleComplete={async () => {
+                    try {
+                      await toggleTaskComplete(task);
+                    } catch (error) {
+                      showError(t("common.error"), getApiErrorMessage(error));
+
+                      throw error;
+                    }
+                  }}
+                />
+              ))
+            )}
+          </Card>
+
+          {/* ============================================================
+              HABITS
+          ============================================================ */}
+
+          <SectionHeader
+            title={t("home.activeRoutines", {
+              defaultValue: "Active Habits",
+            })}
+            action={t("home.manage")}
+            onAction={navigateToRoutines}
+          />
+
+          <Card>
+            {isLoadingRoutines ? (
+              <Text style={[styles.loadingText, dirText()]}>
+                {t("home.loading")}
+              </Text>
+            ) : routines.length === 0 ? (
+              <Text style={[styles.emptyText, dirText()]}>
+                {t("home.noActiveRoutines", {
+                  defaultValue: "No active habits yet.",
+                })}
+              </Text>
+            ) : (
+              routines.map((routine) => (
+                <RoutineRow
+                  key={routine.id}
+                  name={routine.title}
+                  streak={
+                    routine.routineTasks?.filter((task) => task.completed)
+                      .length || 0
+                  }
+                />
+              ))
+            )}
+          </Card>
+
+          {/* ============================================================
+              STREAK
+          ============================================================ */}
+
+          <Card style={styles.streakCard}>
+            <Icon name="fire" size={32} color={colors.warning} />
+
+            <View>
+              <Text style={[styles.streakNum, dirText()]}>
+                {t("home.dayStreak", {
+                  count: streakStats.currentStreak,
+                })}
+              </Text>
+
+              <Text style={[styles.streakMeta, dirText()]}>
+                {streakStats.message}
+              </Text>
+            </View>
+          </Card>
+        </>
+      )}
 
       <AdBanner placement="home" />
     </ScrollView>
   );
 };
 
-// ✅ Helper functions with memoization
-function dayKey(date: Date) {
-  return format(startOfDay(date), "yyyy-MM-dd");
-}
+// ============================================================================
+// FEATURE CARD
+// ============================================================================
 
-function getTaskCompletionDate(task: Task): Date | null {
-  if (task.status !== TaskStatus.DONE || task.isDeleted) {
-    return null;
-  }
-  const rawDate = task.completedAt || task.updatedAt;
-  if (!rawDate) return null;
+const FeatureCard: React.FC<{
+  icon: string;
+  title: string;
+  body: string;
+  onPress?: () => void;
+}> = React.memo(({ icon, title, body, onPress }) => {
+  const { styles, colors } = usePlanoraStyles(createStyles);
 
-  const date = new Date(rawDate);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
+  const content = (
+    <>
+      <View style={styles.featureIcon}>
+        <Icon name={icon} size={21} color={colors.primary} />
+      </View>
 
-function calculateCompletionStreak(completedTasks: Task[], t: TFunction) {
-  const completedDayKeys = new Set<string>();
+      <Text style={styles.featureTitle}>{title}</Text>
 
-  completedTasks.forEach((task) => {
-    const completedAt = getTaskCompletionDate(task);
-    if (completedAt) {
-      completedDayKeys.add(dayKey(completedAt));
-    }
-  });
+      <Text style={styles.featureBody} numberOfLines={3}>
+        {body}
+      </Text>
+    </>
+  );
 
-  const today = startOfDay(new Date());
-  const startDay = completedDayKeys.has(dayKey(today))
-    ? today
-    : startOfDay(subDays(today, 1));
-  let currentStreak = 0;
-  let cursor = startDay;
-
-  while (completedDayKeys.has(dayKey(cursor))) {
-    currentStreak += 1;
-    cursor = startOfDay(subDays(cursor, 1));
+  if (!onPress) {
+    return <View style={styles.featureCard}>{content}</View>;
   }
 
-  const weeklyCompletedDays = Array.from({ length: 7 }, (_, index) =>
-    dayKey(subDays(today, index)),
-  ).filter((key) => completedDayKeys.has(key)).length;
+  return (
+    <TouchableOpacity
+      style={styles.featureCard}
+      onPress={onPress}
+      activeOpacity={0.75}
+    >
+      {content}
+    </TouchableOpacity>
+  );
+});
 
-  const message =
-    currentStreak > 0
-      ? t("home.activeDaysThisWeek", { completed: weeklyCompletedDays })
-      : t("home.startStreak");
+FeatureCard.displayName = "FeatureCard";
 
-  return { currentStreak, weeklyCompletedDays, message };
-}
+// ============================================================================
+// QUICK ACTION
+// ============================================================================
 
-// ✅ Memoized sub-components
 const QuickAction: React.FC<{
   icon: string;
   label: string;
@@ -680,8 +1041,9 @@ const QuickAction: React.FC<{
       activeOpacity={0.7}
     >
       <View style={styles.quickIcon}>
-        <Icon name={icon} size={22} color={colors.primary} />
+        <Icon name={icon} size={21} color={colors.primary} />
       </View>
+
       <Text style={styles.quickLabel}>{label}</Text>
     </TouchableOpacity>
   );
@@ -689,23 +1051,50 @@ const QuickAction: React.FC<{
 
 QuickAction.displayName = "QuickAction";
 
+// ============================================================================
+// SECTION HEADER
+// ============================================================================
+
 const SectionHeader: React.FC<{
   title: string;
   action: string;
   onAction: () => void;
 }> = React.memo(({ title, action, onAction }) => {
   const { i18n } = useTranslation();
-  const { styles, colors } = usePlanoraStyles(createStyles);
+
+  const { styles } = usePlanoraStyles(createStyles);
+
+  const isArabic = i18n.language.startsWith("ar");
 
   return (
     <View
       style={[
         styles.sectionHeader,
-        { flexDirection: i18n.language === "ar" ? "row-reverse" : "row" },
+        {
+          flexDirection: isArabic ? "row-reverse" : "row",
+        },
       ]}
     >
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <TouchableOpacity onPress={onAction}>
+      <Text
+        style={[
+          styles.sectionTitle,
+          {
+            textAlign: isArabic ? "right" : "left",
+          },
+        ]}
+      >
+        {title}
+      </Text>
+
+      <TouchableOpacity
+        onPress={onAction}
+        hitSlop={{
+          top: 8,
+          bottom: 8,
+          left: 8,
+          right: 8,
+        }}
+      >
         <Text style={styles.sectionAction}>{action}</Text>
       </TouchableOpacity>
     </View>
@@ -714,38 +1103,93 @@ const SectionHeader: React.FC<{
 
 SectionHeader.displayName = "SectionHeader";
 
-const RoutineRow: React.FC<{ name: string; streak: number }> = React.memo(
-  ({ name, streak }) => {
-    const { styles, colors } = usePlanoraStyles(createStyles);
+// ============================================================================
+// ROUTINE / HABIT ROW
+// ============================================================================
 
-    return (
-      <View style={styles.taskRow}>
-        <Icon name="repeat" size={20} color={colors.accent} />
-        <Text style={styles.taskTitle}>{name}</Text>
-        <Text style={styles.streakBadge}>{streak}d</Text>
-      </View>
-    );
-  },
-);
+const RoutineRow: React.FC<{
+  name: string;
+  streak: number;
+}> = React.memo(({ name, streak }) => {
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
+  return (
+    <View style={styles.taskRow}>
+      <Icon name="repeat" size={20} color={colors.accent} />
+
+      <Text style={styles.taskTitle} numberOfLines={1}>
+        {name}
+      </Text>
+
+      <Text style={styles.streakBadge}>{streak}d</Text>
+    </View>
+  );
+});
 
 RoutineRow.displayName = "RoutineRow";
 
-const ProgressBar: React.FC<{ label: string; progress: number }> = React.memo(
-  ({ label, progress }) => {
-    const { styles } = usePlanoraStyles(createStyles);
+// ============================================================================
+// DATE / STREAK HELPERS
+// ============================================================================
 
-    return (
-      <View style={styles.progressWrap}>
-        <View style={styles.progressHeader}>
-          <Text style={styles.taskTitle}>{label}</Text>
-          <Text style={styles.progressPct}>{progress}%</Text>
-        </View>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${progress}%` }]} />
-        </View>
-      </View>
-    );
-  },
-);
+function dayKey(date: Date) {
+  return format(startOfDay(date), "yyyy-MM-dd");
+}
 
-ProgressBar.displayName = "ProgressBar";
+function getTaskCompletionDate(task: Task): Date | null {
+  if (task.status !== TaskStatus.DONE || task.isDeleted) {
+    return null;
+  }
+
+  const rawDate = task.completedAt || task.updatedAt;
+
+  if (!rawDate) return null;
+
+  const date = new Date(rawDate);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function calculateCompletionStreak(completedTasks: Task[], t: TFunction) {
+  const completedDayKeys = new Set<string>();
+
+  completedTasks.forEach((task) => {
+    const completedAt = getTaskCompletionDate(task);
+
+    if (completedAt) {
+      completedDayKeys.add(dayKey(completedAt));
+    }
+  });
+
+  const today = startOfDay(new Date());
+
+  const startDay = completedDayKeys.has(dayKey(today))
+    ? today
+    : startOfDay(subDays(today, 1));
+
+  let currentStreak = 0;
+  let cursor = startDay;
+
+  while (completedDayKeys.has(dayKey(cursor))) {
+    currentStreak += 1;
+
+    cursor = startOfDay(subDays(cursor, 1));
+  }
+
+  const weeklyCompletedDays = Array.from({ length: 7 }, (_, index) =>
+    dayKey(subDays(today, index)),
+  ).filter((key) => completedDayKeys.has(key)).length;
+
+  const message =
+    currentStreak > 0
+      ? t("home.activeDaysThisWeek", {
+          completed: weeklyCompletedDays,
+        })
+      : t("home.startStreak");
+
+  return {
+    currentStreak,
+    weeklyCompletedDays,
+    message,
+  };
+}
