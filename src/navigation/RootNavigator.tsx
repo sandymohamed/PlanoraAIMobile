@@ -26,7 +26,8 @@ import { RoutinesStack } from "./RoutinesStack";
 import { AlarmsStack } from "./AlarmsStack";
 import { logger } from "@/utils/logger";
 import { usePlanoraTheme } from "@/theme/ThemeProvider";
-import { Text } from "react-native-paper";
+import { hasSeenFirstLoginSetup } from "@/services/firstLoginSetupStorage";
+import { FirstLoginSetupNavigator } from "./FirstLoginSetupNavigator";
 
 const Stack = createNativeStackNavigator();
 
@@ -49,21 +50,10 @@ function routeForScreen(screen: string): { name: string; params?: object } {
   }
 }
 
-// const navTheme = {
-//   ...DarkTheme,
-//   colors: {
-//     ...DarkTheme.colors,
-//     background: colors.background,
-//     card: colors.surface,
-//     text: colors.text,
-//     border: colors.border,
-//     primary: colors.primary,
-//   },
-// };
-
 export const RootNavigator: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { colors, isDark } = usePlanoraTheme();
+  const user = useAuthStore((s) => s.user);
 
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isInitialized = useAuthStore((s) => s.isInitialized);
@@ -71,19 +61,9 @@ export const RootNavigator: React.FC = () => {
   const handledRef = useRef(false);
   const [showSplash, setShowSplash] = useState(true);
 
-  const navTheme = {
-    ...(isDark ? DarkTheme : DefaultTheme),
+  const [firstLoginSetupChecked, setFirstLoginSetupChecked] = useState(false);
 
-    colors: {
-      ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
-
-      background: colors.background,
-      card: colors.surface,
-      text: colors.text,
-      border: colors.border,
-      primary: colors.primary,
-    },
-  };
+  const [seenFirstLoginSetup, setSeenFirstLoginSetup] = useState(false);
 
   // Consume any pending navigation stored by a notification tap (foreground/background/cold start).
   const consumePending = useCallback(async () => {
@@ -102,6 +82,45 @@ export const RootNavigator: React.FC = () => {
   }, [isAuthenticated]);
 
   useEffect(() => {
+    if (!isInitialized) {
+      return;
+    }
+
+    if (!isAuthenticated || !user?.id) {
+      setFirstLoginSetupChecked(true);
+      return;
+    }
+
+    let mounted = true;
+
+    const checkFirstLoginSetup = async () => {
+      try {
+        const seen = await hasSeenFirstLoginSetup(user.id);
+
+        if (mounted) {
+          setSeenFirstLoginSetup(seen);
+        }
+      } catch (error) {
+        logger.warn("Failed to check first login setup", error);
+
+        if (mounted) {
+          setSeenFirstLoginSetup(false);
+        }
+      } finally {
+        if (mounted) {
+          setFirstLoginSetupChecked(true);
+        }
+      }
+    };
+
+    void checkFirstLoginSetup();
+
+    return () => {
+      mounted = false;
+    };
+  }, [isInitialized, isAuthenticated, user?.id]);
+
+  useEffect(() => {
     logger.info(
       "RootNavigator: setting up AppState listener for pending navigation",
     );
@@ -115,10 +134,27 @@ export const RootNavigator: React.FC = () => {
     return () => sub.remove();
   }, [consumePending]);
 
-  if (!isInitialized || showSplash) {
+  if (
+    !isInitialized ||
+    showSplash ||
+    (isAuthenticated && !firstLoginSetupChecked)
+  ) {
     return <AnimatedSplashScreen onFinish={() => setShowSplash(false)} />;
   }
 
+  const navTheme = {
+    ...(isDark ? DarkTheme : DefaultTheme),
+
+    colors: {
+      ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
+
+      background: colors.background,
+      card: colors.surface,
+      text: colors.text,
+      border: colors.border,
+      primary: colors.primary,
+    },
+  };
   return (
     <NavigationContainer
       key={i18n.language}
@@ -136,6 +172,16 @@ export const RootNavigator: React.FC = () => {
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         ) : !isAuthenticated ? (
           <Stack.Screen name="Auth" component={AuthNavigator} />
+        ) : !seenFirstLoginSetup ? (
+          <Stack.Screen name="FirstLoginSetup">
+            {() => (
+              <FirstLoginSetupNavigator
+                onComplete={() => {
+                  setSeenFirstLoginSetup(true);
+                }}
+              />
+            )}
+          </Stack.Screen>
         ) : (
           <>
             <Stack.Screen name="Main" component={MainTabs} />
@@ -167,11 +213,11 @@ export const RootNavigator: React.FC = () => {
               name="Focus"
               component={FocusScreen}
               options={{ presentation: "fullScreenModal" }}
-              />
+            />
             <Stack.Screen name="Goals" component={GoalsStack} />
             <Stack.Screen name="Routines" component={RoutinesStack} />
-           
-            <Stack.Screen name="Alarms" component={AlarmsStack} /> 
+
+            <Stack.Screen name="Alarms" component={AlarmsStack} />
           </>
         )}
       </Stack.Navigator>

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -11,8 +11,8 @@ import { useTranslation } from "react-i18next";
 import { CreateRoutineData, RoutineFrequency } from "@/types/routine";
 import { PlanoraColors, spacing, typography } from "@/theme/tokens";
 import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
-import { DateTimePicker } from "@/components/ui/DateTimePicker";
 import formatTime from "@/utils/formatTime";
+import { RoutineTimePicker } from "../ui/RoutineTimePicker";
 
 const createStyles = (colors: PlanoraColors) =>
   StyleSheet.create({
@@ -116,12 +116,21 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   // For the DateTimePicker - show local time
-  const timeValue = (() => {
-    const [h, m] = localTime.split(":").map(Number);
-    const d = new Date();
-    d.setHours(h, m, 0, 0);
-    return d;
-  })();
+  // const timeValue = (() => {
+  //   const [h, m] = localTime.split(":").map(Number);
+  //   const d = new Date();
+  //   d.setHours(h, m, 0, 0);
+  //   return d;
+  // })();
+
+  // const timeValue = useMemo(() => {
+  //   const [h, m] = localTime.split(":").map(Number);
+
+  //   const d = new Date();
+  //   d.setHours(Number.isFinite(h) ? h : 8, Number.isFinite(m) ? m : 0, 0, 0);
+
+  //   return d;
+  // }, [localTime]);
 
   const toggleDay = (d: number) => {
     setDays((prev) =>
@@ -270,7 +279,7 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
       >
         {t("routines.form.time")}
       </Text>
-      <DateTimePicker
+      {/* <DateTimePicker
         mode="time"
         value={timeValue}
         onChange={(d) => {
@@ -281,7 +290,9 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
         }}
         quickActions={false}
         showClear={false}
-      />
+      /> */}
+
+      <RoutineTimePicker value={localTime} onChange={setLocalTime} />
       {frequency === "WEEKLY" && (
         <>
           <Text

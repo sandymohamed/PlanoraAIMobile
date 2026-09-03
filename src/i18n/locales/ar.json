@@ -2,6 +2,7 @@
   "common": {
     "ok": "حسناً",
     "cancel": "إلغاء",
+    "continue": "متابعة",
     "confirm": "تأكيد",
     "dismiss": "إغلاق",
     "save": "حفظ",
@@ -583,7 +584,9 @@
     "noGoals": "لا توجد أهداف — اضغط على الذكاء في تبويب الأهداف",
     "dayStreak": "سلسلة {{count}} يوم",
     "activeDaysThisWeek": "{{completed}}/7 أيام نشطة هذا الأسبوع — استمر",
-    "startStreak": "أكمل مهمة اليوم لبدء سلسلتك"
+    "startStreak": "أكمل مهمة اليوم لبدء سلسلتك",
+        "loading": "جاري التحميل..."
+
   },
   "language": {
     "title": "اللغة",

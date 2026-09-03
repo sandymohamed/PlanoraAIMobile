@@ -2,6 +2,7 @@
   "common": {
     "ok": "OK",
     "cancel": "Cancel",
+    "continue": "Continue",
     "confirm": "Confirm",
     "dismiss": "Dismiss",
     "save": "Save",
@@ -582,7 +583,8 @@
     "noGoals": "No goals yet, Create your first goal and let AI build your plan.",
     "dayStreak": "{{count}} day streak",
     "activeDaysThisWeek": "{{completed}}/7 active days this week — keep going",
-    "startStreak": "Complete a task today to start your streak"
+    "startStreak": "Complete a task today to start your streak",
+    "loading": "Loading…"
   },
   "language": {
     "title": "Language",

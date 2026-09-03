@@ -195,6 +195,7 @@ export const GoalCreateScreen: React.FC = () => {
       <Text style={[styles.label, textDir]}>{t("goals.form.targetDate")}</Text>
       <DateTimePicker
         mode="date"
+        quickActions={false}
         value={targetDate}
         onChange={setTargetDate}
         placeholder={t("goals.form.noTargetDate")}
