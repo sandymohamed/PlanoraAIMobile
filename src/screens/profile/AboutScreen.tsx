@@ -12,7 +12,7 @@ import { useNavigation } from "@react-navigation/native";
 import { PlanoraColors, spacing, typography } from "@/theme/tokens";
 import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
 
-const VERSION = "1.0.4";
+const VERSION = "1.0.5";
 const CONTACT_EMAIL = "mailto:planora0ai@gmail.com";
 const WEBSITE_URL = "https://planora-ai-landing-page.vercel.app";
 
