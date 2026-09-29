@@ -5,9 +5,8 @@ import { apiClient } from "@/services/apiClient";
 import { logger } from "@/utils/logger";
 import { headlessNotificationHandler } from "@/services/headlessNotificationHandler";
 import { processOfflineQueue } from "@/services/offlineQueue";
-import { Alert } from "react-native";
 import type { FirebaseMessagingTypes } from "@react-native-firebase/messaging";
-import notifee, { AndroidImportance } from "@notifee/react-native";
+import notifee from "@notifee/react-native";
 
 type NavigationTarget = {
   screen: string;

@@ -9,7 +9,7 @@ export enum LogLevel {
 
 class Logger {
   private log(level: LogLevel, message: string, data?: unknown): void {
-    if (!__DEV__) return;
+    // if (!__DEV__) return;
     const prefix = `[Planora ${level}]`;
     // if (data !== undefined) {
     //   console.log(prefix, message, data);

@@ -34,9 +34,6 @@ const AppContent = () => {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const { theme, colors, isDark } = usePlanoraTheme();
-  console.log("🔥 THEME:", theme);
-  console.log("🔥 COLORS:", colors);
-  console.log("🔥 IS DARK:", isDark);
 
   const [ready, setReady] = useState(false);
   const [activeAlarm, setActiveAlarm] = useState<{
@@ -151,6 +148,7 @@ const AppContent = () => {
     const firedSubscription = eventEmitter.addListener(
       "AlarmFired",
       (event: { alarmId: string; title: string }) => {
+        console.log("Alarm fired:", event.alarmId, event.title);
         setActiveAlarm({
           alarmId: event.alarmId,
           title: event.title,
@@ -161,6 +159,7 @@ const AppContent = () => {
     const stopSubscription = eventEmitter.addListener(
       "AlarmStop",
       (event: { alarmId: string }) => {
+        console.log("Alarm stopped:", event.alarmId);
         setActiveAlarm(null);
       },
     );
@@ -168,6 +167,7 @@ const AppContent = () => {
     const snoozeSubscription = eventEmitter.addListener(
       "AlarmSnooze",
       (event: { alarmId: string }) => {
+        console.log("Alarm snoozed:", event.alarmId);
         setActiveAlarm(null);
       },
     );
@@ -183,7 +183,7 @@ const AppContent = () => {
     const checkActiveAlarm = async () => {
       try {
         const { AlarmModule } = NativeModules;
-
+ 
         if (!AlarmModule?.getActiveAlarm) {
           console.warn("AlarmModule.getActiveAlarm is not available");
           return;
@@ -192,11 +192,14 @@ const AppContent = () => {
         const alarm = await AlarmModule.getActiveAlarm();
 
         if (alarm?.isRinging && alarm.alarmId) {
+          console.log("Active alarm found:", alarm.alarmId, alarm.title);
           setActiveAlarm({
             alarmId: alarm.alarmId,
             title: alarm.title || "Alarm",
           });
+          console.log("Active alarm found2222 :", activeAlarm);
         } else {
+          console.log("No active alarm found.", activeAlarm);
           setActiveAlarm(null);
         }
       } catch (error) {
@@ -228,6 +231,7 @@ const AppContent = () => {
         barStyle={isDark ? "light-content" : "dark-content"}
         backgroundColor={colors.background}
       />
+ 
       {activeAlarm && (
         <ActiveAlarmBanner
           alarm={activeAlarm}

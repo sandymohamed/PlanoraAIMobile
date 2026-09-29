@@ -29,6 +29,7 @@ import {
   cancelFocusAlarm,
   stopFocusAlarmSound,
   computeRemaining,
+  FocusSession,
 } from "@/services/focusSessionService";
 
 type Status = "idle" | "running" | "paused";
@@ -140,7 +141,7 @@ const createStyles = (colors: PlanoraColors) =>
       flexDirection: "row",
       alignItems: "center",
       gap: spacing.sm,
-      backgroundColor: colors.surfaceElevated,
+      backgroundColor: colors?.surfaceElevated || colors.surface,
       paddingHorizontal: spacing.xxl,
       paddingVertical: spacing.md,
       borderRadius: 16,
@@ -159,7 +160,7 @@ const createStyles = (colors: PlanoraColors) =>
     modalCard: {
       width: "100%",
       maxWidth: 360,
-      backgroundColor: colors.surfaceElevated,
+      backgroundColor: colors?.surfaceElevated || colors.surface,
       borderRadius: 24,
       padding: spacing.xl,
       alignItems: "center",
@@ -194,6 +195,13 @@ const createStyles = (colors: PlanoraColors) =>
       borderRadius: 16,
     },
     modalButtonText: { ...typography.h3, color: "#fff" },
+    modeDisabled: {
+      opacity: 0.6,
+    },
+
+    modeTextDisabled: {
+      opacity: 0.7,
+    },
   });
 
 export const FocusScreen: React.FC = () => {
@@ -240,9 +248,44 @@ export const FocusScreen: React.FC = () => {
   }, [mode, stopInterval]);
 
   const dismissComplete = useCallback(async () => {
+    console.log("dismissComplete called");
     setCompletedMode(null);
     await stopFocusAlarmSound().catch(() => {});
   }, []);
+
+  const completeSession = useCallback(
+    async (session: FocusSession) => {
+      stopInterval();
+      endsAtRef.current = null;
+
+      setMode(session.mode);
+      setStatus("idle");
+
+      const defaultSeconds = FOCUS_MODES[session.mode].minutes * 60;
+
+      setSecondsLeft(defaultSeconds);
+      totalSecRef.current = defaultSeconds;
+
+      await clearSession().catch(() => {});
+
+      const updated = await recordCompletedSession(session.durationSec).catch(
+        () => null,
+      );
+
+      if (updated) {
+        setStats(updated);
+      }
+
+      track(AnalyticsEvents.FOCUS_SESSION_ENDED, {
+        mode: session.mode,
+        durationSec: session.durationSec,
+        completed: true,
+      });
+
+      setCompletedMode(session.mode);
+    },
+    [stopInterval],
+  );
 
   const tick = useCallback(() => {
     if (endsAtRef.current == null) return;
@@ -284,10 +327,12 @@ export const FocusScreen: React.FC = () => {
         totalSecRef.current = session.durationSec;
 
         if (session.status === "running") {
+          console.log("Resuming running session");
           if (remaining <= 0) {
+            console.log("Session completed while away");
+            if (cancelled) return;
             // Completed while away → auto-reset.
-            await clearSession().catch(() => {});
-            resetToMode(session.mode, false);
+            await completeSession(session);
           } else {
             endsAtRef.current = session.endsAt;
             setSecondsLeft(remaining);
@@ -337,6 +382,7 @@ export const FocusScreen: React.FC = () => {
   };
 
   const beginCountdown = async (fromSeconds: number) => {
+    console.log("beginCountdown called with fromSeconds:", fromSeconds);
     const endsAt = Date.now() + fromSeconds * 1000;
     endsAtRef.current = endsAt;
     if (status === "idle") totalSecRef.current = fromSeconds;
@@ -371,6 +417,7 @@ export const FocusScreen: React.FC = () => {
   };
 
   const onPause = async () => {
+    console.log("onPause called");
     stopInterval();
     const remaining = endsAtRef.current
       ? Math.max(0, Math.round((endsAtRef.current - Date.now()) / 1000))
@@ -378,6 +425,7 @@ export const FocusScreen: React.FC = () => {
     endsAtRef.current = null;
     setSecondsLeft(remaining);
     setStatus("paused");
+    console.log("onPause: remaining seconds:", remaining);
     await cancelFocusAlarm().catch(() => {});
     await saveSession({
       mode,
@@ -392,6 +440,7 @@ export const FocusScreen: React.FC = () => {
   const onResume = () => beginCountdown(secondsLeft);
 
   const onReset = async () => {
+    console.log("Resetting focus session");
     await clearSession().catch(() => {});
     resetToMode(mode, false);
   };
@@ -465,10 +514,11 @@ export const FocusScreen: React.FC = () => {
             {t("focusScreen.sessionsToday")}
           </Text>
         </View>
-        {/* <View style={styles.statCard}>
+         <View style={styles.statCard}>
           <Text style={styles.statValue}>
             {" "}
-            {Math.round(stats.focusedSeconds / 60)} **{" "}
+            {/* {Math.round(stats.focusedSeconds / 60)} {" "} */}
+            {Math.round(totalSecRef.current / 60)} {" "}
             {t("focusScreen.min")}{" "}
           </Text>
           <Text
@@ -482,7 +532,7 @@ export const FocusScreen: React.FC = () => {
           >
             {t("focusScreen.focusedToday")}
           </Text>
-        </View> */}
+        </View> 
       </View>
 
       <View
@@ -491,19 +541,32 @@ export const FocusScreen: React.FC = () => {
           { flexDirection: isArabic ? "row-reverse" : "row" },
         ]}
       >
-        {(Object.keys(FOCUS_MODES) as FocusMode[]).map((k) => (
-          <TouchableOpacity
-            key={k}
-            style={[styles.modeBtn, mode === k && styles.modeActive]}
-            onPress={() => onSelectMode(k)}
-          >
-            <Text
-              style={[styles.modeText, mode === k && styles.modeTextActive]}
+        {(Object.keys(FOCUS_MODES) as FocusMode[]).map((k) => {
+          const isDisabled = status !== "idle";
+
+          return (
+            <TouchableOpacity
+              key={k}
+              style={[
+                styles.modeBtn,
+                mode === k && styles.modeActive,
+                isDisabled && styles.modeDisabled,
+              ]}
+              onPress={() => onSelectMode(k)}
+              disabled={isDisabled}
             >
-              {t(`focusScreen.modes.${k}.label`)}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={[
+                  styles.modeText,
+                  mode === k && styles.modeTextActive,
+                  isDisabled && styles.modeTextDisabled,
+                ]}
+              >
+                {t(`focusScreen.modes.${k}.label`)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <View style={styles.timerWrap}>
@@ -627,7 +690,7 @@ export const FocusScreen: React.FC = () => {
         visible={completedMode !== null}
         transparent
         animationType="fade"
-        onRequestClose={dismissComplete}
+        onRequestClose={() => dismissComplete()}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
@@ -659,7 +722,7 @@ export const FocusScreen: React.FC = () => {
                 styles.modalButton,
                 { flexDirection: isArabic ? "row-reverse" : "row" },
               ]}
-              onPress={dismissComplete}
+              onPress={() => dismissComplete()}
               activeOpacity={0.85}
             >
               <Icon name="stop-circle-outline" size={20} color="#fff" />

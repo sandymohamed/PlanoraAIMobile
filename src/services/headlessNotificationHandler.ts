@@ -14,7 +14,7 @@ class HeadlessNotificationHandler {
 
   initialize(): void {
     if (this.registered || Platform.OS !== "android") return;
-
+    console.log("HeadlessNotificationHandler: initializing FCM handlers");
     try {
       const messaging = require("@react-native-firebase/messaging").default;
 

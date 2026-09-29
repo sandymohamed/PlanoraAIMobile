@@ -149,41 +149,56 @@ class AlarmPlayerService : Service() {
   /**
    * Stop the alarm (internal method)
    */
-  private fun stopAlarmInternal() {
-    if (!isRinging) {
-      Log.w("AlarmPlayerService", "⚠️ stopAlarmInternal called but alarm is not ringing")
-      return
-    }
-    
-    Log.d("AlarmPlayerService", "🛑 Stopping alarm sound and vibration")
-    isRinging = false
-
-    try {
-      // Stop ringtone playback
-      ringtone?.stop()
-      ringtone = null
-      Log.d("AlarmPlayerService", "✅ Ringtone stopped")
-    } catch (e: Exception) {
-      Log.e("AlarmPlayerService", "❌ Error stopping ringtone: ${e.message}", e)
-    }
-
-    try {
-      // Stop vibration
-      vibrator?.cancel()
-      Log.d("AlarmPlayerService", "✅ Vibration stopped")
-    } catch (e: Exception) {
-      Log.e("AlarmPlayerService", "❌ Error stopping vibration: ${e.message}", e)
-    }
-
-    // Stop foreground service and remove notification
-    try {
-      stopForeground(true)
-      stopSelf()
-      Log.d("AlarmPlayerService", "✅ Service stopped")
-    } catch (e: Exception) {
-      Log.e("AlarmPlayerService", "❌ Error stopping service: ${e.message}", e)
-    }
+ private fun stopAlarmInternal() {
+  if (!isRinging) {
+    Log.w("AlarmPlayerService", "⚠️ stopAlarmInternal called but alarm is not ringing")
+    return
   }
+
+  Log.d("AlarmPlayerService", "🛑 Stopping alarm sound and vibration")
+
+  // Keep the ID before the service state is stopped
+  val stoppedAlarmId = alarmId
+
+  isRinging = false
+
+  try {
+    // Stop ringtone playback
+    ringtone?.stop()
+    ringtone = null
+    Log.d("AlarmPlayerService", "✅ Ringtone stopped")
+  } catch (e: Exception) {
+    Log.e("AlarmPlayerService", "❌ Error stopping ringtone: ${e.message}", e)
+  }
+
+  try {
+    // Stop vibration
+    vibrator?.cancel()
+    Log.d("AlarmPlayerService", "✅ Vibration stopped")
+  } catch (e: Exception) {
+    Log.e("AlarmPlayerService", "❌ Error stopping vibration: ${e.message}", e)
+  }
+
+  // Notify React Native that the ringing alarm has stopped
+  if (stoppedAlarmId != null) {
+    AlarmEventEmitter.sendStopEvent(stoppedAlarmId)
+
+    Log.d(
+      "AlarmPlayerService",
+      "📢 AlarmStop event sent: $stoppedAlarmId"
+    )
+  }
+
+  // Stop foreground service and remove notification
+  try {
+    stopForeground(true)
+    stopSelf()
+    Log.d("AlarmPlayerService", "✅ Service stopped")
+  } catch (e: Exception) {
+    Log.e("AlarmPlayerService", "❌ Error stopping service: ${e.message}", e)
+  }
+}
+
 
   /**
    * Create foreground service notification with Stop/Snooze actions

@@ -81,11 +81,9 @@ export const RegisterScreen: React.FC<{
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [emailTaken, setEmailTaken] = useState(false);
 
   const handleRegister = async () => {
     setError("");
-    setEmailTaken(false);
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedName = name.trim();
 
@@ -107,21 +105,8 @@ export const RegisterScreen: React.FC<{
       await register(trimmedEmail, password, trimmedName);
     } catch (e) {
       const msg = getApiErrorMessage(e);
-      const taken = isEmailExistsError(e);
       setError(msg);
-      setEmailTaken(taken);
-      if (taken) {
-        showConfirmDialog({
-          title: t("auth.emailAlreadyRegistered"),
-          message: msg,
-          variant: "warning",
-          confirmLabel: t("auth.signIn"),
-          cancelLabel: t("auth.useDifferentEmail"),
-          onConfirm: () => navigation.navigate("Login"),
-        });
-      } else {
         showError(t("auth.couldNotCreateAccount"), msg);
-      }
     } finally {
       setLoading(false);
     }
@@ -198,13 +183,12 @@ export const RegisterScreen: React.FC<{
         )}
       </Pressable>
 
-      {emailTaken ? (
-        <Button
-          label={t("auth.signInInstead")}
-          variant="ghost"
-          onPress={() => navigation.navigate("Login")}
-        />
-      ) : null}
+
+      <Button
+        label={t("auth.signInInstead")}
+        onPress={() => navigation.navigate("Login")}
+        variant="ghost"
+      />
     </KeyboardAvoidingView>
   );
 };

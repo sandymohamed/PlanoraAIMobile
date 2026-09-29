@@ -3,6 +3,7 @@
   "version": "1.0.4",
   "private": true,
   "scripts": {
+    "adb:wireless": "adb connect 192.168.1.32:37043 && npm run adb",
     "android": "npm run adb:reset && node scripts/ensure-adb-device.js && npm run android:install && npm run adb",
     "android:rn": "react-native run-android",
     "android:gradle-stop": "cd android && gradlew.bat --stop",

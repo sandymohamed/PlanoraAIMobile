@@ -1,6 +1,7 @@
-import { colors, shadows } from "@/theme/tokens";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { PlanoraColors, shadows } from "@/theme/tokens";
+import { usePlanoraStyles } from "@/theme/usePlanoraStyles";
 
 interface ActiveAlarm {
   alarmId: string;
@@ -14,61 +15,9 @@ interface ActiveAlarmBannerProps {
   onPress?: () => void;
 }
 
-export function ActiveAlarmBanner({
-  alarm,
-  onStop,
-  onSnooze,
-  onPress,
-}: ActiveAlarmBannerProps) {
-  console.log("Rendering ActiveAlarmBanner with alarm:", alarm);
 
-  const isFocusTimer = alarm.alarmId === "focus_timer";
-
-  return (
-    <View style={styles.container}>
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={onPress}
-        style={styles.content}
-      >
-        <View style={styles.iconContainer}>
-          <Text style={styles.icon}>⏰</Text>
-        </View>
-
-        <View style={styles.info}>
-          <Text style={styles.label}>ALARM</Text>
-
-          <Text style={styles.title} numberOfLines={1}>
-            {alarm.title}
-          </Text>
-
-          <Text style={styles.status}>Alarm is ringing</Text>
-        </View>
-      </TouchableOpacity>
-
-      <View style={styles.actions}>
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={onStop}
-          style={[styles.button, styles.stopButton]}
-        >
-          <Text style={styles.stopText}>Stop</Text>
-        </TouchableOpacity>
-        {!isFocusTimer && (
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={onSnooze}
-            style={[styles.button, styles.snoozeButton]}
-          >
-            <Text style={styles.snoozeText}>Snooze</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+const createStyles = (colors: PlanoraColors) =>
+ StyleSheet.create({
   container: {
     position: "absolute",
     top: 12,
@@ -169,3 +118,59 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
 });
+
+export function ActiveAlarmBanner({
+  alarm,
+  onStop,
+  onSnooze,
+  onPress,
+}: ActiveAlarmBannerProps) {
+  console.log("Rendering ActiveAlarmBanner with alarm:", alarm);
+  const { styles, colors } = usePlanoraStyles(createStyles);
+
+  const isFocusTimer = alarm.alarmId === "focus_timer";
+
+  return (
+    <View style={styles.container}>
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={onPress}
+        style={styles.content}
+      >
+        <View style={styles.iconContainer}>
+          <Text style={styles.icon}>⏰</Text>
+        </View>
+
+        <View style={styles.info}>
+          <Text style={styles.label}>ALARM</Text>
+
+          <Text style={styles.title} numberOfLines={1}>
+            {alarm.title}
+          </Text>
+
+          <Text style={styles.status}>Alarm is ringing</Text>
+        </View>
+      </TouchableOpacity>
+
+      <View style={styles.actions}>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={onStop}
+          style={[styles.button, styles.stopButton]}
+        >
+          <Text style={styles.stopText}>Stop</Text>
+        </TouchableOpacity>
+        {!isFocusTimer && (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={onSnooze}
+            style={[styles.button, styles.snoozeButton]}
+          >
+            <Text style={styles.snoozeText}>Snooze</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+}
+

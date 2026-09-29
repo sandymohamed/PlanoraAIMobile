@@ -417,6 +417,19 @@ fun cancelAllAlarms(promise: Promise) {
       promise.reject("ALARM_ERROR", "Failed to stop alarm: ${e.message}", e)
     }
   }
+  /**
+   * get currently playing alarm (if any)
+   * This check the AlarmPlayerService sound and vibration
+   */
+  @ReactMethod
+  fun getActiveAlarm(promise: Promise) {
+    try {
+      AlarmPlayerService.getActiveAlarm()
+      android.util.Log.d("AlarmModule", "✅ Get Alarms successfully")
+    } catch (e: Exception) {
+      android.util.Log.e("AlarmModule", "❌ Failed to get alarm: ${e.message}", e)
+    }
+  }
 
   /**
    * Save alarm to SharedPreferences for reboot recovery

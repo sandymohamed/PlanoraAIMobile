@@ -16,7 +16,7 @@ export class ReliableAlarmService {
 
   // Initialize - now just a placeholder for compatibility
   async initialize(): Promise<void> {
-    logger.info(
+    console.log(
       "🔧 Initializing ReliableAlarmService (using native Android alarms)...",
     );
     const pendingSnooze = await AsyncStorage.getItem("pending_snooze_alarm_id");
@@ -27,7 +27,7 @@ export class ReliableAlarmService {
       try {
         const { useAlarmStore } = await import("@/store/alarmStore");
         await useAlarmStore.getState().snoozeAlarm(originalId, 5);
-        logger.info("✅ Applied pending snooze for", originalId);
+        console.log("✅ Applied pending snooze for", originalId);
       } catch (e) {
         logger.warn("Pending snooze failed", e);
       } finally {
@@ -40,7 +40,7 @@ export class ReliableAlarmService {
   async scheduleAlarm(alarm: Alarm): Promise<string> {
     const alarmId = alarm.id;
 
-    logger.info(`📅 Scheduling native alarm "${alarm.title}"`);
+    console.log(`📅 Scheduling native alarm "${alarm.title}"`);
 
     try {
       // Use native alarm bridge - schedules via Android AlarmManager
@@ -58,7 +58,7 @@ export class ReliableAlarmService {
         }),
       );
 
-      logger.info("✅ Native alarm scheduled successfully");
+      console.log("✅ Native alarm scheduled successfully");
       return alarmId;
     } catch (error) {
       logger.error("❌ Failed to schedule native alarm:", error);
@@ -69,11 +69,11 @@ export class ReliableAlarmService {
   // Stop alarm - native alarms are stopped via notification actions
   // This method is kept for compatibility but doesn't play sound/vibration
   async stopAlarm(): Promise<void> {
-    logger.info("🛑 Stopping alarm (stopping native service)...");
+    console.log("🛑 Stopping alarm (stopping native service)...");
     try {
       // Stop the currently playing alarm sound/vibration
       await nativeAlarmBridge.stopPlayingAlarm();
-      logger.info("✅ Native alarm service stopped");
+      console.log("✅ Native alarm service stopped");
     } catch (error) {
       logger.error("❌ Error stopping native alarm service:", error);
       // Continue with cleanup even if native stop fails
@@ -81,7 +81,7 @@ export class ReliableAlarmService {
 
     // Clean up storage
     await AsyncStorage.removeItem("active_alarm");
-    logger.info("✅ Alarm stopped and cleaned up");
+    console.log("✅ Alarm stopped and cleaned up");
   }
 
   // Snooze alarm
@@ -96,7 +96,7 @@ export class ReliableAlarmService {
     return;
 
     /* DISABLED - Use alarmStore.snoozeAlarm() instead
-    logger.info('😴 Snoozing alarm...');
+    console.log('😴 Snoozing alarm...');
 
     // Get active alarm info
     const activeAlarmStr = await AsyncStorage.getItem('active_alarm');
@@ -118,7 +118,7 @@ export class ReliableAlarmService {
       };
 
       await this.scheduleAlarm(snoozeAlarm);
-      logger.info('✅ Alarm snoozed for 5 minutes');
+      console.log('✅ Alarm snoozed for 5 minutes');
     }
     */
   }
@@ -134,7 +134,7 @@ export class ReliableAlarmService {
       await AsyncStorage.removeItem(`alarm_notif_${alarmId}`);
       await AsyncStorage.removeItem(`alarm_timer_${alarmId}`);
 
-      logger.info(`✅ Alarm canceled successfully: ${alarmId}`);
+      console.log(`✅ Alarm canceled successfully: ${alarmId}`);
 
       // Also cancel any snooze alarms for this alarm
       // Get all storage keys and find snooze alarms
@@ -148,7 +148,7 @@ export class ReliableAlarmService {
             !key.includes("_timer_"),
         );
 
-        logger.info(
+        console.log(
           `🔍 Found ${snoozeKeys.length} snooze alarm storage keys for ${alarmId}`,
         );
 
@@ -162,7 +162,7 @@ export class ReliableAlarmService {
                 (parsed.id.includes("_snooze_") ||
                   parsed.id.includes("_snooze"))
               ) {
-                logger.info(`🗑️ Cancelling snooze alarm: ${parsed.id}`);
+                console.log(`🗑️ Cancelling snooze alarm: ${parsed.id}`);
                 await nativeAlarmBridge.cancelAlarm(parsed.id);
                 await AsyncStorage.removeItem(key);
                 // Also clean up notification and timer keys for this snooze alarm
@@ -172,7 +172,7 @@ export class ReliableAlarmService {
                 await AsyncStorage.removeItem(`alarm_timer_${parsed.id}`).catch(
                   () => {},
                 );
-                logger.info(
+                console.log(
                   `✅ Cancelled and cleaned up snooze alarm: ${parsed.id}`,
                 );
               }
@@ -182,7 +182,7 @@ export class ReliableAlarmService {
               if (extractedId && extractedId.includes("_snooze")) {
                 await nativeAlarmBridge.cancelAlarm(extractedId);
                 await AsyncStorage.removeItem(key);
-                logger.info(
+                console.log(
                   `✅ Cancelled snooze alarm from key: ${extractedId}`,
                 );
               }
@@ -204,7 +204,7 @@ export class ReliableAlarmService {
 
   // Clean up everything - cancels all scheduled alarms and clears state
   async cleanUp(): Promise<void> {
-    logger.info("🧹 Cleaning up alarms...");
+    console.log("🧹 Cleaning up alarms...");
 
     try {
       // Stop any currently playing alarm first
@@ -257,7 +257,7 @@ export class ReliableAlarmService {
         await AsyncStorage.multiRemove(allAlarmKeys);
       }
 
-      logger.info("✅ Alarm cleanup complete");
+      console.log("✅ Alarm cleanup complete");
     } catch (error) {
       logger.error("Error during alarm cleanup:", error);
       // Don't throw - cleanup should be best effort
